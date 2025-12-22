@@ -178,6 +178,24 @@ export function useUpdateGoalStatus() {
   })
 }
 
+// Update goal confidence mutation
+export function useUpdateGoalConfidence() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      goalId,
+      confidence,
+    }: {
+      goalId: string
+      confidence: number
+    }) => syncService.updateGoalConfidence(goalId, confidence),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
 // Create idea record mutation
 export function useCreateIdea() {
   const queryClient = useQueryClient()

@@ -476,19 +476,59 @@ class SyncService {
     if (!goal) throw new Error('Goal not found')
 
     goal.status = status
+    // Update confidence based on status
+    if (status === 'Success') {
+      goal.currentConfidence = 1
+    } else if (status === 'Fail') {
+      goal.currentConfidence = 0
+    }
     goal._pendingSync = true
     await db.goals.put(goal)
 
+    const updateData: Record<string, unknown> = { Status: status }
+    if (status === 'Success') {
+      updateData['Current Confidence'] = 1
+    } else if (status === 'Fail') {
+      updateData['Current Confidence'] = 0
+    }
+
     if (navigator.onLine) {
       try {
-        await airtableService.updateRecord('Goals', goalId, { Status: status })
+        await airtableService.updateRecord('Goals', goalId, updateData)
         goal._pendingSync = false
         await db.goals.put(goal)
       } catch {
-        await this.queueMutation('Goals', 'update', goalId, { Status: status })
+        await this.queueMutation('Goals', 'update', goalId, updateData)
       }
     } else {
-      await this.queueMutation('Goals', 'update', goalId, { Status: status })
+      await this.queueMutation('Goals', 'update', goalId, updateData)
+    }
+  }
+
+  // Update goal confidence (handles offline)
+  async updateGoalConfidence(
+    goalId: string,
+    confidence: number
+  ): Promise<void> {
+    const goal = await db.goals.get(goalId)
+    if (!goal) throw new Error('Goal not found')
+
+    goal.currentConfidence = confidence
+    goal._pendingSync = true
+    await db.goals.put(goal)
+
+    const updateData = { 'Current Confidence': confidence }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Goals', goalId, updateData)
+        goal._pendingSync = false
+        await db.goals.put(goal)
+      } catch {
+        await this.queueMutation('Goals', 'update', goalId, updateData)
+      }
+    } else {
+      await this.queueMutation('Goals', 'update', goalId, updateData)
     }
   }
 
