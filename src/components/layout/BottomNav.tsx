@@ -2,10 +2,10 @@ import { NavLink } from 'react-router-dom'
 
 const navItems = [
   { path: '/', label: 'Home', icon: HomeIcon },
-  { path: '/health', label: 'Health', icon: HeartIcon },
-  { path: '/words', label: 'Words', icon: PenIcon },
-  { path: '/goals', label: 'Goals', icon: TargetIcon },
   { path: '/ideas', label: 'Ideas', icon: LightbulbIcon },
+  { path: '/words', label: 'Words', icon: PenIcon },
+  { path: '/health', label: 'Health', icon: HeartIcon },
+  { path: '/goals', label: 'Goals', icon: TargetIcon },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ]
 

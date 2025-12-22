@@ -31,7 +31,7 @@ const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
 export function Ideas() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [ideaName, setIdeaName] = useState('')
-  const [ideaType, setIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
+  const [ideaType, setIdeaType] = useState<LocalIdeasRecord['type']>('Step')
   const [filterType, setFilterType] = useState<LocalIdeasRecord['type'] | 'All'>('All')
 
   const ideas = useIdeas()
