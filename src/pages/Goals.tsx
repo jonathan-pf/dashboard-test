@@ -4,6 +4,7 @@ import {
   useCurrentWeekGoals,
   useCurrentWeek,
   useGoals,
+  useAreas,
   useCreateGoal,
   useUpdateGoalStatus,
   useWeeks,
@@ -14,10 +15,13 @@ export function Goals() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [goalName, setGoalName] = useState('')
   const [goalType, setGoalType] = useState<'Weekly' | 'Monthly' | 'Annual'>('Weekly')
+  const [goalAreaId, setGoalAreaId] = useState<string>('')
+  const [goalConfidence, setGoalConfidence] = useState<string>('')
 
   const currentWeek = useCurrentWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const allGoals = useGoals()
+  const areas = useAreas()
   const weeks = useWeeks()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
@@ -38,26 +42,32 @@ export function Goals() {
   const handleAddGoal = async () => {
     if (!goalName.trim()) return
 
+    const confidence = goalConfidence ? parseFloat(goalConfidence) / 100 : null
+
     await createGoal.mutateAsync({
       name: goalName.trim(),
       type: goalType,
       status: 'Live',
       weekId: currentWeek?.id ?? null,
-      areaId: null,
-      initialConfidence: null,
-      currentConfidence: null,
+      areaId: goalAreaId || null,
+      initialConfidence: confidence,
+      currentConfidence: confidence, // Copy initial to current for new goals
       deadline: null,
       notes: null,
     })
 
     setGoalName('')
     setGoalType('Weekly')
+    setGoalAreaId('')
+    setGoalConfidence('')
     setShowAddForm(false)
   }
 
   const handleCancelAdd = () => {
     setGoalName('')
     setGoalType('Weekly')
+    setGoalAreaId('')
+    setGoalConfidence('')
     setShowAddForm(false)
   }
 
@@ -212,6 +222,23 @@ export function Goals() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
+                Area
+              </label>
+              <select
+                value={goalAreaId}
+                onChange={(e) => setGoalAreaId(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              >
+                <option value="">No area</option>
+                {areas?.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Type
               </label>
               <select
@@ -223,6 +250,21 @@ export function Goals() {
                 <option value="Monthly">Monthly</option>
                 <option value="Annual">Annual</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Initial Confidence (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="5"
+                value={goalConfidence}
+                onChange={(e) => setGoalConfidence(e.target.value)}
+                placeholder="e.g. 70"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
             </div>
             <div className="flex gap-3">
               <button

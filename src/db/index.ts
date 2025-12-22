@@ -4,6 +4,7 @@ import type {
   LocalWordsRecord,
   LocalWeeksRecord,
   LocalGoalsRecord,
+  LocalAreasRecord,
   PendingMutation,
   SyncMeta,
 } from '@/types/airtable'
@@ -13,6 +14,7 @@ class DashboardDatabase extends Dexie {
   words!: EntityTable<LocalWordsRecord, 'id'>
   weeks!: EntityTable<LocalWeeksRecord, 'id'>
   goals!: EntityTable<LocalGoalsRecord, 'id'>
+  areas!: EntityTable<LocalAreasRecord, 'id'>
   pendingMutations!: EntityTable<PendingMutation, 'id'>
   syncMeta!: EntityTable<SyncMeta, 'key'>
 
@@ -24,6 +26,16 @@ class DashboardDatabase extends Dexie {
       words: 'id, project, when, weekId, _pendingSync',
       weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
       goals: 'id, status, deadline, weekId, type, _pendingSync',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
+
+    this.version(2).stores({
+      health: 'id, type, date, weekId, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
@@ -65,6 +77,7 @@ export async function clearAllData(): Promise<void> {
     db.words.clear(),
     db.weeks.clear(),
     db.goals.clear(),
+    db.areas.clear(),
     db.pendingMutations.clear(),
     db.syncMeta.clear(),
   ])

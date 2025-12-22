@@ -12,10 +12,12 @@ import type {
   WordsRecord,
   WeeksRecord,
   GoalsRecord,
+  AreasRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
   LocalGoalsRecord,
+  LocalAreasRecord,
   PendingMutation,
   TABLES,
 } from '@/types/airtable'
@@ -89,6 +91,15 @@ function transformGoalsRecord(record: GoalsRecord): LocalGoalsRecord {
   }
 }
 
+function transformAreasRecord(record: AreasRecord): LocalAreasRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    type: record.fields.Type,
+    createdTime: record.createdTime,
+  }
+}
+
 // Transform local records back to Airtable format for mutations
 function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknown> {
   return {
@@ -109,12 +120,15 @@ function localWordsToAirtable(record: LocalWordsRecord): Record<string, unknown>
   }
 }
 
-// Used for future goal creation feature
+// Used for goal creation
 export function localGoalsToAirtable(record: LocalGoalsRecord): Record<string, unknown> {
   return {
     Name: record.name,
+    Area: record.areaId ? [record.areaId] : undefined,
+    'Initial Confidence': record.initialConfidence,
     'Current Confidence': record.currentConfidence,
     Status: record.status,
+    Type: record.type,
     Notes: record.notes,
     Weeks: record.weekId ? [record.weekId] : undefined,
   }
@@ -161,30 +175,33 @@ class SyncService {
     console.log('Pulling data from Airtable...')
 
     // Fetch all tables in parallel
-    const [healthRecords, wordsRecords, weeksRecords, goalsRecords] = await Promise.all([
+    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords] = await Promise.all([
       airtableService.fetchAllRecords<HealthRecord>('Health'),
       airtableService.fetchAllRecords<WordsRecord>('Words'),
       airtableService.fetchAllRecords<WeeksRecord>('Weeks'),
       airtableService.fetchAllRecords<GoalsRecord>('Goals'),
+      airtableService.fetchAllRecords<AreasRecord>('Areas'),
     ])
 
     // Transform and store locally
-    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals], async () => {
+    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas], async () => {
       // Clear existing data (except pending mutations)
       await db.health.clear()
       await db.words.clear()
       await db.weeks.clear()
       await db.goals.clear()
+      await db.areas.clear()
 
       // Bulk insert transformed records
       await db.health.bulkPut(healthRecords.map(transformHealthRecord))
       await db.words.bulkPut(wordsRecords.map(transformWordsRecord))
       await db.weeks.bulkPut(weeksRecords.map(transformWeeksRecord))
       await db.goals.bulkPut(goalsRecords.map(transformGoalsRecord))
+      await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
     })
 
     console.log(
-      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals`
+      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas`
     )
   }
 

@@ -83,6 +83,14 @@ export interface GoalsRecord extends AirtableRecord {
   }
 }
 
+// Areas table
+export interface AreasRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Type: 'Work' | 'Personal' | 'Health' | 'Creative'
+  }
+}
+
 // Ideas table
 export interface IdeasRecord extends AirtableRecord {
   fields: {
@@ -184,6 +192,13 @@ export interface LocalGoalsRecord {
   _localId?: string
 }
 
+export interface LocalAreasRecord {
+  id: string
+  name: string
+  type: 'Work' | 'Personal' | 'Health' | 'Creative'
+  createdTime: string
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -210,6 +225,7 @@ export const TABLES = {
   GOALS: 'Goals',
   IDEAS: 'Ideas',
   WORK: 'Work',
+  AREAS: 'Areas',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

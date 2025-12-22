@@ -14,6 +14,7 @@ export const queryKeys = {
   words: ['words'] as const,
   weeks: ['weeks'] as const,
   goals: ['goals'] as const,
+  areas: ['areas'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -56,6 +57,10 @@ export function useLastWeek() {
 
 export function useGoals() {
   return useLiveQuery(() => db.goals.toArray(), [])
+}
+
+export function useAreas() {
+  return useLiveQuery(() => db.areas.orderBy('name').toArray(), [])
 }
 
 export function useGoalsByStatus(status: LocalGoalsRecord['status']) {
