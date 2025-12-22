@@ -112,7 +112,7 @@ describe('AirtableService', () => {
           method: 'PATCH',
         })
       )
-      expect(result.fields.Status).toBe('Success')
+      expect((result as unknown as { fields: { Status: string } }).fields.Status).toBe('Success')
     })
   })
 

@@ -14,6 +14,7 @@ type HealthType = LocalHealthRecord['type']
 export function Health() {
   const [activeEntry, setActiveEntry] = useState<HealthType | null>(null)
   const [entryValue, setEntryValue] = useState('')
+  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().split('T')[0])
 
   const currentWeek = useCurrentWeek()
   const glucoseData = useHealthByType('Glucose')
@@ -41,16 +42,18 @@ export function Health() {
     await createHealth.mutateAsync({
       value,
       type,
-      date: today,
+      date: entryDate,
       weekId: currentWeek?.id ?? null,
     })
 
     setEntryValue('')
+    setEntryDate(new Date().toISOString().split('T')[0])
     setActiveEntry(null)
   }
 
   const handleCancel = () => {
     setEntryValue('')
+    setEntryDate(new Date().toISOString().split('T')[0])
     setActiveEntry(null)
   }
 
@@ -94,6 +97,18 @@ export function Health() {
 
         {activeEntry ? (
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Date
+              </label>
+              <input
+                type="date"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+                max={today}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {activeEntry} Value

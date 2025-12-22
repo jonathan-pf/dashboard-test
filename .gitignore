@@ -31,3 +31,4 @@ test-results
 
 # PWA
 dev-dist
+.vercel
