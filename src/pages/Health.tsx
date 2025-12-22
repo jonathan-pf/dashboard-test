@@ -11,10 +11,17 @@ import type { LocalHealthRecord } from '@/types/airtable'
 
 type HealthType = LocalHealthRecord['type']
 
+const getToday = () => new Date().toISOString().split('T')[0]
+const getYesterday = () => {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
 export function Health() {
   const [activeEntry, setActiveEntry] = useState<HealthType | null>(null)
   const [entryValue, setEntryValue] = useState('')
-  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [entryDate, setEntryDate] = useState(getToday)
 
   const currentWeek = useCurrentWeek()
   const glucoseData = useHealthByType('Glucose')
@@ -47,14 +54,21 @@ export function Health() {
     })
 
     setEntryValue('')
-    setEntryDate(new Date().toISOString().split('T')[0])
+    setEntryDate(getToday())
     setActiveEntry(null)
   }
 
   const handleCancel = () => {
     setEntryValue('')
-    setEntryDate(new Date().toISOString().split('T')[0])
+    setEntryDate(getToday())
     setActiveEntry(null)
+  }
+
+  const startEntry = (type: HealthType) => {
+    // Default to yesterday for Glucose and Units, today for others
+    const defaultDate = type === 'Glucose' || type === 'Units' ? getYesterday() : getToday()
+    setEntryDate(defaultDate)
+    setActiveEntry(type)
   }
 
   return (
@@ -142,25 +156,25 @@ export function Health() {
         ) : (
           <div className="space-y-3">
             <button
-              onClick={() => setActiveEntry('Glucose')}
+              onClick={() => startEntry('Glucose')}
               className="w-full py-3 bg-amber-50 text-amber-600 rounded-lg font-medium hover:bg-amber-100 transition-colors"
             >
               + Log Glucose
             </button>
             <button
-              onClick={() => setActiveEntry('Units')}
+              onClick={() => startEntry('Units')}
               className="w-full py-3 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition-colors"
             >
               + Log Units
             </button>
             <button
-              onClick={() => setActiveEntry('Reps')}
+              onClick={() => startEntry('Reps')}
               className="w-full py-3 bg-green-50 text-green-600 rounded-lg font-medium hover:bg-green-100 transition-colors"
             >
               + Log Reps
             </button>
             <button
-              onClick={() => setActiveEntry('Willpoint')}
+              onClick={() => startEntry('Willpoint')}
               className="w-full py-3 bg-purple-50 text-purple-600 rounded-lg font-medium hover:bg-purple-100 transition-colors"
             >
               + Log Willpoint
