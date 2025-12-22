@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+.pnpm-debug.log*
+
+# Build
+dist
+dist-ssr
+*.local
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+playwright-report
+test-results
+
+# PWA
+dev-dist

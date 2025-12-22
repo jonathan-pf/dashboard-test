@@ -1,0 +1,5 @@
+export { Dashboard } from './Dashboard'
+export { Health } from './Health'
+export { Words } from './Words'
+export { Goals } from './Goals'
+export { Settings } from './Settings'
