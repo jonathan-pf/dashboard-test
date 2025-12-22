@@ -13,11 +13,13 @@ import type {
   WeeksRecord,
   GoalsRecord,
   AreasRecord,
+  IdeasRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
   LocalGoalsRecord,
   LocalAreasRecord,
+  LocalIdeasRecord,
   PendingMutation,
   TABLES,
 } from '@/types/airtable'
@@ -100,6 +102,17 @@ function transformAreasRecord(record: AreasRecord): LocalAreasRecord {
   }
 }
 
+function transformIdeasRecord(record: IdeasRecord): LocalIdeasRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    type: record.fields.Type,
+    when: record.fields['When?'] || record.createdTime,
+    weekId: record.fields.Weeks?.[0] || null,
+    createdTime: record.createdTime,
+  }
+}
+
 // Transform local records back to Airtable format for mutations
 function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknown> {
   return {
@@ -130,6 +143,14 @@ export function localGoalsToAirtable(record: LocalGoalsRecord): Record<string, u
     Status: record.status,
     Type: record.type,
     Notes: record.notes,
+    Weeks: record.weekId ? [record.weekId] : undefined,
+  }
+}
+
+function localIdeasToAirtable(record: LocalIdeasRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Type: record.type,
     Weeks: record.weekId ? [record.weekId] : undefined,
   }
 }
@@ -175,22 +196,24 @@ class SyncService {
     console.log('Pulling data from Airtable...')
 
     // Fetch all tables in parallel
-    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords] = await Promise.all([
+    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords] = await Promise.all([
       airtableService.fetchAllRecords<HealthRecord>('Health'),
       airtableService.fetchAllRecords<WordsRecord>('Words'),
       airtableService.fetchAllRecords<WeeksRecord>('Weeks'),
       airtableService.fetchAllRecords<GoalsRecord>('Goals'),
       airtableService.fetchAllRecords<AreasRecord>('Areas'),
+      airtableService.fetchAllRecords<IdeasRecord>('Ideas'),
     ])
 
     // Transform and store locally
-    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas], async () => {
+    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas], async () => {
       // Clear existing data (except pending mutations)
       await db.health.clear()
       await db.words.clear()
       await db.weeks.clear()
       await db.goals.clear()
       await db.areas.clear()
+      await db.ideas.clear()
 
       // Bulk insert transformed records
       await db.health.bulkPut(healthRecords.map(transformHealthRecord))
@@ -198,10 +221,11 @@ class SyncService {
       await db.weeks.bulkPut(weeksRecords.map(transformWeeksRecord))
       await db.goals.bulkPut(goalsRecords.map(transformGoalsRecord))
       await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
+      await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
     })
 
     console.log(
-      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas`
+      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas`
     )
   }
 
@@ -403,6 +427,41 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Goals', 'create', localId, localGoalsToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Create an idea record (handles offline)
+  async createIdeaRecord(
+    data: Omit<LocalIdeasRecord, 'id' | 'createdTime'>
+  ): Promise<LocalIdeasRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalIdeasRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.ideas.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<IdeasRecord>(
+          'Ideas',
+          localIdeasToAirtable(record)
+        )
+        await db.ideas.delete(localId)
+        const updatedRecord = transformIdeasRecord(created)
+        await db.ideas.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Ideas', 'create', localId, localIdeasToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Ideas', 'create', localId, localIdeasToAirtable(record), localId)
     }
 
     return record

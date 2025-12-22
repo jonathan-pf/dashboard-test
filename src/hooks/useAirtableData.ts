@@ -6,6 +6,7 @@ import type {
   LocalHealthRecord,
   LocalWordsRecord,
   LocalGoalsRecord,
+  LocalIdeasRecord,
 } from '@/types/airtable'
 
 // Query keys
@@ -15,6 +16,7 @@ export const queryKeys = {
   weeks: ['weeks'] as const,
   goals: ['goals'] as const,
   areas: ['areas'] as const,
+  ideas: ['ideas'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -61,6 +63,25 @@ export function useGoals() {
 
 export function useAreas() {
   return useLiveQuery(() => db.areas.orderBy('name').toArray(), [])
+}
+
+export function useIdeas() {
+  return useLiveQuery(() => db.ideas.orderBy('when').reverse().toArray(), [])
+}
+
+export function useIdeasByType(type: LocalIdeasRecord['type']) {
+  return useLiveQuery(
+    () => db.ideas.where('type').equals(type).reverse().sortBy('when'),
+    [type]
+  )
+}
+
+export function useCurrentWeekIdeas() {
+  return useLiveQuery(async () => {
+    const currentWeek = await db.weeks.filter((w) => w.thisWeek).first()
+    if (!currentWeek) return []
+    return db.ideas.where('weekId').equals(currentWeek.id).reverse().sortBy('when')
+  }, [])
 }
 
 export function useGoalsByStatus(status: LocalGoalsRecord['status']) {
@@ -153,6 +174,19 @@ export function useUpdateGoalStatus() {
     }) => syncService.updateGoalStatus(goalId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
+// Create idea record mutation
+export function useCreateIdea() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalIdeasRecord, 'id' | 'createdTime'>) =>
+      syncService.createIdeaRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ideas })
     },
   })
 }

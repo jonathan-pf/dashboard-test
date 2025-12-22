@@ -199,6 +199,17 @@ export interface LocalAreasRecord {
   createdTime: string
 }
 
+export interface LocalIdeasRecord {
+  id: string
+  name: string
+  type: 'Revelation' | 'Crux Test' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage'
+  when: string
+  weekId: string | null
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
