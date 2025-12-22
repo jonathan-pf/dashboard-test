@@ -356,6 +356,41 @@ class SyncService {
     return record
   }
 
+  // Create a goal record (handles offline)
+  async createGoalRecord(
+    data: Omit<LocalGoalsRecord, 'id' | 'createdTime'>
+  ): Promise<LocalGoalsRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalGoalsRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.goals.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<GoalsRecord>(
+          'Goals',
+          localGoalsToAirtable(record)
+        )
+        await db.goals.delete(localId)
+        const updatedRecord = transformGoalsRecord(created)
+        await db.goals.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Goals', 'create', localId, localGoalsToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Goals', 'create', localId, localGoalsToAirtable(record), localId)
+    }
+
+    return record
+  }
+
   // Update goal status (handles offline)
   async updateGoalStatus(
     goalId: string,

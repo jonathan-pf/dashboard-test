@@ -1,16 +1,25 @@
+import { useState } from 'react'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useCurrentWeekGoals,
+  useCurrentWeek,
   useGoals,
+  useCreateGoal,
   useUpdateGoalStatus,
   useWeeks,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
 export function Goals() {
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [goalName, setGoalName] = useState('')
+  const [goalType, setGoalType] = useState<'Weekly' | 'Monthly' | 'Annual'>('Weekly')
+
+  const currentWeek = useCurrentWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const allGoals = useGoals()
   const weeks = useWeeks()
+  const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
 
   const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
@@ -24,6 +33,32 @@ export function Goals() {
 
   const handleMarkFailed = async (goalId: string) => {
     await updateGoalStatus.mutateAsync({ goalId, status: 'Fail' })
+  }
+
+  const handleAddGoal = async () => {
+    if (!goalName.trim()) return
+
+    await createGoal.mutateAsync({
+      name: goalName.trim(),
+      type: goalType,
+      status: 'Live',
+      weekId: currentWeek?.id ?? null,
+      areaId: null,
+      initialConfidence: null,
+      currentConfidence: null,
+      deadline: null,
+      notes: null,
+    })
+
+    setGoalName('')
+    setGoalType('Weekly')
+    setShowAddForm(false)
+  }
+
+  const handleCancelAdd = () => {
+    setGoalName('')
+    setGoalType('Weekly')
+    setShowAddForm(false)
   }
 
   // Calculate historical success rates
@@ -153,10 +188,65 @@ export function Goals() {
           </div>
         )}
 
-        {(!currentWeekGoals || currentWeekGoals.length === 0) && (
+        {(!currentWeekGoals || currentWeekGoals.length === 0) && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
             No goals for this week
           </div>
+        )}
+
+        {/* Add Goal Form */}
+        {showAddForm ? (
+          <div className="mt-4 space-y-4 pt-4 border-t border-slate-200">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Goal Name
+              </label>
+              <input
+                type="text"
+                value={goalName}
+                onChange={(e) => setGoalName(e.target.value)}
+                placeholder="Enter goal name"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Type
+              </label>
+              <select
+                value={goalType}
+                onChange={(e) => setGoalType(e.target.value as 'Weekly' | 'Monthly' | 'Annual')}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              >
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Annual">Annual</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelAdd}
+                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddGoal}
+                disabled={!goalName.trim() || createGoal.isPending}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {createGoal.isPending ? 'Adding...' : 'Add Goal'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full mt-4 py-3 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+          >
+            + Add Goal
+          </button>
         )}
       </div>
 

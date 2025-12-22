@@ -121,6 +121,19 @@ export function useCreateWords() {
   })
 }
 
+// Create goal record mutation
+export function useCreateGoal() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalGoalsRecord, 'id' | 'createdTime'>) =>
+      syncService.createGoalRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
 // Update goal status mutation
 export function useUpdateGoalStatus() {
   const queryClient = useQueryClient()
