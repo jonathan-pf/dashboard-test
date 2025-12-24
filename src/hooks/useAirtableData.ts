@@ -79,7 +79,7 @@ export function useIdeasByType(type: LocalIdeasRecord['type']) {
 
 export function useCareerTotals() {
   return useLiveQuery(
-    () => db.career.filter((c) => c.name === 'Totals').first(),
+    () => db.career.first(),
     []
   )
 }

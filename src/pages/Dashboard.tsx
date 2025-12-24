@@ -33,10 +33,6 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900">
-        {currentWeek?.name ?? 'This Week'}
-      </h2>
-
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Totals</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -52,6 +48,10 @@ export function Dashboard() {
           />
         </div>
       </div>
+
+      <h2 className="text-2xl font-bold text-slate-900">
+        {currentWeek?.name ?? 'This Week'}
+      </h2>
 
       <div className="grid grid-cols-2 gap-4">
         <StatCard
