@@ -47,7 +47,7 @@ export function Dashboard() {
           />
           <StatCard
             label="Total Lives"
-            value={careerTotals?.totalLives ?? 0}
+            value={Math.floor(careerTotals?.totalLives ?? 0)}
             loading={!careerTotals}
           />
         </div>
