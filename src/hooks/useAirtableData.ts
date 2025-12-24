@@ -17,6 +17,7 @@ export const queryKeys = {
   goals: ['goals'] as const,
   areas: ['areas'] as const,
   ideas: ['ideas'] as const,
+  career: ['career'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -73,6 +74,13 @@ export function useIdeasByType(type: LocalIdeasRecord['type']) {
   return useLiveQuery(
     () => db.ideas.where('type').equals(type).reverse().sortBy('when'),
     [type]
+  )
+}
+
+export function useCareerTotals() {
+  return useLiveQuery(
+    () => db.career.filter((c) => c.name === 'Totals').first(),
+    []
   )
 }
 

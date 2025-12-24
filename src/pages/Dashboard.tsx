@@ -9,6 +9,7 @@ import {
   useHealthTrends,
   useWeeks,
   useCurrentWeekGoals,
+  useCareerTotals,
 } from '@/hooks/useAirtableData'
 import { syncService } from '@/services/sync'
 
@@ -18,6 +19,7 @@ export function Dashboard() {
   const glucoseTrends = useHealthTrends('Glucose', 14)
   const weeks = useWeeks()
   const currentWeekGoals = useCurrentWeekGoals()
+  const careerTotals = useCareerTotals()
 
   // Initialize sync on mount
   useEffect(() => {
@@ -34,6 +36,22 @@ export function Dashboard() {
       <h2 className="text-2xl font-bold text-slate-900">
         {currentWeek?.name ?? 'This Week'}
       </h2>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-3">Totals</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard
+            label="Total Donations"
+            value={careerTotals?.totalDonations ?? 0}
+            loading={!careerTotals}
+          />
+          <StatCard
+            label="Total Lives"
+            value={careerTotals?.totalLives ?? 0}
+            loading={!careerTotals}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <StatCard

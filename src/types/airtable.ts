@@ -114,6 +114,15 @@ export interface WorkRecord extends AirtableRecord {
   }
 }
 
+// Career table - tracks lifetime totals
+export interface CareerRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    'Total Donations': number | null
+    'Total Lives': number | null
+  }
+}
+
 // API response types
 export interface AirtableListResponse<T> {
   records: T[]
@@ -210,6 +219,14 @@ export interface LocalIdeasRecord {
   _localId?: string
 }
 
+export interface LocalCareerRecord {
+  id: string
+  name: string
+  totalDonations: number | null
+  totalLives: number | null
+  createdTime: string
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -237,6 +254,7 @@ export const TABLES = {
   IDEAS: 'Ideas',
   WORK: 'Work',
   AREAS: 'Areas',
+  CAREER: 'Career',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
