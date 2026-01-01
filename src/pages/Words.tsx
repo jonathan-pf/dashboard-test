@@ -52,7 +52,7 @@ export function Words() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900">Words</h2>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
           <p className="text-xs text-slate-500">Arcadia</p>
           <p className="text-2xl font-bold text-blue-600">
@@ -69,6 +69,12 @@ export function Words() {
           <p className="text-xs text-slate-500">Notes</p>
           <p className="text-2xl font-bold text-purple-600">
             {wordsByProject.Notes.toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
+          <p className="text-xs text-slate-500">Novella</p>
+          <p className="text-2xl font-bold text-orange-600">
+            {wordsByProject.Novella.toLocaleString()}
           </p>
         </div>
       </div>
@@ -115,7 +121,7 @@ export function Words() {
                 Project
               </label>
               <div className="flex gap-2">
-                {(['Arcadia', 'Blog', 'Notes'] as const).map((project) => (
+                {(['Arcadia', 'Blog', 'Notes', 'Novella'] as const).map((project) => (
                   <button
                     key={project}
                     onClick={() => setEntryProject(project)}
@@ -125,7 +131,9 @@ export function Words() {
                           ? 'bg-blue-600 text-white'
                           : project === 'Blog'
                           ? 'bg-green-600 text-white'
-                          : 'bg-purple-600 text-white'
+                          : project === 'Notes'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-orange-600 text-white'
                         : 'bg-slate-100 text-slate-600'
                     }`}
                   >
@@ -188,7 +196,9 @@ export function Words() {
                       ? 'bg-blue-100 text-blue-700'
                       : entry.project === 'Blog'
                       ? 'bg-green-100 text-green-700'
-                      : 'bg-purple-100 text-purple-700'
+                      : entry.project === 'Notes'
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-orange-100 text-orange-700'
                   }`}
                 >
                   {entry.project}

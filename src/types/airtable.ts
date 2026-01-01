@@ -21,7 +21,7 @@ export interface WordsRecord extends AirtableRecord {
   fields: {
     Name: string
     Words: number
-    Project: 'Arcadia' | 'Blog' | 'Notes'
+    Project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella'
     When: string // ISO date string
     'Weekly Name': string // Formula field
     'Weekly Link': string[] // Record IDs linking to Weeks table
@@ -43,6 +43,7 @@ export interface WeeksRecord extends AirtableRecord {
     'Total Notes': number | null // Rollup
     'Total Fiction': number | null // Rollup
     'Total Blog': number | null // Rollup
+    'Total Novella': number | null // Rollup
     Ideas: string[] // Record IDs linking to Ideas table
     'Total Ideas': number | null // Rollup
     'Total Bits': number | null // Rollup
@@ -153,7 +154,7 @@ export interface LocalWordsRecord {
   id: string
   name: string
   words: number
-  project: 'Arcadia' | 'Blog' | 'Notes'
+  project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella'
   when: string
   weekId: string | null
   createdTime: string
@@ -177,6 +178,7 @@ export interface LocalWeeksRecord {
   totalNotes: number | null
   totalFiction: number | null
   totalBlog: number | null
+  totalNovella: number | null
   totalIdeas: number | null
   goalSuccess: number | null
   totalGoals: number | null

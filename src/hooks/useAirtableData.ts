@@ -269,6 +269,7 @@ export function useCurrentWeekWordsByProject() {
     Arcadia: 0,
     Blog: 0,
     Notes: 0,
+    Novella: 0,
   }
 
   if (words) {

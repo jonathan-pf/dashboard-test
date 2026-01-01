@@ -70,6 +70,7 @@ function transformWeeksRecord(record: WeeksRecord): LocalWeeksRecord {
     totalNotes: record.fields['Total Notes'] ?? null,
     totalFiction: record.fields['Total Fiction'] ?? null,
     totalBlog: record.fields['Total Blog'] ?? null,
+    totalNovella: record.fields['Total Novella'] ?? null,
     totalIdeas: record.fields['Total Ideas'] ?? null,
     goalSuccess: record.fields['Goal Success'] ?? null,
     totalGoals: record.fields['Total Goals'] ?? null,

@@ -41,6 +41,7 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
       Arcadia: week.totalFiction ?? 0,
       Blog: week.totalBlog ?? 0,
       Notes: week.totalNotes ?? 0,
+      Novella: week.totalNovella ?? 0,
     }))
 
   return (
@@ -70,7 +71,8 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
         <Legend wrapperStyle={{ fontSize: '12px' }} />
         <Bar dataKey="Arcadia" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Blog" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="Notes" stackId="a" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Notes" stackId="a" fill="#8b5cf6" radius={[0, 0, 0, 0]} />
+        <Bar dataKey="Novella" stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
