@@ -15,6 +15,7 @@ const IDEA_TYPES: LocalIdeasRecord['type'][] = [
   'Failure',
   'Bit',
   'Stage',
+  'Feature',
 ]
 
 const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
@@ -26,6 +27,7 @@ const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
   Failure: 'bg-rose-100 text-rose-700',
   Bit: 'bg-cyan-100 text-cyan-700',
   Stage: 'bg-indigo-100 text-indigo-700',
+  Feature: 'bg-teal-100 text-teal-700',
 }
 
 export function Ideas() {
