@@ -615,6 +615,42 @@ class SyncService {
     return record
   }
 
+  // Update a rule record (handles offline)
+  async updateRulesRecord(
+    ruleId: string,
+    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal'>>
+  ): Promise<void> {
+    const rule = await db.rules.get(ruleId)
+    if (!rule) throw new Error('Rule not found')
+
+    // Apply updates to local record
+    Object.assign(rule, updates)
+    rule._pendingSync = true
+    await db.rules.put(rule)
+
+    // Prepare Airtable update data
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.select !== undefined) updateData.Select = updates.select
+    if (updates.status !== undefined) updateData.Status = updates.status
+    if (updates.confidence !== undefined) updateData.Confidence = updates.confidence
+    if (updates.currentConfidence !== undefined) updateData['Current Confidence'] = updates.currentConfidence
+    if (updates.deadline !== undefined) updateData.Deadline = updates.deadline
+    if (updates.outputGoal !== undefined) updateData['Output Goal'] = updates.outputGoal
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Rules', ruleId, updateData)
+        rule._pendingSync = false
+        await db.rules.put(rule)
+      } catch {
+        await this.queueMutation('Rules', 'update', ruleId, updateData)
+      }
+    } else {
+      await this.queueMutation('Rules', 'update', ruleId, updateData)
+    }
+  }
+
   // Initialize sync listeners
   initializeListeners(): void {
     // Sync when coming back online

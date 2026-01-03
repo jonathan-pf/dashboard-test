@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useRules, useCreateRule } from '@/hooks/useAirtableData'
+import { useRules, useCreateRule, useUpdateRule } from '@/hooks/useAirtableData'
 import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
@@ -15,14 +15,21 @@ const SELECT_COLORS: Record<LocalRulesRecord['select'], string> = {
 }
 
 export function Rules() {
-  const [filterStatus, setFilterStatus] = useState<LocalRulesRecord['status'] | 'All'>('All')
+  const [filterStatus, setFilterStatus] = useState<LocalRulesRecord['status'] | 'All'>('Live')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newRuleName, setNewRuleName] = useState('')
   const [newRuleSelect, setNewRuleSelect] = useState<LocalRulesRecord['select']>('Goal')
   const [newRuleStatus, setNewRuleStatus] = useState<LocalRulesRecord['status']>('Backlog')
 
+  // Edit state
+  const [editingRule, setEditingRule] = useState<LocalRulesRecord | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editSelect, setEditSelect] = useState<LocalRulesRecord['select']>('Goal')
+  const [editStatus, setEditStatus] = useState<LocalRulesRecord['status']>('Live')
+
   const rules = useRules()
   const createRule = useCreateRule()
+  const updateRule = useUpdateRule()
 
   const filteredRules = filterStatus === 'All'
     ? rules
@@ -70,6 +77,32 @@ export function Rules() {
     setNewRuleSelect('Goal')
     setNewRuleStatus('Backlog')
     setShowCreateForm(false)
+  }
+
+  const startEditing = (rule: LocalRulesRecord) => {
+    setEditingRule(rule)
+    setEditName(rule.name)
+    setEditSelect(rule.select)
+    setEditStatus(rule.status)
+  }
+
+  const handleUpdateRule = async () => {
+    if (!editingRule || !editName.trim()) return
+
+    await updateRule.mutateAsync({
+      ruleId: editingRule.id,
+      updates: {
+        name: editName.trim(),
+        select: editSelect,
+        status: editStatus,
+      },
+    })
+
+    setEditingRule(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingRule(null)
   }
 
   return (
@@ -189,58 +222,125 @@ export function Rules() {
 
         <div className="space-y-3">
           {filteredRules?.map((rule) => (
-            <div
-              key={rule.id}
-              className={`p-4 rounded-lg border ${
-                rule.status === 'Archive' ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <p className={`text-sm font-medium flex-1 ${
-                  rule.status === 'Archive' ? 'text-slate-400' : 'text-slate-900'
-                }`}>
-                  {rule.name}
-                </p>
-                <div className="flex gap-1.5">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${SELECT_COLORS[rule.select]}`}>
-                    {rule.select}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[rule.status]}`}>
-                    {rule.status}
-                  </span>
+            <div key={rule.id}>
+              {editingRule?.id === rule.id ? (
+                // Edit form
+                <div className="p-4 rounded-lg border border-blue-300 bg-blue-50 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Type
+                      </label>
+                      <select
+                        value={editSelect}
+                        onChange={(e) => setEditSelect(e.target.value as LocalRulesRecord['select'])}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      >
+                        <option value="Goal">Goal</option>
+                        <option value="Limit">Limit</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Status
+                      </label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value as LocalRulesRecord['status'])}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      >
+                        <option value="Live">Live</option>
+                        <option value="Backlog">Backlog</option>
+                        <option value="Archive">Archive</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleUpdateRule}
+                      disabled={!editName.trim() || updateRule.isPending}
+                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                    >
+                      {updateRule.isPending ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-4 text-xs text-slate-500">
-                {rule.currentConfidence !== null && (
-                  <div className="flex items-center gap-1">
-                    <span>Confidence:</span>
-                    <span className={`font-medium ${
-                      rule.currentConfidence >= 0.7 ? 'text-green-600' :
-                      rule.currentConfidence >= 0.4 ? 'text-amber-600' :
-                      'text-red-600'
+              ) : (
+                // Display view
+                <button
+                  onClick={() => startEditing(rule)}
+                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                    rule.status === 'Archive'
+                      ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <p className={`text-sm font-medium flex-1 ${
+                      rule.status === 'Archive' ? 'text-slate-400' : 'text-slate-900'
                     }`}>
-                      {formatConfidence(rule.currentConfidence)}
-                    </span>
+                      {rule.name}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${SELECT_COLORS[rule.select]}`}>
+                        {rule.select}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[rule.status]}`}>
+                        {rule.status}
+                      </span>
+                    </div>
                   </div>
-                )}
-                {rule.deadline && (
-                  <div className="flex items-center gap-1">
-                    <span>Deadline:</span>
-                    <span className="font-medium text-slate-700">
-                      {formatDeadline(rule.deadline)}
-                    </span>
+
+                  <div className="flex items-center gap-4 text-xs text-slate-500">
+                    {rule.currentConfidence !== null && (
+                      <div className="flex items-center gap-1">
+                        <span>Confidence:</span>
+                        <span className={`font-medium ${
+                          rule.currentConfidence >= 0.7 ? 'text-green-600' :
+                          rule.currentConfidence >= 0.4 ? 'text-amber-600' :
+                          'text-red-600'
+                        }`}>
+                          {formatConfidence(rule.currentConfidence)}
+                        </span>
+                      </div>
+                    )}
+                    {rule.deadline && (
+                      <div className="flex items-center gap-1">
+                        <span>Deadline:</span>
+                        <span className="font-medium text-slate-700">
+                          {formatDeadline(rule.deadline)}
+                        </span>
+                      </div>
+                    )}
+                    {rule.outputGoal && (
+                      <div className="flex items-center gap-1">
+                        <span>Target:</span>
+                        <span className="font-medium text-slate-700">
+                          {rule.outputGoal}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {rule.outputGoal && (
-                  <div className="flex items-center gap-1">
-                    <span>Target:</span>
-                    <span className="font-medium text-slate-700">
-                      {rule.outputGoal}
-                    </span>
-                  </div>
-                )}
-              </div>
+                </button>
+              )}
             </div>
           ))}
 

@@ -243,6 +243,24 @@ export function useCreateRule() {
   })
 }
 
+// Update rule record mutation
+export function useUpdateRule() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      ruleId,
+      updates,
+    }: {
+      ruleId: string
+      updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal'>>
+    }) => syncService.updateRulesRecord(ruleId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.rules })
+    },
+  })
+}
+
 // Aggregate data hooks
 export function useWeeklyStats(weekId: string | null) {
   const week = useLiveQuery(
