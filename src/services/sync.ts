@@ -15,6 +15,7 @@ import type {
   AreasRecord,
   IdeasRecord,
   CareerRecord,
+  RulesRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
@@ -22,6 +23,7 @@ import type {
   LocalAreasRecord,
   LocalIdeasRecord,
   LocalCareerRecord,
+  LocalRulesRecord,
   PendingMutation,
   TABLES,
 } from '@/types/airtable'
@@ -126,6 +128,21 @@ function transformCareerRecord(record: CareerRecord): LocalCareerRecord {
   }
 }
 
+function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    select: record.fields.Select || 'Goal',
+    status: record.fields.Status || 'Backlog',
+    confidence: record.fields.Confidence ?? null,
+    currentConfidence: record.fields['Current Confidence'] ?? null,
+    deadline: record.fields.Deadline ?? null,
+    outputGoal: record.fields['Output Goal'] ?? null,
+    week: record.fields.Week ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
 // Transform local records back to Airtable format for mutations
 function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknown> {
   return {
@@ -209,7 +226,7 @@ class SyncService {
     console.log('Pulling data from Airtable...')
 
     // Fetch all tables in parallel
-    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords] = await Promise.all([
+    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = await Promise.all([
       airtableService.fetchAllRecords<HealthRecord>('Health'),
       airtableService.fetchAllRecords<WordsRecord>('Words'),
       airtableService.fetchAllRecords<WeeksRecord>('Weeks'),
@@ -217,10 +234,11 @@ class SyncService {
       airtableService.fetchAllRecords<AreasRecord>('Areas'),
       airtableService.fetchAllRecords<IdeasRecord>('Ideas'),
       airtableService.fetchAllRecords<CareerRecord>('Career'),
+      airtableService.fetchAllRecords<RulesRecord>('Rules'),
     ])
 
     // Transform and store locally
-    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career], async () => {
+    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules], async () => {
       // Clear existing data (except pending mutations)
       await db.health.clear()
       await db.words.clear()
@@ -229,6 +247,7 @@ class SyncService {
       await db.areas.clear()
       await db.ideas.clear()
       await db.career.clear()
+      await db.rules.clear()
 
       // Bulk insert transformed records
       await db.health.bulkPut(healthRecords.map(transformHealthRecord))
@@ -238,10 +257,11 @@ class SyncService {
       await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
       await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
       await db.career.bulkPut(careerRecords.map(transformCareerRecord))
+      await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
     })
 
     console.log(
-      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career`
+      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules`
     )
   }
 

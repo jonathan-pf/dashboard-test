@@ -7,6 +7,7 @@ import type {
   LocalWordsRecord,
   LocalGoalsRecord,
   LocalIdeasRecord,
+  LocalRulesRecord,
 } from '@/types/airtable'
 
 // Query keys
@@ -18,6 +19,7 @@ export const queryKeys = {
   areas: ['areas'] as const,
   ideas: ['ideas'] as const,
   career: ['career'] as const,
+  rules: ['rules'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -81,6 +83,17 @@ export function useCareerTotals() {
   return useLiveQuery(
     () => db.career.toCollection().first(),
     []
+  )
+}
+
+export function useRules() {
+  return useLiveQuery(() => db.rules.toArray(), [])
+}
+
+export function useRulesByStatus(status: LocalRulesRecord['status']) {
+  return useLiveQuery(
+    () => db.rules.where('status').equals(status).toArray(),
+    [status]
   )
 }
 

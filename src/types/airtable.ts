@@ -124,6 +124,20 @@ export interface CareerRecord extends AirtableRecord {
   }
 }
 
+// Rules table - tracks personal rules and limits
+export interface RulesRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Select: 'Goal' | 'Limit'
+    Status: 'Live' | 'Backlog' | 'Archive'
+    Confidence: number | null // Initial confidence 0-1
+    'Current Confidence': number | null // Current confidence 0-1
+    Deadline: string | null // ISO date string
+    'Output Goal': string | null // Optional goal description
+    Week: number | null // Week number
+  }
+}
+
 // API response types
 export interface AirtableListResponse<T> {
   records: T[]
@@ -229,6 +243,19 @@ export interface LocalCareerRecord {
   createdTime: string
 }
 
+export interface LocalRulesRecord {
+  id: string
+  name: string
+  select: 'Goal' | 'Limit'
+  status: 'Live' | 'Backlog' | 'Archive'
+  confidence: number | null
+  currentConfidence: number | null
+  deadline: string | null
+  outputGoal: string | null
+  week: number | null
+  createdTime: string
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -257,6 +284,7 @@ export const TABLES = {
   WORK: 'Work',
   AREAS: 'Areas',
   CAREER: 'Career',
+  RULES: 'Rules',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

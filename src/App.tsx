@@ -7,6 +7,7 @@ import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
 import { LongTermGoals } from './pages/LongTermGoals'
 import { Ideas } from './pages/Ideas'
+import { Rules } from './pages/Rules'
 import { Settings } from './pages/Settings'
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/health" element={<Health />} />
+          <Route path="/health/rules" element={<Rules />} />
           <Route path="/words" element={<Words />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/goals/long-term" element={<LongTermGoals />} />

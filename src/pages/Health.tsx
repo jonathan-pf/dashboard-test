@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { StatCard } from '@/components/widgets/StatCard'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import {
@@ -73,7 +74,15 @@ export function Health() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900">Health</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Health</h2>
+        <Link
+          to="/health/rules"
+          className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+        >
+          Rules
+        </Link>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <StatCard
