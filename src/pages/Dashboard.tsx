@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { StatCard } from '@/components/widgets/StatCard'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import { WordsBarChart } from '@/components/charts/WordsBarChart'
@@ -10,6 +11,7 @@ import {
   useWeeks,
   useCurrentWeekGoals,
   useCareerTotals,
+  useRulesByStatus,
 } from '@/hooks/useAirtableData'
 import { syncService } from '@/services/sync'
 
@@ -20,6 +22,7 @@ export function Dashboard() {
   const weeks = useWeeks()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
+  const liveRules = useRulesByStatus('Live')
 
   // Initialize sync on mount
   useEffect(() => {
@@ -116,6 +119,59 @@ export function Dashboard() {
               </p>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900">Live Rules</h3>
+          <Link
+            to="/health/rules"
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            View all
+          </Link>
+        </div>
+        {liveRules && liveRules.length > 0 ? (
+          <div className="space-y-2">
+            {liveRules.slice(0, 5).map((rule) => (
+              <div
+                key={rule.id}
+                className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
+                    }`}
+                  />
+                  <span className="text-sm text-slate-700">{rule.name}</span>
+                </div>
+                {rule.currentConfidence !== null && (
+                  <span
+                    className={`text-xs font-medium ${
+                      rule.currentConfidence >= 0.7
+                        ? 'text-green-600'
+                        : rule.currentConfidence >= 0.4
+                        ? 'text-amber-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    {Math.round(rule.currentConfidence * 100)}%
+                  </span>
+                )}
+              </div>
+            ))}
+            {liveRules.length > 5 && (
+              <p className="text-xs text-slate-400 pt-1">
+                +{liveRules.length - 5} more
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 text-center py-4">
+            No live rules
+          </p>
         )}
       </div>
     </div>
