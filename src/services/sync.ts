@@ -185,6 +185,18 @@ function localIdeasToAirtable(record: LocalIdeasRecord): Record<string, unknown>
   }
 }
 
+function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Select: record.select,
+    Status: record.status,
+    Confidence: record.confidence,
+    'Current Confidence': record.currentConfidence,
+    Deadline: record.deadline,
+    'Output Goal': record.outputGoal,
+  }
+}
+
 class SyncService {
   private isSyncing = false
 
@@ -566,6 +578,41 @@ class SyncService {
     } else {
       await this.queueMutation('Goals', 'update', goalId, updateData)
     }
+  }
+
+  // Create a rule record (handles offline)
+  async createRulesRecord(
+    data: Omit<LocalRulesRecord, 'id' | 'createdTime'>
+  ): Promise<LocalRulesRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalRulesRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.rules.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<RulesRecord>(
+          'Rules',
+          localRulesToAirtable(record)
+        )
+        await db.rules.delete(localId)
+        const updatedRecord = transformRulesRecord(created)
+        await db.rules.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Rules', 'create', localId, localRulesToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Rules', 'create', localId, localRulesToAirtable(record), localId)
+    }
+
+    return record
   }
 
   // Initialize sync listeners

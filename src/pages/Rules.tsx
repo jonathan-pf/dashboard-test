@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useRules } from '@/hooks/useAirtableData'
+import { useRules, useCreateRule } from '@/hooks/useAirtableData'
 import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
@@ -16,7 +16,13 @@ const SELECT_COLORS: Record<LocalRulesRecord['select'], string> = {
 
 export function Rules() {
   const [filterStatus, setFilterStatus] = useState<LocalRulesRecord['status'] | 'All'>('All')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newRuleName, setNewRuleName] = useState('')
+  const [newRuleSelect, setNewRuleSelect] = useState<LocalRulesRecord['select']>('Goal')
+  const [newRuleStatus, setNewRuleStatus] = useState<LocalRulesRecord['status']>('Backlog')
+
   const rules = useRules()
+  const createRule = useCreateRule()
 
   const filteredRules = filterStatus === 'All'
     ? rules
@@ -37,6 +43,33 @@ export function Rules() {
       day: 'numeric',
       month: 'short',
     })
+  }
+
+  const handleCreateRule = async () => {
+    if (!newRuleName.trim()) return
+
+    await createRule.mutateAsync({
+      name: newRuleName.trim(),
+      select: newRuleSelect,
+      status: newRuleStatus,
+      confidence: null,
+      currentConfidence: null,
+      deadline: null,
+      outputGoal: null,
+      week: null,
+    })
+
+    setNewRuleName('')
+    setNewRuleSelect('Goal')
+    setNewRuleStatus('Backlog')
+    setShowCreateForm(false)
+  }
+
+  const handleCancelCreate = () => {
+    setNewRuleName('')
+    setNewRuleSelect('Goal')
+    setNewRuleStatus('Backlog')
+    setShowCreateForm(false)
   }
 
   return (
@@ -63,6 +96,79 @@ export function Rules() {
           <p className="text-xs text-slate-500">Backlog</p>
           <p className="text-2xl font-bold text-amber-600">{backlogRules.length}</p>
         </div>
+      </div>
+
+      {/* Create Rule */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        {showCreateForm ? (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-900">New Rule</h3>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                value={newRuleName}
+                onChange={(e) => setNewRuleName(e.target.value)}
+                placeholder="Enter rule name"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={newRuleSelect}
+                  onChange={(e) => setNewRuleSelect(e.target.value as LocalRulesRecord['select'])}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="Goal">Goal</option>
+                  <option value="Limit">Limit</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={newRuleStatus}
+                  onChange={(e) => setNewRuleStatus(e.target.value as LocalRulesRecord['status'])}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="Live">Live</option>
+                  <option value="Backlog">Backlog</option>
+                  <option value="Archive">Archive</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelCreate}
+                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateRule}
+                disabled={!newRuleName.trim() || createRule.isPending}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {createRule.isPending ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="w-full py-3 bg-slate-50 text-slate-600 rounded-lg font-medium hover:bg-slate-100 transition-colors"
+          >
+            + Add Rule
+          </button>
+        )}
       </div>
 
       {/* Rules List */}

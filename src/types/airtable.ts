@@ -254,6 +254,8 @@ export interface LocalRulesRecord {
   outputGoal: string | null
   week: number | null
   createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
 }
 
 // Pending mutation for offline sync

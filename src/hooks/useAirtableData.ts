@@ -230,6 +230,19 @@ export function useCreateIdea() {
   })
 }
 
+// Create rule record mutation
+export function useCreateRule() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalRulesRecord, 'id' | 'createdTime'>) =>
+      syncService.createRulesRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.rules })
+    },
+  })
+}
+
 // Aggregate data hooks
 export function useWeeklyStats(weekId: string | null) {
   const week = useLiveQuery(
