@@ -9,7 +9,7 @@ import {
   useUpdateGoalStatus,
   useUpdateGoalConfidence,
 } from '@/hooks/useAirtableData'
-import type { LocalGoalsRecord, LocalAreasRecord } from '@/types/airtable'
+import type { LocalGoalsRecord } from '@/types/airtable'
 
 export function NextWeekGoals() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -20,10 +20,7 @@ export function NextWeekGoals() {
   // Action sheet state
   const [selectedGoal, setSelectedGoal] = useState<LocalGoalsRecord | null>(null)
   const [editingConfidence, setEditingConfidence] = useState(false)
-  const [editingGoal, setEditingGoal] = useState(false)
   const [newConfidence, setNewConfidence] = useState<string>('')
-  const [editGoalName, setEditGoalName] = useState('')
-  const [editGoalAreaId, setEditGoalAreaId] = useState<string>('')
 
   const nextWeek = useNextWeek()
   const nextWeekGoals = useNextWeekGoals()
@@ -94,19 +91,13 @@ export function NextWeekGoals() {
         ? Math.round(goal.currentConfidence * 100).toString()
         : ''
     )
-    setEditGoalName(goal.name)
-    setEditGoalAreaId(goal.areaId ?? '')
     setEditingConfidence(false)
-    setEditingGoal(false)
   }
 
   const closeActionSheet = () => {
     setSelectedGoal(null)
     setEditingConfidence(false)
-    setEditingGoal(false)
     setNewConfidence('')
-    setEditGoalName('')
-    setEditGoalAreaId('')
   }
 
   const handleMarkSuccess = async () => {
