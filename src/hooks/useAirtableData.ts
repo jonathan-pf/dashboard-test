@@ -8,6 +8,7 @@ import type {
   LocalGoalsRecord,
   LocalIdeasRecord,
   LocalRulesRecord,
+  LocalScopingRecord,
 } from '@/types/airtable'
 
 // Query keys
@@ -20,6 +21,7 @@ export const queryKeys = {
   ideas: ['ideas'] as const,
   career: ['career'] as const,
   rules: ['rules'] as const,
+  scoping: ['scoping'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -60,6 +62,21 @@ export function useLastWeek() {
   return useLiveQuery(() => db.weeks.filter((w) => w.lastWeek).first(), [])
 }
 
+export function useNextWeek() {
+  return useLiveQuery(() => db.weeks.filter((w) => w.nextWeek).first(), [])
+}
+
+export function useNextWeekGoals() {
+  const nextWeek = useNextWeek()
+  return useLiveQuery(
+    () =>
+      nextWeek
+        ? db.goals.where('weekId').equals(nextWeek.id).toArray()
+        : [],
+    [nextWeek?.id]
+  )
+}
+
 export function useGoals() {
   return useLiveQuery(() => db.goals.toArray(), [])
 }
@@ -94,6 +111,17 @@ export function useRulesByStatus(status: LocalRulesRecord['status']) {
   return useLiveQuery(
     () => db.rules.where('status').equals(status).toArray(),
     [status]
+  )
+}
+
+export function useScoping() {
+  return useLiveQuery(() => db.scoping.orderBy('created').reverse().toArray(), [])
+}
+
+export function useScopingByType(type: string) {
+  return useLiveQuery(
+    () => db.scoping.where('type').equals(type).toArray(),
+    [type]
   )
 }
 
@@ -257,6 +285,37 @@ export function useUpdateRule() {
     }) => syncService.updateRulesRecord(ruleId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rules })
+    },
+  })
+}
+
+// Create scoping record mutation
+export function useCreateScoping() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalScopingRecord, 'id' | 'createdTime'>) =>
+      syncService.createScopingRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.scoping })
+    },
+  })
+}
+
+// Update scoping record mutation
+export function useUpdateScoping() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      scopingId,
+      updates,
+    }: {
+      scopingId: string
+      updates: Partial<Pick<LocalScopingRecord, 'name' | 'type' | 'created'>>
+    }) => syncService.updateScopingRecord(scopingId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.scoping })
     },
   })
 }

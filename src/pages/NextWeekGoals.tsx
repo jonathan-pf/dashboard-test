@@ -1,42 +1,91 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
-  useCurrentWeekGoals,
-  useCurrentWeek,
+  useNextWeekGoals,
+  useNextWeek,
   useGoals,
   useAreas,
   useCreateGoal,
   useUpdateGoalStatus,
   useUpdateGoalConfidence,
-  useWeeks,
 } from '@/hooks/useAirtableData'
-import type { LocalGoalsRecord } from '@/types/airtable'
+import type { LocalGoalsRecord, LocalAreasRecord } from '@/types/airtable'
 
-export function Goals() {
+export function NextWeekGoals() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [goalName, setGoalName] = useState('')
-  const [goalType, setGoalType] = useState<'Weekly' | 'Monthly' | 'Annual'>('Weekly')
   const [goalAreaId, setGoalAreaId] = useState<string>('')
   const [goalConfidence, setGoalConfidence] = useState<string>('')
 
   // Action sheet state
   const [selectedGoal, setSelectedGoal] = useState<LocalGoalsRecord | null>(null)
   const [editingConfidence, setEditingConfidence] = useState(false)
+  const [editingGoal, setEditingGoal] = useState(false)
   const [newConfidence, setNewConfidence] = useState<string>('')
+  const [editGoalName, setEditGoalName] = useState('')
+  const [editGoalAreaId, setEditGoalAreaId] = useState<string>('')
 
-  const currentWeek = useCurrentWeek()
-  const currentWeekGoals = useCurrentWeekGoals()
+  const nextWeek = useNextWeek()
+  const nextWeekGoals = useNextWeekGoals()
   const allGoals = useGoals()
   const areas = useAreas()
-  const weeks = useWeeks()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalConfidence = useUpdateGoalConfidence()
 
-  const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
-  const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
-  const failedGoals = currentWeekGoals?.filter((g) => g.status === 'Fail') ?? []
+  // Get live monthly goals as reminders
+  const liveMonthlyGoals = useMemo(() => {
+    return allGoals?.filter((g) => g.type === 'Monthly' && g.status === 'Live') ?? []
+  }, [allGoals])
+
+  // Group goals by status, then by area
+  const groupedGoals = useMemo(() => {
+    const goals = nextWeekGoals ?? []
+    const liveGoals = goals.filter((g) => g.status === 'Live')
+    const completedGoals = goals.filter((g) => g.status === 'Success')
+    const failedGoals = goals.filter((g) => g.status === 'Fail')
+
+    const groupByArea = (goalList: LocalGoalsRecord[]) => {
+      const grouped = new Map<string | null, LocalGoalsRecord[]>()
+
+      // Sort areas alphabetically, with "No Area" at the end
+      goalList.forEach((goal) => {
+        const existing = grouped.get(goal.areaId) ?? []
+        grouped.set(goal.areaId, [...existing, goal])
+      })
+
+      // Convert to sorted array
+      const sorted = Array.from(grouped.entries()).sort(([aId], [bId]) => {
+        if (aId === null) return 1
+        if (bId === null) return -1
+        const aName = areas?.find((a) => a.id === aId)?.name ?? ''
+        const bName = areas?.find((a) => a.id === bId)?.name ?? ''
+        return aName.localeCompare(bName)
+      })
+
+      return sorted
+    }
+
+    return {
+      live: groupByArea(liveGoals),
+      completed: groupByArea(completedGoals),
+      failed: groupByArea(failedGoals),
+    }
+  }, [nextWeekGoals, areas])
+
+  const getAreaName = (areaId: string | null) => {
+    if (!areaId) return 'No Area'
+    return areas?.find((a) => a.id === areaId)?.name ?? 'Unknown'
+  }
+
+  // Calculate end of next week (Sunday)
+  const getNextWeekEndDate = () => {
+    if (!nextWeek?.weekCommencing) return null
+    const weekStart = new Date(nextWeek.weekCommencing)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekEnd.getDate() + 6) // Sunday of that week
+    return weekEnd.toISOString().split('T')[0]
+  }
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -45,13 +94,19 @@ export function Goals() {
         ? Math.round(goal.currentConfidence * 100).toString()
         : ''
     )
+    setEditGoalName(goal.name)
+    setEditGoalAreaId(goal.areaId ?? '')
     setEditingConfidence(false)
+    setEditingGoal(false)
   }
 
   const closeActionSheet = () => {
     setSelectedGoal(null)
     setEditingConfidence(false)
+    setEditingGoal(false)
     setNewConfidence('')
+    setEditGoalName('')
+    setEditGoalAreaId('')
   }
 
   const handleMarkSuccess = async () => {
@@ -86,21 +141,21 @@ export function Goals() {
     if (!goalName.trim()) return
 
     const confidence = goalConfidence ? parseFloat(goalConfidence) / 100 : null
+    const deadline = getNextWeekEndDate()
 
     await createGoal.mutateAsync({
       name: goalName.trim(),
-      type: goalType,
+      type: 'Weekly',
       status: 'Live',
-      weekId: currentWeek?.id ?? null,
+      weekId: nextWeek?.id ?? null,
       areaId: goalAreaId || null,
       initialConfidence: confidence,
       currentConfidence: confidence,
-      deadline: null,
+      deadline,
       notes: null,
     })
 
     setGoalName('')
-    setGoalType('Weekly')
     setGoalAreaId('')
     setGoalConfidence('')
     setShowAddForm(false)
@@ -108,141 +163,158 @@ export function Goals() {
 
   const handleCancelAdd = () => {
     setGoalName('')
-    setGoalType('Weekly')
     setGoalAreaId('')
     setGoalConfidence('')
     setShowAddForm(false)
   }
 
-  // Calculate historical success rates
-  const historicalData = weeks?.slice(0, 8).map((week) => {
-    const weekGoals = allGoals?.filter((g) => g.weekId === week.id) ?? []
-    const successCount = weekGoals.filter((g) => g.status === 'Success').length
-    const total = weekGoals.length
-    return {
-      week: `W${week.weekNumber}`,
-      rate: total > 0 ? Math.round((successCount / total) * 100) : 0,
-      total,
-    }
-  }) ?? []
-
   const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Goals</h2>
-        <div className="flex gap-2">
-          <Link
-            to="/goals/next-week"
-            className="px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-          >
-            Next Week
-          </Link>
-          <Link
-            to="/goals/long-term"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Monthly & Annual
-          </Link>
-        </div>
-      </div>
+  const renderGoalsByArea = (
+    groupedByArea: [string | null, LocalGoalsRecord[]][],
+    status: 'live' | 'completed' | 'failed'
+  ) => {
+    if (groupedByArea.length === 0) return null
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">This Week's Goals</h3>
-          <span className="text-sm text-slate-500">
-            {completedGoals.length} / {currentWeekGoals?.length ?? 0}
-          </span>
-        </div>
-
-        <div className="flex justify-center mb-6">
-          <GoalProgressRing
-            completed={completedGoals.length}
-            total={currentWeekGoals?.length ?? 0}
-            size={140}
-          />
-        </div>
-
-        {liveGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
-              >
+    return groupedByArea.map(([areaId, goals]) => (
+      <div key={areaId ?? 'no-area'} className="mb-3">
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 px-1">
+          {getAreaName(areaId)}
+        </p>
+        <div className="space-y-2">
+          {goals.map((goal) => (
+            <button
+              key={goal.id}
+              onClick={() => openActionSheet(goal)}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                status === 'live'
+                  ? 'bg-slate-50 hover:bg-slate-100'
+                  : status === 'completed'
+                  ? 'bg-green-50 hover:bg-green-100'
+                  : 'bg-red-50 opacity-60 hover:opacity-80'
+              }`}
+            >
+              {status === 'live' && (
                 <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-                  {goal.currentConfidence !== null && (
-                    <p className="text-xs text-slate-500">
-                      Confidence: {Math.round(goal.currentConfidence * 100)}%
-                    </p>
-                  )}
-                </div>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {completedGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-green-50 rounded-lg text-left hover:bg-green-100 transition-colors"
-              >
+              )}
+              {status === 'completed' && (
                 <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>
-                <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
-                  {goal.name}
-                </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {failedGoals.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left hover:opacity-80 transition-opacity"
-              >
+              )}
+              {status === 'failed' && (
                 <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </span>
-                <p className="text-sm font-medium text-slate-900 line-through flex-1">
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium text-slate-900 ${status !== 'live' ? 'line-through opacity-60' : ''}`}>
                   {goal.name}
                 </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                {status === 'live' && goal.currentConfidence !== null && (
+                  <p className="text-xs text-slate-500">
+                    Confidence: {Math.round(goal.currentConfidence * 100)}%
+                  </p>
+                )}
+              </div>
+              <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+    ))
+  }
+
+  const totalGoals = nextWeekGoals?.length ?? 0
+  const completedCount = nextWeekGoals?.filter((g) => g.status === 'Success').length ?? 0
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Link
+          to="/goals"
+          className="p-2 -ml-2 text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </Link>
+        <h2 className="text-2xl font-bold text-slate-900">Next Week's Goals</h2>
+      </div>
+
+      {nextWeek && (
+        <p className="text-sm text-slate-500 -mt-4">
+          Week {nextWeek.weekNumber} • {new Date(nextWeek.weekCommencing).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {new Date(new Date(nextWeek.weekCommencing).getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+        </p>
+      )}
+
+      {/* Monthly Goals Reminder */}
+      {liveMonthlyGoals.length > 0 && (
+        <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+          <h3 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Monthly Goals to Ladder Up To
+          </h3>
+          <ul className="space-y-1">
+            {liveMonthlyGoals.map((goal) => (
+              <li key={goal.id} className="text-sm text-amber-800 flex items-start gap-2">
+                <span className="text-amber-600 mt-0.5">•</span>
+                <span>{goal.name}</span>
+                {goal.areaId && (
+                  <span className="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
+                    {getAreaName(goal.areaId)}
+                  </span>
+                )}
+              </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Next Week's Goals */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900">Goals</h3>
+          <span className="text-sm text-slate-500">
+            {completedCount} / {totalGoals}
+          </span>
+        </div>
+
+        {/* Active Goals */}
+        {groupedGoals.live.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-slate-500 mb-2">Active</p>
+            {renderGoalsByArea(groupedGoals.live, 'live')}
           </div>
         )}
 
-        {(!currentWeekGoals || currentWeekGoals.length === 0) && !showAddForm && (
+        {/* Completed Goals */}
+        {groupedGoals.completed.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-green-600 mb-2">Completed</p>
+            {renderGoalsByArea(groupedGoals.completed, 'completed')}
+          </div>
+        )}
+
+        {/* Failed Goals */}
+        {groupedGoals.failed.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-red-600 mb-2">Failed</p>
+            {renderGoalsByArea(groupedGoals.failed, 'failed')}
+          </div>
+        )}
+
+        {totalGoals === 0 && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
-            No goals for this week
+            No goals for next week yet
           </div>
         )}
 
@@ -281,20 +353,6 @@ export function Goals() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Type
-              </label>
-              <select
-                value={goalType}
-                onChange={(e) => setGoalType(e.target.value as 'Weekly' | 'Monthly' | 'Annual')}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-              >
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Annual">Annual</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Initial Confidence (%)
               </label>
               <input
@@ -329,42 +387,9 @@ export function Goals() {
             onClick={() => setShowAddForm(true)}
             className="w-full mt-4 py-3 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition-colors"
           >
-            + Add Goal
+            + Add Goal for Next Week
           </button>
         )}
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Weekly Success Rate</h3>
-        <div className="space-y-3">
-          {historicalData.reverse().map(({ week, rate, total }) => (
-            <div key={week} className="flex items-center gap-3">
-              <span className="w-8 text-xs text-slate-500">{week}</span>
-              <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    rate >= 80
-                      ? 'bg-green-500'
-                      : rate >= 50
-                      ? 'bg-blue-500'
-                      : rate > 0
-                      ? 'bg-amber-500'
-                      : 'bg-slate-200'
-                  }`}
-                  style={{ width: `${rate}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-sm font-medium text-slate-900">
-                {total > 0 ? `${rate}%` : '--'}
-              </span>
-            </div>
-          ))}
-          {historicalData.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-4">
-              No historical data yet
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Action Sheet Modal */}
@@ -386,6 +411,7 @@ export function Goals() {
               {selectedGoal.currentConfidence !== null
                 ? `Current confidence: ${Math.round(selectedGoal.currentConfidence * 100)}%`
                 : 'No confidence set'}
+              {selectedGoal.areaId && ` • ${getAreaName(selectedGoal.areaId)}`}
             </p>
 
             {editingConfidence ? (

@@ -6,8 +6,10 @@ import { Health } from './pages/Health'
 import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
 import { LongTermGoals } from './pages/LongTermGoals'
+import { NextWeekGoals } from './pages/NextWeekGoals'
 import { Ideas } from './pages/Ideas'
 import { Rules } from './pages/Rules'
+import { Scoping } from './pages/Scoping'
 import { Settings } from './pages/Settings'
 
 function App() {
@@ -21,7 +23,9 @@ function App() {
           <Route path="/words" element={<Words />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/goals/long-term" element={<LongTermGoals />} />
+          <Route path="/goals/next-week" element={<NextWeekGoals />} />
           <Route path="/ideas" element={<Ideas />} />
+          <Route path="/scoping" element={<Scoping />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>
