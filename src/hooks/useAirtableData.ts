@@ -51,7 +51,7 @@ export function useWordsByWeek(weekId: string | null) {
 }
 
 export function useWeeks() {
-  return useLiveQuery(() => db.weeks.orderBy('weekNumber').reverse().toArray(), [])
+  return useLiveQuery(() => db.weeks.orderBy('weekCommencing').reverse().toArray(), [])
 }
 
 export function useCurrentWeek() {

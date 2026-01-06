@@ -33,16 +33,23 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
   }
 
   // Take last 8 weeks
-  const chartData = weeks
-    .slice(0, 8)
-    .reverse()
-    .map((week) => ({
-      name: `W${week.weekNumber}`,
+  const recentWeeks = weeks.slice(0, 8).reverse()
+
+  // Check if we span multiple years
+  const years = new Set(recentWeeks.map((w) => new Date(w.weekCommencing).getFullYear()))
+  const showYear = years.size > 1
+
+  const chartData = recentWeeks.map((week) => {
+    const year = new Date(week.weekCommencing).getFullYear()
+    const yearSuffix = showYear ? ` '${String(year).slice(-2)}` : ''
+    return {
+      name: `W${week.weekNumber}${yearSuffix}`,
       Arcadia: week.totalFiction ?? 0,
       Blog: week.totalBlog ?? 0,
       Notes: week.totalNotes ?? 0,
       Novella: week.totalNovella ?? 0,
-    }))
+    }
+  })
 
   return (
     <ResponsiveContainer width="100%" height={200}>
