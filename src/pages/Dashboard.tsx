@@ -34,6 +34,14 @@ export function Dashboard() {
   const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
 
+  // Calculate average confidence for live goals
+  const goalsWithConfidence = liveGoals.filter((g) => g.currentConfidence !== null)
+  const avgGoalConfidence =
+    goalsWithConfidence.length > 0
+      ? goalsWithConfidence.reduce((sum, g) => sum + (g.currentConfidence ?? 0), 0) /
+        goalsWithConfidence.length
+      : null
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
@@ -56,25 +64,35 @@ export function Dashboard() {
         {currentWeek?.name ?? 'This Week'}
       </h2>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         <StatCard
-          label="Words Written"
+          label="Words"
           value={stats?.totalWords ?? 0}
           loading={loading}
         />
         <StatCard
-          label="Goals Complete"
+          label="Goals"
           value={`${completedGoals.length}/${(currentWeekGoals?.length ?? 0)}`}
           loading={loading}
         />
         <StatCard
-          label="Avg Glucose"
+          label="Confidence"
+          value={avgGoalConfidence !== null ? `${Math.round(avgGoalConfidence * 100)}%` : '--'}
+          loading={loading}
+        />
+        <StatCard
+          label="Glucose"
           value={typeof stats?.averageSugar === 'number' ? stats.averageSugar.toFixed(1) : '--'}
           loading={loading}
         />
         <StatCard
-          label="Total Units"
+          label="Units"
           value={stats?.totalUnits ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          label="Reps"
+          value={stats?.totalReps ?? 0}
           loading={loading}
         />
       </div>
