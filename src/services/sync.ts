@@ -16,6 +16,7 @@ import type {
   IdeasRecord,
   CareerRecord,
   RulesRecord,
+  ScopingRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
@@ -24,6 +25,7 @@ import type {
   LocalIdeasRecord,
   LocalCareerRecord,
   LocalRulesRecord,
+  LocalScopingRecord,
   PendingMutation,
   TABLES,
 } from '@/types/airtable'
@@ -78,6 +80,9 @@ function transformWeeksRecord(record: WeeksRecord): LocalWeeksRecord {
     totalGoals: record.fields['Total Goals'] ?? null,
     goalSuccessRate: record.fields['Goal Success Rate'] ?? null,
     goalConfidence: record.fields['Goal Confidence'] ?? null,
+    steps: record.fields.Steps ?? null,
+    stages: record.fields.Stages ?? null,
+    features: record.fields.Features ?? null,
     createdTime: record.createdTime,
   }
 }
@@ -143,6 +148,16 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
   }
 }
 
+function transformScopingRecord(record: ScopingRecord): LocalScopingRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    created: record.fields.Created || record.createdTime.split('T')[0],
+    type: record.fields.Type || '',
+    createdTime: record.createdTime,
+  }
+}
+
 // Transform local records back to Airtable format for mutations
 function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknown> {
   return {
@@ -197,6 +212,14 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
   }
 }
 
+function localScopingToAirtable(record: LocalScopingRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Created: record.created,
+    Type: record.type,
+  }
+}
+
 class SyncService {
   private isSyncing = false
 
@@ -238,7 +261,7 @@ class SyncService {
     console.log('Pulling data from Airtable...')
 
     // Fetch all tables in parallel
-    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = await Promise.all([
+    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords, scopingRecords] = await Promise.all([
       airtableService.fetchAllRecords<HealthRecord>('Health'),
       airtableService.fetchAllRecords<WordsRecord>('Words'),
       airtableService.fetchAllRecords<WeeksRecord>('Weeks'),
@@ -247,10 +270,11 @@ class SyncService {
       airtableService.fetchAllRecords<IdeasRecord>('Ideas'),
       airtableService.fetchAllRecords<CareerRecord>('Career'),
       airtableService.fetchAllRecords<RulesRecord>('Rules'),
+      airtableService.fetchAllRecords<ScopingRecord>('Scoping'),
     ])
 
     // Transform and store locally
-    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules], async () => {
+    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.scoping], async () => {
       // Clear existing data (except pending mutations)
       await db.health.clear()
       await db.words.clear()
@@ -260,6 +284,7 @@ class SyncService {
       await db.ideas.clear()
       await db.career.clear()
       await db.rules.clear()
+      await db.scoping.clear()
 
       // Bulk insert transformed records
       await db.health.bulkPut(healthRecords.map(transformHealthRecord))
@@ -270,10 +295,11 @@ class SyncService {
       await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
       await db.career.bulkPut(careerRecords.map(transformCareerRecord))
       await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
+      await db.scoping.bulkPut(scopingRecords.map(transformScopingRecord))
     })
 
     console.log(
-      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules`
+      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${scopingRecords.length} scoping`
     )
   }
 
@@ -648,6 +674,73 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Rules', 'update', ruleId, updateData)
+    }
+  }
+
+  // Create a scoping record (handles offline)
+  async createScopingRecord(
+    data: Omit<LocalScopingRecord, 'id' | 'createdTime'>
+  ): Promise<LocalScopingRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalScopingRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.scoping.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<ScopingRecord>(
+          'Scoping',
+          localScopingToAirtable(record)
+        )
+        await db.scoping.delete(localId)
+        const updatedRecord = transformScopingRecord(created)
+        await db.scoping.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Scoping', 'create', localId, localScopingToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Scoping', 'create', localId, localScopingToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a scoping record (handles offline)
+  async updateScopingRecord(
+    scopingId: string,
+    updates: Partial<Pick<LocalScopingRecord, 'name' | 'type' | 'created'>>
+  ): Promise<void> {
+    const scoping = await db.scoping.get(scopingId)
+    if (!scoping) throw new Error('Scoping record not found')
+
+    // Apply updates to local record
+    Object.assign(scoping, updates)
+    scoping._pendingSync = true
+    await db.scoping.put(scoping)
+
+    // Prepare Airtable update data
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.type !== undefined) updateData.Type = updates.type
+    if (updates.created !== undefined) updateData.Created = updates.created
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Scoping', scopingId, updateData)
+        scoping._pendingSync = false
+        await db.scoping.put(scoping)
+      } catch {
+        await this.queueMutation('Scoping', 'update', scopingId, updateData)
+      }
+    } else {
+      await this.queueMutation('Scoping', 'update', scopingId, updateData)
     }
   }
 

@@ -59,6 +59,7 @@ export interface WeeksRecord extends AirtableRecord {
     'Goal Confidence': number | null // Rollup (percentage)
     Steps: number | null // Rollup
     Stages: number | null // Rollup
+    Features: number | null // Rollup
     'Work Link': string[] // Record IDs linking to Work table
     Scoping: number | null // Rollup
     'Work Systems': number | null // Rollup
@@ -138,6 +139,19 @@ export interface RulesRecord extends AirtableRecord {
   }
 }
 
+// Scoping table types
+export const SCOPING_TYPES = ['Claim text', 'Claim mechanism', 'Outline'] as const
+export type ScopingType = (typeof SCOPING_TYPES)[number]
+
+// Scoping table - tracks scoping items
+export interface ScopingRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Created: string // ISO date string
+    Type: ScopingType
+  }
+}
+
 // API response types
 export interface AirtableListResponse<T> {
   records: T[]
@@ -198,6 +212,9 @@ export interface LocalWeeksRecord {
   totalGoals: number | null
   goalSuccessRate: number | null
   goalConfidence: number | null
+  steps: number | null
+  stages: number | null
+  features: number | null
   createdTime: string
 }
 
@@ -258,6 +275,16 @@ export interface LocalRulesRecord {
   _localId?: string
 }
 
+export interface LocalScopingRecord {
+  id: string
+  name: string
+  created: string
+  type: ScopingType
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -287,6 +314,7 @@ export const TABLES = {
   AREAS: 'Areas',
   CAREER: 'Career',
   RULES: 'Rules',
+  SCOPING: 'Scoping',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

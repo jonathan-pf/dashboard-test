@@ -95,6 +95,21 @@ export function Dashboard() {
           value={stats?.totalReps ?? 0}
           loading={loading}
         />
+        <StatCard
+          label="Steps"
+          value={currentWeek?.steps ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          label="Stages"
+          value={currentWeek?.stages ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          label="Features"
+          value={currentWeek?.features ?? 0}
+          loading={loading}
+        />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">

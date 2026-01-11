@@ -8,6 +8,7 @@ import type {
   LocalIdeasRecord,
   LocalCareerRecord,
   LocalRulesRecord,
+  LocalScopingRecord,
   PendingMutation,
   SyncMeta,
 } from '@/types/airtable'
@@ -21,6 +22,7 @@ class DashboardDatabase extends Dexie {
   ideas!: EntityTable<LocalIdeasRecord, 'id'>
   career!: EntityTable<LocalCareerRecord, 'id'>
   rules!: EntityTable<LocalRulesRecord, 'id'>
+  scoping!: EntityTable<LocalScopingRecord, 'id'>
   pendingMutations!: EntityTable<PendingMutation, 'id'>
   syncMeta!: EntityTable<SyncMeta, 'key'>
 
@@ -81,6 +83,20 @@ class DashboardDatabase extends Dexie {
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
+
+    this.version(6).stores({
+      health: 'id, type, date, weekId, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
+      ideas: 'id, type, when, weekId, _pendingSync',
+      career: 'id, name',
+      rules: 'id, status, select',
+      scoping: 'id, type, created, _pendingSync',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
   }
 }
 
@@ -123,6 +139,7 @@ export async function clearAllData(): Promise<void> {
     db.ideas.clear(),
     db.career.clear(),
     db.rules.clear(),
+    db.scoping.clear(),
     db.pendingMutations.clear(),
     db.syncMeta.clear(),
   ])
