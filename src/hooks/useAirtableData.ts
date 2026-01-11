@@ -245,6 +245,24 @@ export function useUpdateGoalConfidence() {
   })
 }
 
+// Update goal record mutation (name, area)
+export function useUpdateGoal() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      goalId,
+      updates,
+    }: {
+      goalId: string
+      updates: Partial<Pick<LocalGoalsRecord, 'name' | 'areaId'>>
+    }) => syncService.updateGoalRecord(goalId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
 // Create idea record mutation
 export function useCreateIdea() {
   const queryClient = useQueryClient()

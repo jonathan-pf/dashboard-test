@@ -8,6 +8,7 @@ import {
   useCreateGoal,
   useUpdateGoalStatus,
   useUpdateGoalConfidence,
+  useUpdateGoal,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
@@ -21,6 +22,9 @@ export function NextWeekGoals() {
   const [selectedGoal, setSelectedGoal] = useState<LocalGoalsRecord | null>(null)
   const [editingConfidence, setEditingConfidence] = useState(false)
   const [newConfidence, setNewConfidence] = useState<string>('')
+  const [editingDetails, setEditingDetails] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editAreaId, setEditAreaId] = useState<string>('')
 
   const nextWeek = useNextWeek()
   const nextWeekGoals = useNextWeekGoals()
@@ -29,6 +33,7 @@ export function NextWeekGoals() {
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalConfidence = useUpdateGoalConfidence()
+  const updateGoal = useUpdateGoal()
 
   // Get live monthly goals as reminders
   const liveMonthlyGoals = useMemo(() => {
@@ -92,12 +97,18 @@ export function NextWeekGoals() {
         : ''
     )
     setEditingConfidence(false)
+    setEditingDetails(false)
+    setEditName(goal.name)
+    setEditAreaId(goal.areaId ?? '')
   }
 
   const closeActionSheet = () => {
     setSelectedGoal(null)
     setEditingConfidence(false)
+    setEditingDetails(false)
     setNewConfidence('')
+    setEditName('')
+    setEditAreaId('')
   }
 
   const handleMarkSuccess = async () => {
@@ -124,6 +135,18 @@ export function NextWeekGoals() {
     await updateGoalConfidence.mutateAsync({
       goalId: selectedGoal.id,
       confidence,
+    })
+    closeActionSheet()
+  }
+
+  const handleSaveDetails = async () => {
+    if (!selectedGoal || !editName.trim()) return
+    await updateGoal.mutateAsync({
+      goalId: selectedGoal.id,
+      updates: {
+        name: editName.trim(),
+        areaId: editAreaId || null,
+      },
     })
     closeActionSheet()
   }
@@ -159,7 +182,7 @@ export function NextWeekGoals() {
     setShowAddForm(false)
   }
 
-  const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending
+  const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending || updateGoal.isPending
 
   const renderGoalsByArea = (
     groupedByArea: [string | null, LocalGoalsRecord[]][],
@@ -405,7 +428,54 @@ export function NextWeekGoals() {
               {selectedGoal.areaId && ` • ${getAreaName(selectedGoal.areaId)}`}
             </p>
 
-            {editingConfidence ? (
+            {editingDetails ? (
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Goal Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Area
+                  </label>
+                  <select
+                    value={editAreaId}
+                    onChange={(e) => setEditAreaId(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    <option value="">No area</option>
+                    {areas?.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEditingDetails(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveDetails}
+                    disabled={!editName.trim() || isPending}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {isPending ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            ) : editingConfidence ? (
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -455,6 +525,12 @@ export function NextWeekGoals() {
                       className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
                     >
                       {isPending ? 'Updating...' : 'Mark as Failed'}
+                    </button>
+                    <button
+                      onClick={() => setEditingDetails(true)}
+                      className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                    >
+                      Edit Name & Area
                     </button>
                     <button
                       onClick={() => setEditingConfidence(true)}
