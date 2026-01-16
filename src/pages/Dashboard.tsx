@@ -84,6 +84,11 @@ export function Dashboard() {
           value={stats?.totalUnits ?? 0}
           loading={loading}
         />
+        <StatCard
+          label="Total Reps"
+          value={stats?.totalReps ?? 0}
+          loading={loading}
+        />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
