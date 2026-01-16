@@ -27,8 +27,18 @@ export function Health() {
   const currentWeek = useCurrentWeek()
   const glucoseData = useHealthByType('Glucose')
   const unitsData = useHealthByType('Units')
+  const repsData = useHealthByType('Reps')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
+
+  // Combine all health entries and sort by date (most recent first)
+  const recentEntries = [
+    ...(glucoseData ?? []),
+    ...(unitsData ?? []),
+    ...(repsData ?? []),
+  ]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
 
   const createHealth = useCreateHealth()
 
@@ -196,7 +206,7 @@ export function Health() {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Recent Entries</h3>
         <div className="space-y-2">
-          {(glucoseData?.slice(0, 5) ?? []).map((entry) => (
+          {recentEntries.map((entry) => (
             <div
               key={entry.id}
               className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
@@ -226,7 +236,7 @@ export function Health() {
               </div>
             </div>
           ))}
-          {(!glucoseData || glucoseData.length === 0) && (
+          {recentEntries.length === 0 && (
             <p className="text-sm text-slate-400 text-center py-4">
               No entries yet
             </p>
