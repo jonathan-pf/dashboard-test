@@ -12,6 +12,7 @@ import {
   useCurrentWeekGoals,
   useCareerTotals,
   useRulesByStatus,
+  useYearlyUnitsPerWeek,
 } from '@/hooks/useAirtableData'
 import { syncService } from '@/services/sync'
 
@@ -23,6 +24,7 @@ export function Dashboard() {
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
   const liveRules = useRulesByStatus('Live')
+  const yearlyUnits = useYearlyUnitsPerWeek(2026)
 
   // Initialize sync on mount
   useEffect(() => {
@@ -48,6 +50,11 @@ export function Dashboard() {
             label="Total Lives"
             value={Math.floor(careerTotals?.totalLives ?? 0)}
             loading={!careerTotals}
+          />
+          <StatCard
+            label="Units/Week (2026)"
+            value={yearlyUnits.unitsPerWeek.toFixed(1)}
+            loading={yearlyUnits.loading}
           />
         </div>
       </div>

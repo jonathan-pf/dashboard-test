@@ -357,3 +357,41 @@ export function useCurrentWeekWordsByProject() {
 
   return byProject
 }
+
+// Units per week average for a given year
+export function useYearlyUnitsPerWeek(year: number = 2026) {
+  const currentWeek = useCurrentWeek()
+
+  const result = useLiveQuery(
+    async () => {
+      // Get all weeks for the specified year
+      const yearPrefix = `${year}-`
+      const weeksInYear = await db.weeks
+        .filter((w) => w.weekCommencing?.startsWith(yearPrefix))
+        .toArray()
+
+      // Sum all units from the year
+      const totalUnits = weeksInYear.reduce(
+        (sum, week) => sum + (week.totalUnits ?? 0),
+        0
+      )
+
+      return { totalUnits, weekCount: weeksInYear.length }
+    },
+    [year]
+  )
+
+  // Calculate the average using current week number
+  const currentWeekNumber = currentWeek?.weekNumber ?? 0
+
+  if (!result || currentWeekNumber === 0) {
+    return { unitsPerWeek: 0, totalUnits: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    unitsPerWeek: result.totalUnits / currentWeekNumber,
+    totalUnits: result.totalUnits,
+    weekNumber: currentWeekNumber,
+    loading: false,
+  }
+}
