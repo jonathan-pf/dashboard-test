@@ -2,19 +2,17 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
-  useCurrentWeekGoals,
-  useCurrentWeek,
-  useGoals,
+  useNextWeekGoals,
+  useNextWeek,
   useAreas,
   useCreateGoal,
   useUpdateGoalStatus,
   useUpdateGoalConfidence,
   useUpdateGoalDetails,
-  useWeeks,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
-export function Goals() {
+export function NextWeekGoals() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [goalName, setGoalName] = useState('')
   const [goalType, setGoalType] = useState<'Weekly' | 'Monthly' | 'Annual'>('Weekly')
@@ -29,19 +27,17 @@ export function Goals() {
   const [editName, setEditName] = useState<string>('')
   const [editAreaId, setEditAreaId] = useState<string>('')
 
-  const currentWeek = useCurrentWeek()
-  const currentWeekGoals = useCurrentWeekGoals()
-  const allGoals = useGoals()
+  const nextWeek = useNextWeek()
+  const nextWeekGoals = useNextWeekGoals()
   const areas = useAreas()
-  const weeks = useWeeks()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalConfidence = useUpdateGoalConfidence()
   const updateGoalDetails = useUpdateGoalDetails()
 
-  const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
-  const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
-  const failedGoals = currentWeekGoals?.filter((g) => g.status === 'Fail') ?? []
+  const liveGoals = nextWeekGoals?.filter((g) => g.status === 'Live') ?? []
+  const completedGoals = nextWeekGoals?.filter((g) => g.status === 'Success') ?? []
+  const failedGoals = nextWeekGoals?.filter((g) => g.status === 'Fail') ?? []
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -114,7 +110,7 @@ export function Goals() {
       name: goalName.trim(),
       type: goalType,
       status: 'Live',
-      weekId: currentWeek?.id ?? null,
+      weekId: nextWeek?.id ?? null,
       areaId: goalAreaId || null,
       initialConfidence: confidence,
       currentConfidence: confidence,
@@ -137,52 +133,38 @@ export function Goals() {
     setShowAddForm(false)
   }
 
-  // Calculate historical success rates
-  const historicalData = weeks?.slice(0, 8).map((week) => {
-    const weekGoals = allGoals?.filter((g) => g.weekId === week.id) ?? []
-    const successCount = weekGoals.filter((g) => g.status === 'Success').length
-    const total = weekGoals.length
-    return {
-      week: `W${week.weekNumber}`,
-      rate: total > 0 ? Math.round((successCount / total) * 100) : 0,
-      total,
-    }
-  }) ?? []
-
   const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending || updateGoalDetails.isPending
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Goals</h2>
-        <div className="flex gap-2">
-          <Link
-            to="/goals/next-week"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Next Week
-          </Link>
-          <Link
-            to="/goals/long-term"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Monthly & Annual
-          </Link>
-        </div>
+        <h2 className="text-2xl font-bold text-slate-900">Next Week's Goals</h2>
+        <Link
+          to="/goals"
+          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          This Week
+        </Link>
       </div>
+
+      {nextWeek && (
+        <p className="text-sm text-slate-500">
+          {nextWeek.name} (starting {new Date(nextWeek.weekCommencing).toLocaleDateString()})
+        </p>
+      )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">This Week's Goals</h3>
+          <h3 className="font-semibold text-slate-900">Goals for Next Week</h3>
           <span className="text-sm text-slate-500">
-            {completedGoals.length} / {currentWeekGoals?.length ?? 0}
+            {completedGoals.length} / {nextWeekGoals?.length ?? 0}
           </span>
         </div>
 
         <div className="flex justify-center mb-6">
           <GoalProgressRing
             completed={completedGoals.length}
-            total={currentWeekGoals?.length ?? 0}
+            total={nextWeekGoals?.length ?? 0}
             size={140}
           />
         </div>
@@ -263,9 +245,9 @@ export function Goals() {
           </div>
         )}
 
-        {(!currentWeekGoals || currentWeekGoals.length === 0) && !showAddForm && (
+        {(!nextWeekGoals || nextWeekGoals.length === 0) && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
-            No goals for this week
+            No goals for next week yet
           </div>
         )}
 
@@ -355,39 +337,6 @@ export function Goals() {
             + Add Goal
           </button>
         )}
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Weekly Success Rate</h3>
-        <div className="space-y-3">
-          {historicalData.reverse().map(({ week, rate, total }) => (
-            <div key={week} className="flex items-center gap-3">
-              <span className="w-8 text-xs text-slate-500">{week}</span>
-              <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    rate >= 80
-                      ? 'bg-green-500'
-                      : rate >= 50
-                      ? 'bg-blue-500'
-                      : rate > 0
-                      ? 'bg-amber-500'
-                      : 'bg-slate-200'
-                  }`}
-                  style={{ width: `${rate}%` }}
-                />
-              </div>
-              <span className="w-12 text-right text-sm font-medium text-slate-900">
-                {total > 0 ? `${rate}%` : '--'}
-              </span>
-            </div>
-          ))}
-          {historicalData.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-4">
-              No historical data yet
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Action Sheet Modal */}

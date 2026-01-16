@@ -580,6 +580,36 @@ class SyncService {
     }
   }
 
+  // Update goal details (name and area)
+  async updateGoalDetails(
+    goalId: string,
+    updates: { name?: string; areaId?: string | null }
+  ): Promise<void> {
+    const goal = await db.goals.get(goalId)
+    if (!goal) throw new Error('Goal not found')
+
+    if (updates.name !== undefined) goal.name = updates.name
+    if (updates.areaId !== undefined) goal.areaId = updates.areaId
+    goal._pendingSync = true
+    await db.goals.put(goal)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData['Name'] = updates.name
+    if (updates.areaId !== undefined) updateData['Area'] = updates.areaId ? [updates.areaId] : []
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Goals', goalId, updateData)
+        goal._pendingSync = false
+        await db.goals.put(goal)
+      } catch {
+        await this.queueMutation('Goals', 'update', goalId, updateData)
+      }
+    } else {
+      await this.queueMutation('Goals', 'update', goalId, updateData)
+    }
+  }
+
   // Create a rule record (handles offline)
   async createRulesRecord(
     data: Omit<LocalRulesRecord, 'id' | 'createdTime'>

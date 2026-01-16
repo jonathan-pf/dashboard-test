@@ -60,6 +60,10 @@ export function useLastWeek() {
   return useLiveQuery(() => db.weeks.filter((w) => w.lastWeek).first(), [])
 }
 
+export function useNextWeek() {
+  return useLiveQuery(() => db.weeks.filter((w) => w.nextWeek).first(), [])
+}
+
 export function useGoals() {
   return useLiveQuery(() => db.goals.toArray(), [])
 }
@@ -120,6 +124,17 @@ export function useCurrentWeekGoals() {
         ? db.goals.where('weekId').equals(currentWeek.id).toArray()
         : [],
     [currentWeek?.id]
+  )
+}
+
+export function useNextWeekGoals() {
+  const nextWeek = useNextWeek()
+  return useLiveQuery(
+    () =>
+      nextWeek
+        ? db.goals.where('weekId').equals(nextWeek.id).toArray()
+        : [],
+    [nextWeek?.id]
   )
 }
 
@@ -211,6 +226,24 @@ export function useUpdateGoalConfidence() {
       goalId: string
       confidence: number
     }) => syncService.updateGoalConfidence(goalId, confidence),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
+// Update goal details (name and area) mutation
+export function useUpdateGoalDetails() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      goalId,
+      updates,
+    }: {
+      goalId: string
+      updates: { name?: string; areaId?: string | null }
+    }) => syncService.updateGoalDetails(goalId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.goals })
     },

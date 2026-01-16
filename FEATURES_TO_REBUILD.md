@@ -1,6 +1,6 @@
 # Features to Rebuild
 
-This document lists features that were removed when reverting to the Jan 3rd 2026 working version to fix iOS PWA sync issues.
+This document lists features that were removed when reverting to the Jan 3rd 2026 working version to fix iOS PWA sync issues. Please pause after each feature is built to let me check if sync is still workng.
 
 ## Missing Features
 

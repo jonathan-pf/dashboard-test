@@ -5,6 +5,7 @@ import {
   useAreas,
   useCreateGoal,
   useUpdateGoalStatus,
+  useUpdateGoalDetails,
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
@@ -16,11 +17,18 @@ export function LongTermGoals() {
   const [goalAreaId, setGoalAreaId] = useState<string>('')
   const [goalConfidence, setGoalConfidence] = useState<string>('')
 
+  // Action sheet state
+  const [selectedGoal, setSelectedGoal] = useState<LocalGoalsRecord | null>(null)
+  const [editingDetails, setEditingDetails] = useState(false)
+  const [editName, setEditName] = useState<string>('')
+  const [editAreaId, setEditAreaId] = useState<string>('')
+
   const allGoals = useGoals()
   const areas = useAreas()
   const currentWeek = useCurrentWeek()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
+  const updateGoalDetails = useUpdateGoalDetails()
 
   const monthlyGoals = allGoals?.filter((g) => g.type === 'Monthly') ?? []
   const annualGoals = allGoals?.filter((g) => g.type === 'Annual') ?? []
@@ -33,6 +41,20 @@ export function LongTermGoals() {
   const completedAnnual = annualGoals.filter((g) => g.status === 'Success')
   const failedAnnual = annualGoals.filter((g) => g.status === 'Fail')
 
+  const openActionSheet = (goal: LocalGoalsRecord) => {
+    setSelectedGoal(goal)
+    setEditName(goal.name)
+    setEditAreaId(goal.areaId ?? '')
+    setEditingDetails(false)
+  }
+
+  const closeActionSheet = () => {
+    setSelectedGoal(null)
+    setEditingDetails(false)
+    setEditName('')
+    setEditAreaId('')
+  }
+
   const handleToggleGoal = async (goal: LocalGoalsRecord) => {
     const newStatus = goal.status === 'Success' ? 'Live' : 'Success'
     await updateGoalStatus.mutateAsync({ goalId: goal.id, status: newStatus })
@@ -41,6 +63,38 @@ export function LongTermGoals() {
   const handleMarkFailed = async (goalId: string) => {
     await updateGoalStatus.mutateAsync({ goalId, status: 'Fail' })
   }
+
+  const handleMarkSuccess = async () => {
+    if (!selectedGoal) return
+    await updateGoalStatus.mutateAsync({ goalId: selectedGoal.id, status: 'Success' })
+    closeActionSheet()
+  }
+
+  const handleMarkFailedFromSheet = async () => {
+    if (!selectedGoal) return
+    await updateGoalStatus.mutateAsync({ goalId: selectedGoal.id, status: 'Fail' })
+    closeActionSheet()
+  }
+
+  const handleReactivate = async () => {
+    if (!selectedGoal) return
+    await updateGoalStatus.mutateAsync({ goalId: selectedGoal.id, status: 'Live' })
+    closeActionSheet()
+  }
+
+  const handleSaveDetails = async () => {
+    if (!selectedGoal || !editName.trim()) return
+    await updateGoalDetails.mutateAsync({
+      goalId: selectedGoal.id,
+      updates: {
+        name: editName.trim(),
+        areaId: editAreaId || null,
+      },
+    })
+    closeActionSheet()
+  }
+
+  const isPending = updateGoalStatus.isPending || updateGoalDetails.isPending
 
   const handleAddGoal = async () => {
     if (!goalName.trim()) return
@@ -90,7 +144,10 @@ export function LongTermGoals() {
             className="w-6 h-6 rounded-full border-2 border-blue-500 flex items-center justify-center hover:bg-blue-50 transition-colors flex-shrink-0"
             disabled={updateGoalStatus.isPending}
           />
-          <div className="flex-1 min-w-0">
+          <button
+            onClick={() => openActionSheet(goal)}
+            className="flex-1 min-w-0 text-left"
+          >
             <p className="text-sm font-medium text-slate-900">{goal.name}</p>
             <div className="flex items-center gap-2 mt-0.5">
               {areaName && (
@@ -102,7 +159,7 @@ export function LongTermGoals() {
                 </span>
               )}
             </div>
-          </div>
+          </button>
           <button
             onClick={() => handleMarkFailed(goal.id)}
             className="text-xs text-slate-400 hover:text-red-500 transition-colors"
@@ -126,20 +183,29 @@ export function LongTermGoals() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </button>
-          <p className="text-sm font-medium text-slate-900 line-through opacity-60">{goal.name}</p>
+          <button
+            onClick={() => openActionSheet(goal)}
+            className="flex-1 text-left"
+          >
+            <p className="text-sm font-medium text-slate-900 line-through opacity-60">{goal.name}</p>
+          </button>
         </div>
       )
     }
 
     return (
-      <div key={goal.id} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60">
+      <button
+        key={goal.id}
+        onClick={() => openActionSheet(goal)}
+        className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left"
+      >
         <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </span>
         <p className="text-sm font-medium text-slate-900 line-through">{goal.name}</p>
-      </div>
+      </button>
     )
   }
 
@@ -320,6 +386,136 @@ export function LongTermGoals() {
           </button>
         )}
       </div>
+
+      {/* Action Sheet Modal */}
+      {selectedGoal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+          onClick={closeActionSheet}
+        >
+          <div
+            className="bg-white w-full max-w-lg rounded-t-2xl p-4 pb-8 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-4" />
+
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">
+              {selectedGoal.name}
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              {selectedGoal.type} Goal
+              {selectedGoal.currentConfidence !== null && (
+                <> &middot; {Math.round(selectedGoal.currentConfidence * 100)}% confidence</>
+              )}
+            </p>
+
+            {editingDetails ? (
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Goal Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Area
+                  </label>
+                  <select
+                    value={editAreaId}
+                    onChange={(e) => setEditAreaId(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    <option value="">No area</option>
+                    {areas?.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEditingDetails(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveDetails}
+                    disabled={!editName.trim() || isPending}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {isPending ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {selectedGoal.status === 'Live' && (
+                  <>
+                    <button
+                      onClick={handleMarkSuccess}
+                      disabled={isPending}
+                      className="w-full py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
+                    >
+                      {isPending ? 'Updating...' : 'Mark as Success'}
+                    </button>
+                    <button
+                      onClick={handleMarkFailedFromSheet}
+                      disabled={isPending}
+                      className="w-full py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                    >
+                      {isPending ? 'Updating...' : 'Mark as Failed'}
+                    </button>
+                  </>
+                )}
+                {(selectedGoal.status === 'Success' || selectedGoal.status === 'Fail') && (
+                  <button
+                    onClick={handleReactivate}
+                    disabled={isPending}
+                    className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? 'Updating...' : 'Reactivate Goal'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setEditingDetails(true)}
+                  className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                >
+                  Edit Goal
+                </button>
+                <button
+                  onClick={closeActionSheet}
+                  className="w-full py-3 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.2s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
