@@ -360,38 +360,35 @@ export function useCurrentWeekWordsByProject() {
 
 // Units per week average for a given year
 export function useYearlyUnitsPerWeek(year: number = 2026) {
-  const currentWeek = useCurrentWeek()
+  const yearStart = `${year}-01-01`
 
-  const result = useLiveQuery(
+  const totalUnits = useLiveQuery(
     async () => {
-      // Get all weeks for the specified year
-      const yearPrefix = `${year}-`
-      const weeksInYear = await db.weeks
-        .filter((w) => w.weekCommencing?.startsWith(yearPrefix))
+      // Sum all Units entries on or after Jan 1 of the year
+      const entries = await db.health
+        .filter((h) => h.type === 'Units' && h.date >= yearStart)
         .toArray()
 
-      // Sum all units from the year
-      const totalUnits = weeksInYear.reduce(
-        (sum, week) => sum + (week.totalUnits ?? 0),
-        0
-      )
-
-      return { totalUnits, weekCount: weeksInYear.length }
+      return entries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
     },
-    [year]
+    [yearStart]
   )
 
-  // Calculate the average using current week number
-  const currentWeekNumber = currentWeek?.weekNumber ?? 0
+// Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
 
-  if (!result || currentWeekNumber === 0) {
+  if (totalUnits === undefined || weekNumber <= 0) {
     return { unitsPerWeek: 0, totalUnits: 0, weekNumber: 0, loading: true }
   }
 
   return {
-    unitsPerWeek: result.totalUnits / currentWeekNumber,
-    totalUnits: result.totalUnits,
-    weekNumber: currentWeekNumber,
+unitsPerWeek: totalUnits / weekNumber,
+    totalUnits,
+    weekNumber,
     loading: false,
   }
 }
