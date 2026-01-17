@@ -5,6 +5,32 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
+// Fix iPad Magic Keyboard viewport jumping issue
+// Prevents iOS from auto-scrolling when typing in input fields
+if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+  let lastScrollY = 0
+  let isInputFocused = false
+
+  document.addEventListener('focusin', (e) => {
+    const target = e.target as HTMLElement
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      isInputFocused = true
+      lastScrollY = window.scrollY
+    }
+  })
+
+  document.addEventListener('focusout', () => {
+    isInputFocused = false
+  })
+
+  // Prevent viewport resize from causing scroll jumps while typing
+  window.visualViewport?.addEventListener('resize', () => {
+    if (isInputFocused) {
+      window.scrollTo(0, lastScrollY)
+    }
+  })
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
