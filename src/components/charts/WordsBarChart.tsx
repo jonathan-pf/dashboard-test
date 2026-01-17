@@ -33,16 +33,28 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
   }
 
   // Take last 8 weeks
-  const chartData = weeks
-    .slice(0, 8)
-    .reverse()
-    .map((week) => ({
-      name: `W${week.weekNumber}`,
+  const recentWeeks = weeks.slice(0, 8).reverse()
+
+  // Check if there's a year rollover in the data
+  const years = recentWeeks.map((week) => new Date(week.weekCommencing).getFullYear())
+  const hasYearRollover = new Set(years).size > 1
+
+  const chartData = recentWeeks.map((week) => {
+    const year = new Date(week.weekCommencing).getFullYear()
+    const shortYear = year.toString().slice(-2)
+    // Show year suffix only when there's a year rollover
+    const name = hasYearRollover
+      ? `W${week.weekNumber} '${shortYear}`
+      : `W${week.weekNumber}`
+
+    return {
+      name,
       Arcadia: week.totalFiction ?? 0,
       Blog: week.totalBlog ?? 0,
       Notes: week.totalNotes ?? 0,
       Novella: week.totalNovella ?? 0,
-    }))
+    }
+  })
 
   return (
     <ResponsiveContainer width="100%" height={200}>
