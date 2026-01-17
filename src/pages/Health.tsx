@@ -30,6 +30,7 @@ export function Health() {
   const repsData = useHealthByType('Reps')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
+  const repsTrends = useHealthTrends('Reps', 30)
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
@@ -108,24 +109,6 @@ export function Health() {
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Glucose Trend (30 days)</h3>
-        <HealthTrendChart
-          data={glucoseTrends}
-          type="Glucose"
-          loading={!glucoseTrends}
-        />
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Units Trend (30 days)</h3>
-        <HealthTrendChart
-          data={unitsTrends}
-          type="Units"
-          loading={!unitsTrends}
-        />
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Quick Entry</h3>
 
         {activeEntry ? (
@@ -200,6 +183,33 @@ export function Health() {
             </button>
           </div>
         )}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Glucose Trend (30 days)</h3>
+        <HealthTrendChart
+          data={glucoseTrends}
+          type="Glucose"
+          loading={!glucoseTrends}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Units Trend (30 days)</h3>
+        <HealthTrendChart
+          data={unitsTrends}
+          type="Units"
+          loading={!unitsTrends}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Reps Trend (30 days)</h3>
+        <HealthTrendChart
+          data={repsTrends}
+          type="Reps"
+          loading={!repsTrends}
+        />
       </div>
 
       {/* Recent entries */}
