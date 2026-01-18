@@ -392,3 +392,26 @@ export function useYearlyUnitsPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Count of Features since the start of a given year
+export function useFeaturesSinceYear(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const count = useLiveQuery(
+    async () => {
+      const features = await db.ideas
+        .where('type')
+        .equals('Feature')
+        .and((idea) => idea.when >= yearStart)
+        .toArray()
+
+      return features.length
+    },
+    [yearStart]
+  )
+
+  return {
+    count: count ?? 0,
+    loading: count === undefined,
+  }
+}
