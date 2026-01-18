@@ -393,11 +393,11 @@ export function useYearlyUnitsPerWeek(year: number = 2026) {
   }
 }
 
-// Count of Features since the start of a given year
-export function useFeaturesSinceYear(year: number = 2026) {
+// Features per week average for a given year
+export function useYearlyFeaturesPerWeek(year: number = 2026) {
   const yearStart = `${year}-01-01`
 
-  const count = useLiveQuery(
+  const totalFeatures = useLiveQuery(
     async () => {
       const features = await db.ideas
         .where('type')
@@ -410,8 +410,21 @@ export function useFeaturesSinceYear(year: number = 2026) {
     [yearStart]
   )
 
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalFeatures === undefined || weekNumber <= 0) {
+    return { featuresPerWeek: 0, totalFeatures: 0, weekNumber: 0, loading: true }
+  }
+
   return {
-    count: count ?? 0,
-    loading: count === undefined,
+    featuresPerWeek: totalFeatures / weekNumber,
+    totalFeatures,
+    weekNumber,
+    loading: false,
   }
 }
