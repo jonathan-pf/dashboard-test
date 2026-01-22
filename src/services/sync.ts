@@ -30,6 +30,21 @@ import type {
 
 const MAX_RETRY_COUNT = 3
 
+// Track how many times initializeListeners has been called (for debugging)
+let initializeListenersCallCount = 0
+let onlineListenerCount = 0
+
+// Debug logging helper
+function debugLog(message: string, level: 'info' | 'warn' | 'error' | 'success' = 'info') {
+  const store = useSyncStore.getState()
+  if (store.debugMode) {
+    store.addDebugLog(message, level)
+  }
+  // Also log to console for development
+  const prefix = level === 'error' ? 'ERROR:' : level === 'warn' ? 'WARN:' : ''
+  console.log(`[Sync Debug] ${prefix} ${message}`)
+}
+
 // Transform Airtable records to local format
 function transformHealthRecord(record: HealthRecord): LocalHealthRecord {
   return {
@@ -199,17 +214,55 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
 
 class SyncService {
   private isSyncing = false
+  private syncStartTime = 0
 
   async performFullSync(): Promise<void> {
+    const store = useSyncStore.getState()
+
+    debugLog('=== MANUAL SYNC STARTED ===')
+    debugLog(`App version: v1.9.2`)
+    debugLog(`isSyncing flag at entry: ${this.isSyncing}`, this.isSyncing ? 'warn' : 'info')
+    debugLog(`navigator.onLine: ${navigator.onLine}`, navigator.onLine ? 'info' : 'warn')
+    debugLog(`initializeListeners() call count: ${initializeListenersCallCount}`, initializeListenersCallCount > 1 ? 'warn' : 'info')
+    debugLog(`'online' event listeners attached: ${onlineListenerCount}`, onlineListenerCount > 1 ? 'warn' : 'info')
+
+    // Check service worker status
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (registration) {
+        debugLog(`Service Worker: ${registration.active ? 'active' : 'inactive'} (scope: ${registration.scope})`)
+        if (registration.waiting) {
+          debugLog('Service Worker: update waiting to install', 'warn')
+        }
+      } else {
+        debugLog('Service Worker: not registered', 'warn')
+      }
+    } else {
+      debugLog('Service Worker: not supported', 'warn')
+    }
+
+    // Check cache storage
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('airtable-api-cache')
+        const keys = await cache.keys()
+        debugLog(`Cache 'airtable-api-cache': ${keys.length} entries`)
+      } catch {
+        debugLog('Cache storage: unable to check', 'warn')
+      }
+    }
+
     if (this.isSyncing) {
-      console.log('Sync already in progress')
+      debugLog('SYNC BLOCKED: isSyncing flag is already true!', 'error')
+      debugLog('This may indicate a stuck sync or race condition', 'error')
       return
     }
 
-    const store = useSyncStore.getState()
     this.isSyncing = true
+    this.syncStartTime = Date.now()
     store.setSyncing(true)
     store.setError(null)
+    debugLog('isSyncing flag set to true')
 
     try {
       // First, push any pending mutations
@@ -223,87 +276,174 @@ class SyncService {
       await setLastSyncTime(now)
       store.setLastSyncTime(now)
 
-      console.log('Full sync completed successfully')
+      const duration = ((Date.now() - this.syncStartTime) / 1000).toFixed(2)
+      debugLog(`=== SYNC COMPLETE (${duration}s) ===`, 'success')
     } catch (error) {
-      console.error('Sync failed:', error)
+      const duration = ((Date.now() - this.syncStartTime) / 1000).toFixed(2)
+      debugLog(`SYNC FAILED after ${duration}s: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      if (error instanceof Error && error.stack) {
+        debugLog(`Stack: ${error.stack.split('\n').slice(0, 3).join(' | ')}`, 'error')
+      }
       store.setError(error instanceof Error ? error.message : 'Sync failed')
       throw error
     } finally {
       this.isSyncing = false
       store.setSyncing(false)
+      debugLog('isSyncing flag set to false')
     }
   }
 
   async pullAllData(): Promise<void> {
-    console.log('Pulling data from Airtable...')
+    debugLog('Starting data pull from Airtable...')
 
-    // Fetch all tables in parallel
-    const [healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = await Promise.all([
-      airtableService.fetchAllRecords<HealthRecord>('Health'),
-      airtableService.fetchAllRecords<WordsRecord>('Words'),
-      airtableService.fetchAllRecords<WeeksRecord>('Weeks'),
-      airtableService.fetchAllRecords<GoalsRecord>('Goals'),
-      airtableService.fetchAllRecords<AreasRecord>('Areas'),
-      airtableService.fetchAllRecords<IdeasRecord>('Ideas'),
-      airtableService.fetchAllRecords<CareerRecord>('Career'),
-      airtableService.fetchAllRecords<RulesRecord>('Rules'),
-    ])
+    // Fetch all tables in parallel with individual logging
+    debugLog('Fetching all 8 tables in parallel...')
+    const fetchStart = Date.now()
+
+    let healthRecords: HealthRecord[] = []
+    let wordsRecords: WordsRecord[] = []
+    let weeksRecords: WeeksRecord[] = []
+    let goalsRecords: GoalsRecord[] = []
+    let areasRecords: AreasRecord[] = []
+    let ideasRecords: IdeasRecord[] = []
+    let careerRecords: CareerRecord[] = []
+    let rulesRecords: RulesRecord[] = []
+
+    try {
+      const results = await Promise.all([
+        airtableService.fetchAllRecords<HealthRecord>('Health').then(r => { debugLog(`Health: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<WordsRecord>('Words').then(r => { debugLog(`Words: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<WeeksRecord>('Weeks').then(r => { debugLog(`Weeks: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<GoalsRecord>('Goals').then(r => { debugLog(`Goals: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<AreasRecord>('Areas').then(r => { debugLog(`Areas: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<IdeasRecord>('Ideas').then(r => { debugLog(`Ideas: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<CareerRecord>('Career').then(r => { debugLog(`Career: ${r.length} records fetched`, 'success'); return r }),
+        airtableService.fetchAllRecords<RulesRecord>('Rules').then(r => { debugLog(`Rules: ${r.length} records fetched`, 'success'); return r }),
+      ])
+
+      ;[healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = results
+    } catch (error) {
+      debugLog(`Fetch failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      throw error
+    }
+
+    const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
+    debugLog(`All fetches completed in ${fetchDuration}s`)
+
+    // Log sample date formats to check for issues (Hypothesis 4)
+    debugLog('--- Sample date formats from data ---')
+    if (healthRecords.length > 0) {
+      const sample = healthRecords[0]
+      debugLog(`  health.Date: "${sample.fields.Date}"`)
+    }
+    if (wordsRecords.length > 0) {
+      const sample = wordsRecords[0]
+      debugLog(`  words.When: "${sample.fields.When}"`)
+    }
+    if (weeksRecords.length > 0) {
+      const sample = weeksRecords[0]
+      debugLog(`  weeks.Week Commencing: "${sample.fields['Week Commencing']}"`)
+      // Check This Week flag
+      const currentWeek = weeksRecords.find(w => w.fields['This Week'] === 'Yes')
+      if (currentWeek) {
+        debugLog(`  Current week found: "${currentWeek.fields.Name}" (Week ${currentWeek.fields['Week Number']})`, 'success')
+      } else {
+        debugLog('  No week with This Week = Yes found!', 'warn')
+      }
+    }
+    if (ideasRecords.length > 0) {
+      const sample = ideasRecords[0]
+      debugLog(`  ideas.When?: "${sample.fields['When?']}"`)
+    }
 
     // Transform and store locally
-    await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules], async () => {
-      // Clear existing data (except pending mutations)
-      await db.health.clear()
-      await db.words.clear()
-      await db.weeks.clear()
-      await db.goals.clear()
-      await db.areas.clear()
-      await db.ideas.clear()
-      await db.career.clear()
-      await db.rules.clear()
+    debugLog('Starting database transaction...')
+    const dbStart = Date.now()
 
-      // Bulk insert transformed records
-      await db.health.bulkPut(healthRecords.map(transformHealthRecord))
-      await db.words.bulkPut(wordsRecords.map(transformWordsRecord))
-      await db.weeks.bulkPut(weeksRecords.map(transformWeeksRecord))
-      await db.goals.bulkPut(goalsRecords.map(transformGoalsRecord))
-      await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
-      await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
-      await db.career.bulkPut(careerRecords.map(transformCareerRecord))
-      await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
-    })
+    try {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules], async () => {
+        // Clear existing data (except pending mutations)
+        debugLog('Clearing existing data...')
+        await db.health.clear()
+        await db.words.clear()
+        await db.weeks.clear()
+        await db.goals.clear()
+        await db.areas.clear()
+        await db.ideas.clear()
+        await db.career.clear()
+        await db.rules.clear()
 
-    console.log(
-      `Pulled: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules`
+        // Bulk insert transformed records
+        debugLog('Inserting transformed records...')
+        await db.health.bulkPut(healthRecords.map(transformHealthRecord))
+        await db.words.bulkPut(wordsRecords.map(transformWordsRecord))
+        await db.weeks.bulkPut(weeksRecords.map(transformWeeksRecord))
+        await db.goals.bulkPut(goalsRecords.map(transformGoalsRecord))
+        await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
+        await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
+        await db.career.bulkPut(careerRecords.map(transformCareerRecord))
+        await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
+      })
+
+      const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
+      debugLog(`Database transaction complete in ${dbDuration}s`, 'success')
+    } catch (error) {
+      debugLog(`Database transaction failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      throw error
+    }
+
+    debugLog(
+      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules`
     )
   }
 
   async pushPendingMutations(): Promise<void> {
     const mutations = await getPendingMutations()
-    if (mutations.length === 0) return
 
-    console.log(`Pushing ${mutations.length} pending mutations...`)
+    debugLog(`--- Pending Mutations Check ---`)
+    debugLog(`Pending mutations count: ${mutations.length}`)
+
+    if (mutations.length === 0) {
+      debugLog('No pending mutations to push')
+      return
+    }
+
+    // Log details of each pending mutation (Hypothesis 5)
+    mutations.forEach((m, i) => {
+      const ageMs = Date.now() - m.timestamp
+      const ageStr = ageMs < 60000 ? `${Math.round(ageMs / 1000)}s` :
+                     ageMs < 3600000 ? `${Math.round(ageMs / 60000)}m` :
+                     `${Math.round(ageMs / 3600000)}h`
+      const retryWarning = m.retryCount >= MAX_RETRY_COUNT ? ' MAX RETRIES' : ''
+      const level = m.retryCount > 0 ? 'warn' : 'info'
+      debugLog(`  #${i + 1}: ${m.tableName}/${m.operation}/${m.recordId.slice(0, 10)}... (retry: ${m.retryCount}, age: ${ageStr})${retryWarning}`, level as 'info' | 'warn')
+    })
+
     const store = useSyncStore.getState()
 
     for (const mutation of mutations) {
       try {
+        debugLog(`Processing mutation: ${mutation.tableName}/${mutation.operation}`)
         await this.processMutation(mutation)
         await removePendingMutation(mutation.id!)
         store.decrementPending()
+        debugLog(`Mutation successful: ${mutation.tableName}/${mutation.operation}`, 'success')
       } catch (error) {
         if (error instanceof AirtableError && error.isRateLimit) {
-          // Retry later
-          console.log('Rate limited, will retry later')
+          debugLog('Rate limited by Airtable, will retry later', 'warn')
           break
         }
+
+        debugLog(`Mutation failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
 
         // Increment retry count
         if (mutation.retryCount < MAX_RETRY_COUNT) {
           await db.pendingMutations.update(mutation.id!, {
             retryCount: mutation.retryCount + 1,
           })
+          debugLog(`Retry count incremented to ${mutation.retryCount + 1}`, 'warn')
         } else {
-          // Max retries reached, remove and log error
-          console.error(`Mutation failed after ${MAX_RETRY_COUNT} retries:`, mutation)
+          debugLog(`Mutation abandoned after ${MAX_RETRY_COUNT} retries`, 'error')
           await removePendingMutation(mutation.id!)
           store.decrementPending()
         }
@@ -683,20 +823,40 @@ class SyncService {
 
   // Initialize sync listeners
   initializeListeners(): void {
+    initializeListenersCallCount++
+    onlineListenerCount++
+
+    // Log if this has been called multiple times (potential issue)
+    if (initializeListenersCallCount > 1) {
+      console.warn(`[Sync] initializeListeners() called ${initializeListenersCallCount} times - potential duplicate listeners!`)
+    }
+
     // Sync when coming back online
     window.addEventListener('online', () => {
       console.log('Back online, syncing...')
+      debugLog('Online event triggered - starting sync')
       this.performFullSync().catch(console.error)
     })
 
     // Track offline status
     window.addEventListener('offline', () => {
       console.log('Gone offline')
+      debugLog('Offline event triggered')
     })
 
     // Initial sync on app load
     if (navigator.onLine) {
+      debugLog('Initial sync on app load')
       this.performFullSync().catch(console.error)
+    }
+  }
+
+  // Get debug stats (for diagnostic purposes)
+  getDebugStats() {
+    return {
+      isSyncing: this.isSyncing,
+      initializeListenersCallCount,
+      onlineListenerCount,
     }
   }
 }
