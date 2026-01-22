@@ -3,13 +3,17 @@ import { useSyncStore } from '@/stores/syncStore'
 import { syncService } from '@/services/sync'
 import { clearAllData } from '@/db'
 import { useOfflineStatus } from '@/hooks/useOfflineStatus'
+import { DebugLog } from '@/components/DebugLog'
 
 export function Settings() {
-  const { lastSyncTime, pendingCount, isSyncing } = useSyncStore()
+  const { lastSyncTime, pendingCount, isSyncing, debugMode, toggleDebugMode, clearDebugLogs } = useSyncStore()
   const isOffline = useOfflineStatus()
   const [clearing, setClearing] = useState(false)
 
   const handleSync = async () => {
+    if (debugMode) {
+      clearDebugLogs()
+    }
     try {
       await syncService.performFullSync()
     } catch (error) {
@@ -98,8 +102,36 @@ export function Settings() {
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-900">Debug Mode</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Show verbose sync logs</p>
+          </div>
+          <button
+            onClick={toggleDebugMode}
+            className={`relative w-12 h-7 rounded-full transition-colors ${
+              debugMode ? 'bg-blue-600' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                debugMode ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {debugMode && (
+        <div className="space-y-2">
+          <h3 className="font-semibold text-slate-900">Sync Debug Log</h3>
+          <DebugLog />
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2">About</h3>
-        <p className="text-sm text-slate-500">Airtable Dashboard PWA v1.9.1</p>
+        <p className="text-sm text-slate-500">Airtable Dashboard PWA v1.9.2</p>
         <p className="text-xs text-slate-400 mt-1">
           Offline-first personal dashboard
         </p>
