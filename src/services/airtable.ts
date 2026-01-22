@@ -47,11 +47,20 @@ export class AirtableService {
   private baseId: string
 
   constructor() {
-    this.pat = import.meta.env.VITE_AIRTABLE_PAT
-    this.baseId = import.meta.env.VITE_AIRTABLE_BASE_ID
+    this.pat = import.meta.env.VITE_AIRTABLE_PAT || ''
+    this.baseId = import.meta.env.VITE_AIRTABLE_BASE_ID || ''
 
     if (!this.pat || !this.baseId) {
       console.error('Airtable credentials not configured')
+    }
+  }
+
+  // Get debug info about configuration (PAT is redacted)
+  getDebugInfo(): { baseId: string; patConfigured: boolean; patPrefix: string } {
+    return {
+      baseId: this.baseId || '(not set)',
+      patConfigured: !!this.pat && this.pat.length > 0,
+      patPrefix: this.pat ? this.pat.substring(0, 10) + '...' : '(not set)',
     }
   }
 
