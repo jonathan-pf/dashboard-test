@@ -8,6 +8,7 @@ import {
 } from '@/db'
 import { useSyncStore } from '@/stores/syncStore'
 import type {
+  AirtableRecord,
   HealthRecord,
   WordsRecord,
   WeeksRecord,
@@ -25,6 +26,7 @@ import type {
   LocalCareerRecord,
   LocalRulesRecord,
   PendingMutation,
+  TableName,
   TABLES,
 } from '@/types/airtable'
 
@@ -220,7 +222,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.9.3`)
+    debugLog(`App version: v1.9.4`)
     debugLog(`isSyncing flag at entry: ${this.isSyncing}`, this.isSyncing ? 'warn' : 'info')
     debugLog(`navigator.onLine: ${navigator.onLine}`, navigator.onLine ? 'info' : 'warn')
     debugLog(`initializeListeners() call count: ${initializeListenersCallCount}`, initializeListenersCallCount > 1 ? 'warn' : 'info')
@@ -309,19 +311,33 @@ class SyncService {
     let careerRecords: CareerRecord[] = []
     let rulesRecords: RulesRecord[] = []
 
-    try {
-      const results = await Promise.all([
-        airtableService.fetchAllRecords<HealthRecord>('Health').then(r => { debugLog(`Health: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<WordsRecord>('Words').then(r => { debugLog(`Words: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<WeeksRecord>('Weeks').then(r => { debugLog(`Weeks: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<GoalsRecord>('Goals').then(r => { debugLog(`Goals: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<AreasRecord>('Areas').then(r => { debugLog(`Areas: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<IdeasRecord>('Ideas').then(r => { debugLog(`Ideas: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<CareerRecord>('Career').then(r => { debugLog(`Career: ${r.length} records fetched`, 'success'); return r }),
-        airtableService.fetchAllRecords<RulesRecord>('Rules').then(r => { debugLog(`Rules: ${r.length} records fetched`, 'success'); return r }),
-      ])
+    // Helper to fetch a table with detailed error logging
+    const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
+      debugLog(`Fetching ${tableName}...`)
+      try {
+        const records = await airtableService.fetchAllRecords<T>(tableName as TableName)
+        debugLog(`${tableName}: ${records.length} records fetched`, 'success')
+        return records
+      } catch (error) {
+        if (error instanceof AirtableError) {
+          debugLog(`${tableName}: HTTP ${error.statusCode} - ${error.message}`, 'error')
+        } else {
+          debugLog(`${tableName}: ${error instanceof Error ? error.message : String(error)}`, 'error')
+        }
+        throw error
+      }
+    }
 
-      ;[healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = results
+    // Fetch tables sequentially to identify exactly which one fails
+    try {
+      healthRecords = await fetchTable<HealthRecord>('Health')
+      wordsRecords = await fetchTable<WordsRecord>('Words')
+      weeksRecords = await fetchTable<WeeksRecord>('Weeks')
+      goalsRecords = await fetchTable<GoalsRecord>('Goals')
+      areasRecords = await fetchTable<AreasRecord>('Areas')
+      ideasRecords = await fetchTable<IdeasRecord>('Ideas')
+      careerRecords = await fetchTable<CareerRecord>('Career')
+      rulesRecords = await fetchTable<RulesRecord>('Rules')
     } catch (error) {
       // Extract detailed error info from AirtableError
       if (error instanceof AirtableError) {
