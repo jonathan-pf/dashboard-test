@@ -220,7 +220,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.9.2`)
+    debugLog(`App version: v1.9.3`)
     debugLog(`isSyncing flag at entry: ${this.isSyncing}`, this.isSyncing ? 'warn' : 'info')
     debugLog(`navigator.onLine: ${navigator.onLine}`, navigator.onLine ? 'info' : 'warn')
     debugLog(`initializeListeners() call count: ${initializeListenersCallCount}`, initializeListenersCallCount > 1 ? 'warn' : 'info')
@@ -323,7 +323,25 @@ class SyncService {
 
       ;[healthRecords, wordsRecords, weeksRecords, goalsRecords, areasRecords, ideasRecords, careerRecords, rulesRecords] = results
     } catch (error) {
-      debugLog(`Fetch failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      // Extract detailed error info from AirtableError
+      if (error instanceof AirtableError) {
+        debugLog(`Fetch failed: HTTP ${error.statusCode}`, 'error')
+        debugLog(`Error message: ${error.message}`, 'error')
+        if (error.isUnauthorized) {
+          debugLog('DIAGNOSIS: Authentication failed - PAT may be expired or invalid', 'error')
+        } else if (error.isRateLimit) {
+          debugLog('DIAGNOSIS: Rate limited by Airtable - too many requests', 'error')
+        } else if (error.isNotFound) {
+          debugLog('DIAGNOSIS: Base or table not found - check AIRTABLE_BASE_ID', 'error')
+        } else if (error.statusCode >= 500) {
+          debugLog('DIAGNOSIS: Airtable server error - try again later', 'error')
+        }
+      } else if (error instanceof TypeError && String(error).includes('fetch')) {
+        debugLog(`Fetch failed: Network error`, 'error')
+        debugLog('DIAGNOSIS: Network error - possible CORS issue, blocked request, or no internet', 'error')
+      } else {
+        debugLog(`Fetch failed: ${error instanceof Error ? error.message : String(error)}`, 'error')
+      }
       throw error
     }
 
