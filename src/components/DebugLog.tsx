@@ -32,7 +32,7 @@ export function DebugLog() {
   const formatLogsForCopy = () => {
     const header = [
       '=== SYNC DEBUG LOG ===',
-      `App Version: v1.9.3`,
+      `App Version: v1.9.4`,
       `Exported: ${new Date().toISOString()}`,
       `User Agent: ${navigator.userAgent}`,
       `Online: ${navigator.onLine}`,
