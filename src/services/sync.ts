@@ -222,7 +222,13 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.9.4`)
+    debugLog(`App version: v1.9.5`)
+
+    // Log Airtable configuration (PAT redacted)
+    const airtableDebug = airtableService.getDebugInfo()
+    debugLog(`Airtable Base ID: ${airtableDebug.baseId}`, airtableDebug.baseId === '(not set)' ? 'error' : 'info')
+    debugLog(`Airtable PAT: ${airtableDebug.patPrefix}`, !airtableDebug.patConfigured ? 'error' : 'info')
+
     debugLog(`isSyncing flag at entry: ${this.isSyncing}`, this.isSyncing ? 'warn' : 'info')
     debugLog(`navigator.onLine: ${navigator.onLine}`, navigator.onLine ? 'info' : 'warn')
     debugLog(`initializeListeners() call count: ${initializeListenersCallCount}`, initializeListenersCallCount > 1 ? 'warn' : 'info')
