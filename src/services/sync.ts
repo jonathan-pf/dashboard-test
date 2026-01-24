@@ -17,6 +17,7 @@ import type {
   IdeasRecord,
   CareerRecord,
   RulesRecord,
+  EventsRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
@@ -25,6 +26,7 @@ import type {
   LocalIdeasRecord,
   LocalCareerRecord,
   LocalRulesRecord,
+  LocalEventsRecord,
   PendingMutation,
   TableName,
   TABLES,
@@ -160,6 +162,17 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
   }
 }
 
+function transformEventsRecord(record: EventsRecord): LocalEventsRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    date: record.fields['Date organised'] || '',
+    notes: record.fields.Notes ?? null,
+    type: record.fields.Type || 'Event',
+    createdTime: record.createdTime,
+  }
+}
+
 // Transform local records back to Airtable format for mutations
 function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknown> {
   return {
@@ -214,6 +227,15 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
   }
 }
 
+function localEventsToAirtable(record: LocalEventsRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    'Date organised': record.date,
+    Notes: record.notes,
+    Type: record.type,
+  }
+}
+
 class SyncService {
   private isSyncing = false
   private syncStartTime = 0
@@ -222,7 +244,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.9.5`)
+    debugLog(`App version: v1.10.0`)
 
     // Log Airtable configuration (PAT redacted)
     const airtableDebug = airtableService.getDebugInfo()
@@ -304,8 +326,8 @@ class SyncService {
   async pullAllData(): Promise<void> {
     debugLog('Starting data pull from Airtable...')
 
-    // Fetch all tables in parallel with individual logging
-    debugLog('Fetching all 8 tables in parallel...')
+    // Fetch all tables sequentially with individual logging
+    debugLog('Fetching all 9 tables sequentially...')
     const fetchStart = Date.now()
 
     let healthRecords: HealthRecord[] = []
@@ -316,6 +338,7 @@ class SyncService {
     let ideasRecords: IdeasRecord[] = []
     let careerRecords: CareerRecord[] = []
     let rulesRecords: RulesRecord[] = []
+    let eventsRecords: EventsRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -344,6 +367,7 @@ class SyncService {
       ideasRecords = await fetchTable<IdeasRecord>('Ideas')
       careerRecords = await fetchTable<CareerRecord>('Career')
       rulesRecords = await fetchTable<RulesRecord>('Rules')
+      eventsRecords = await fetchTable<EventsRecord>('Events')
     } catch (error) {
       // Extract detailed error info from AirtableError
       if (error instanceof AirtableError) {
@@ -401,7 +425,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -412,6 +436,7 @@ class SyncService {
         await db.ideas.clear()
         await db.career.clear()
         await db.rules.clear()
+        await db.events.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -423,6 +448,7 @@ class SyncService {
         await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
         await db.career.bulkPut(careerRecords.map(transformCareerRecord))
         await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
+        await db.events.bulkPut(eventsRecords.map(transformEventsRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -433,7 +459,7 @@ class SyncService {
     }
 
     debugLog(
-      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules`
+      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${eventsRecords.length} events`
     )
   }
 
@@ -858,6 +884,74 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Rules', 'update', ruleId, updateData)
+    }
+  }
+
+  // Create an event record (handles offline)
+  async createEventsRecord(
+    data: Omit<LocalEventsRecord, 'id' | 'createdTime'>
+  ): Promise<LocalEventsRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalEventsRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.events.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<EventsRecord>(
+          'Events',
+          localEventsToAirtable(record)
+        )
+        await db.events.delete(localId)
+        const updatedRecord = transformEventsRecord(created)
+        await db.events.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Events', 'create', localId, localEventsToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Events', 'create', localId, localEventsToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update an event record (handles offline)
+  async updateEventsRecord(
+    eventId: string,
+    updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'notes' | 'type'>>
+  ): Promise<void> {
+    const event = await db.events.get(eventId)
+    if (!event) throw new Error('Event not found')
+
+    // Apply updates to local record
+    Object.assign(event, updates)
+    event._pendingSync = true
+    await db.events.put(event)
+
+    // Prepare Airtable update data
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.date !== undefined) updateData['Date organised'] = updates.date
+    if (updates.notes !== undefined) updateData.Notes = updates.notes
+    if (updates.type !== undefined) updateData.Type = updates.type
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Events', eventId, updateData)
+        event._pendingSync = false
+        await db.events.put(event)
+      } catch {
+        await this.queueMutation('Events', 'update', eventId, updateData)
+      }
+    } else {
+      await this.queueMutation('Events', 'update', eventId, updateData)
     }
   }
 

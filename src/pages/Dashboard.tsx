@@ -193,6 +193,17 @@ export function Dashboard() {
           </p>
         )}
       </div>
+
+      <Link
+        to="/events"
+        className="block bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900">Events</h3>
+          <span className="text-blue-600 text-sm">View all</span>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">Track meals, parties, cinema trips and more</p>
+      </Link>
     </div>
   )
 }

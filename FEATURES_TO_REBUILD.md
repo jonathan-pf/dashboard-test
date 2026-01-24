@@ -1,38 +1,28 @@
 # Features to Rebuild
 
-This document lists features that were removed when reverting to the Jan 3rd 2026 working version to fix iOS PWA sync issues. Please pause after each feature is built to let me check if sync is still workng.
 
-## Missing Features
 
-### 1. Next Week's Goals Page
-- **Route:** `/goals/next-week`
-- **Description:** A dedicated page to view and manage goals for the upcoming week
-- **Components needed:** `src/pages/NextWeekGoals.tsx`
-- **Hooks needed:** `useNextWeek()`, `useNextWeekGoals()`
+## Known Bugs
 
-### 2. Goal Editing
-- **Description:** Ability to edit Goal Name and Area on Goals pages
-- **Affected pages:** Goals, LongTermGoals
+### iPad Magic Keyboard Viewport Jumping
+**Status:** Under investigation (v1.8.3)
 
-### 3. Week Summary Widgets
-- **Description:** Additional StatCard widgets on Dashboard showing:
-  - Steps count
-  - Stages count
-  - Features count
-  - Reps total
-  - Goal Confidence average
-- **Fields needed in WeeksRecord:** `steps`, `stages`, `features`, `goalConfidence`
+**Symptom:** When typing with an external Magic Keyboard attached to iPad, the screen/content jumps down and stays in the wrong position.
 
-### 4. Words Chart Year Rollover Fix
-- **Description:** Fix for words chart to handle year rollover correctly
-- **Affected file:** Likely in chart components
+**What we know:**
+- Only occurs with external keyboard (Magic Keyboard), not on-screen keyboard
+- Happens while typing, not just on focus
+- Content jumps down (viewport shifts up) and stays there
+- Does NOT occur on iPhone or iPad without external keyboard
 
-### 5. CLAUDE.md and README.md
-- **Description:** Documentation files for the project
-- **Note:** These can be recreated from scratch
+**Fixes attempted:**
+1. ✅ Updated viewport meta tag: `interactive-widget=resizes-content`, `viewport-fit=cover`
+2. ✅ Added CSS fixes: `100dvh`, `-webkit-fill-available` height
+3. ✅ Added JS fix: `visualViewport` resize listener to restore scroll position (v1.8.3)
 
-## Notes
+**Files involved:**
+- `index.html` - viewport meta tag
+- `src/index.css` - height/viewport CSS
+- `src/main.tsx` - JS viewport resize handler
 
-- The iOS sync issue appeared after Jan 7th 2026
-- The Jan 3rd version is confirmed working on iOS PWA
-- When rebuilding features, test iOS sync after each addition to identify which change causes the regression
+---

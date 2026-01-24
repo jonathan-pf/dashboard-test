@@ -8,6 +8,7 @@ import type {
   LocalGoalsRecord,
   LocalIdeasRecord,
   LocalRulesRecord,
+  LocalEventsRecord,
 } from '@/types/airtable'
 
 // Query keys
@@ -20,6 +21,7 @@ export const queryKeys = {
   ideas: ['ideas'] as const,
   career: ['career'] as const,
   rules: ['rules'] as const,
+  events: ['events'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -99,6 +101,10 @@ export function useRulesByStatus(status: LocalRulesRecord['status']) {
     () => db.rules.where('status').equals(status).toArray(),
     [status]
   )
+}
+
+export function useEvents() {
+  return useLiveQuery(() => db.events.orderBy('date').reverse().toArray(), [])
 }
 
 export function useCurrentWeekIdeas() {
@@ -290,6 +296,37 @@ export function useUpdateRule() {
     }) => syncService.updateRulesRecord(ruleId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rules })
+    },
+  })
+}
+
+// Create event record mutation
+export function useCreateEvent() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalEventsRecord, 'id' | 'createdTime'>) =>
+      syncService.createEventsRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events })
+    },
+  })
+}
+
+// Update event record mutation
+export function useUpdateEvent() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      updates,
+    }: {
+      eventId: string
+      updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'notes' | 'type'>>
+    }) => syncService.updateEventsRecord(eventId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.events })
     },
   })
 }

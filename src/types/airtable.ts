@@ -115,6 +115,16 @@ export interface WorkRecord extends AirtableRecord {
   }
 }
 
+// Events table
+export interface EventsRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    'Date organised': string // ISO date string
+    Notes?: string
+    Type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+  }
+}
+
 // Career table - tracks lifetime totals
 export interface CareerRecord extends AirtableRecord {
   fields: {
@@ -258,6 +268,41 @@ export interface LocalRulesRecord {
   _localId?: string
 }
 
+export interface LocalEventsRecord {
+  id: string
+  name: string
+  date: string
+  notes: string | null
+  type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+export const EVENT_TYPES = [
+  'Meal',
+  'Party',
+  'Cinema',
+  'Theatre',
+  'Holiday',
+  'Event',
+  'Work Trip',
+  'Hobby',
+] as const
+
+export type EventType = LocalEventsRecord['type']
+
+export const EVENT_TYPE_COLORS: Record<EventType, string> = {
+  'Meal': 'bg-blue-100 text-blue-700',
+  'Party': 'bg-cyan-100 text-cyan-700',
+  'Cinema': 'bg-teal-100 text-teal-700',
+  'Theatre': 'bg-green-100 text-green-700',
+  'Holiday': 'bg-yellow-100 text-yellow-700',
+  'Event': 'bg-orange-100 text-orange-700',
+  'Work Trip': 'bg-red-100 text-red-700',
+  'Hobby': 'bg-pink-100 text-pink-700',
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -287,6 +332,7 @@ export const TABLES = {
   AREAS: 'Areas',
   CAREER: 'Career',
   RULES: 'Rules',
+  EVENTS: 'Events',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
