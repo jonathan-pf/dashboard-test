@@ -4,9 +4,19 @@ interface StatCardProps {
   suffix?: string
   trend?: 'up' | 'down' | 'neutral'
   loading?: boolean
+  goal?: number
+  goalDirection?: 'under' | 'over'
 }
 
-export function StatCard({ label, value, suffix, trend, loading }: StatCardProps) {
+export function StatCard({ label, value, suffix, trend, loading, goal, goalDirection }: StatCardProps) {
+  // Determine if goal is met
+  const numericValue = typeof value === 'string' ? parseFloat(value) : value
+  const goalMet = goal !== undefined && goalDirection !== undefined
+    ? goalDirection === 'under'
+      ? numericValue <= goal
+      : numericValue >= goal
+    : undefined
+
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
       <p className="text-sm text-slate-500">{label}</p>
@@ -15,7 +25,13 @@ export function StatCard({ label, value, suffix, trend, loading }: StatCardProps
           <div className="h-9 w-16 bg-slate-200 animate-pulse rounded" />
         ) : (
           <>
-            <p className="text-3xl font-bold text-slate-900">
+            <p className={`text-3xl font-bold ${
+              goalMet === undefined
+                ? 'text-slate-900'
+                : goalMet
+                ? 'text-green-600'
+                : 'text-red-600'
+            }`}>
               {typeof value === 'number' ? value.toLocaleString() : value}
             </p>
             {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
@@ -35,6 +51,11 @@ export function StatCard({ label, value, suffix, trend, loading }: StatCardProps
           </span>
         )}
       </div>
+      {goal !== undefined && goalDirection !== undefined && !loading && (
+        <p className="text-xs text-slate-400 mt-1">
+          Goal: {goalDirection === 'under' ? '<' : '>'}{goal}
+        </p>
+      )}
     </div>
   )
 }

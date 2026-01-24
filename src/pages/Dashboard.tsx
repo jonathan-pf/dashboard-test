@@ -15,6 +15,7 @@ import {
   useYearlyUnitsPerWeek,
   useYearlyFeaturesPerWeek,
   useYearlyEventsPerWeek,
+  useYearlyWordsPerWeek,
 } from '@/hooks/useAirtableData'
 import { syncService } from '@/services/sync'
 
@@ -29,6 +30,7 @@ export function Dashboard() {
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
   const events2026 = useYearlyEventsPerWeek(2026)
+  const words2026 = useYearlyWordsPerWeek(2026)
 
   // Initialize sync on mount
   useEffect(() => {
@@ -59,16 +61,29 @@ export function Dashboard() {
             label="Units/Week (2026)"
             value={yearlyUnits.unitsPerWeek.toFixed(1)}
             loading={yearlyUnits.loading}
+            goal={40}
+            goalDirection="under"
           />
           <StatCard
             label="Features/Week (2026)"
             value={features2026.featuresPerWeek.toFixed(1)}
             loading={features2026.loading}
+            goal={3}
+            goalDirection="over"
           />
           <StatCard
             label="Events/Week (2026)"
             value={events2026.eventsPerWeek.toFixed(1)}
             loading={events2026.loading}
+            goal={1}
+            goalDirection="over"
+          />
+          <StatCard
+            label="Words/Week (2026)"
+            value={Math.round(words2026.wordsPerWeek)}
+            loading={words2026.loading}
+            goal={200}
+            goalDirection="over"
           />
         </div>
       </div>

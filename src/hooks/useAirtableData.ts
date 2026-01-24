@@ -499,3 +499,37 @@ export function useYearlyEventsPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Words per week average for a given year
+export function useYearlyWordsPerWeek(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const totalWords = useLiveQuery(
+    async () => {
+      const words = await db.words
+        .filter((w) => w.when >= yearStart)
+        .toArray()
+
+      return words.reduce((sum, w) => sum + (w.words ?? 0), 0)
+    },
+    [yearStart]
+  )
+
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalWords === undefined || weekNumber <= 0) {
+    return { wordsPerWeek: 0, totalWords: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    wordsPerWeek: totalWords / weekNumber,
+    totalWords,
+    weekNumber,
+    loading: false,
+  }
+}
