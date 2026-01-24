@@ -82,7 +82,7 @@ export function Dashboard() {
             label="Words/Week (2026)"
             value={Math.round(words2026.wordsPerWeek)}
             loading={words2026.loading}
-            goal={200}
+            goal={300}
             goalDirection="over"
           />
         </div>
