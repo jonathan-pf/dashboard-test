@@ -4,7 +4,7 @@ import {
   useCreateEvent,
   useUpdateEvent,
 } from '@/hooks/useAirtableData'
-import { EVENT_TYPES, EVENT_TYPE_COLORS } from '@/types/airtable'
+import { EVENT_TYPES, EVENT_TYPE_COLORS, EVENT_STATUSES, EVENT_STATUS_COLORS } from '@/types/airtable'
 import type { LocalEventsRecord } from '@/types/airtable'
 
 export function Events() {
@@ -13,6 +13,8 @@ export function Events() {
   const [eventName, setEventName] = useState('')
   const [eventType, setEventType] = useState<LocalEventsRecord['type']>('Event')
   const [eventDate, setEventDate] = useState('')
+  const [eventDateHeld, setEventDateHeld] = useState('')
+  const [eventStatus, setEventStatus] = useState<LocalEventsRecord['status']>('Planned')
   const [eventNotes, setEventNotes] = useState('')
 
   const events = useEvents()
@@ -28,6 +30,8 @@ export function Events() {
       name: eventName.trim(),
       type: eventType,
       date: eventDate,
+      dateHeld: eventDateHeld || null,
+      status: eventStatus,
       notes: eventNotes.trim() || null,
     })
 
@@ -44,6 +48,8 @@ export function Events() {
         name: eventName.trim(),
         type: eventType,
         date: eventDate,
+        dateHeld: eventDateHeld || null,
+        status: eventStatus,
         notes: eventNotes.trim() || null,
       },
     })
@@ -57,6 +63,8 @@ export function Events() {
     setEventName(event.name)
     setEventType(event.type)
     setEventDate(event.date)
+    setEventDateHeld(event.dateHeld || '')
+    setEventStatus(event.status)
     setEventNotes(event.notes || '')
     setShowAddForm(false)
   }
@@ -65,6 +73,8 @@ export function Events() {
     setEventName('')
     setEventType('Event')
     setEventDate('')
+    setEventDateHeld('')
+    setEventStatus('Planned')
     setEventNotes('')
   }
 
@@ -116,32 +126,63 @@ export function Events() {
                 autoFocus
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Type
-              </label>
-              <select
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value as LocalEventsRecord['type'])}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-              >
-                {EVENT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value as LocalEventsRecord['type'])}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                >
+                  {EVENT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={eventStatus}
+                  onChange={(e) => setEventStatus(e.target.value as LocalEventsRecord['status'])}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                >
+                  {EVENT_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Date Organised
+                </label>
+                <input
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Date Held
+                </label>
+                <input
+                  type="date"
+                  value={eventDateHeld}
+                  onChange={(e) => setEventDateHeld(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -205,15 +246,25 @@ export function Events() {
                 <p className="text-sm font-medium text-slate-900 flex-1">
                   {event.name}
                 </p>
-                <span className="text-xs text-slate-400 whitespace-nowrap">
-                  {formatDate(event.date)}
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${EVENT_STATUS_COLORS[event.status]}`}>
+                  {event.status}
                 </span>
               </div>
-              <span
-                className={`inline-block mt-2 px-2 py-0.5 rounded text-xs font-medium ${EVENT_TYPE_COLORS[event.type]}`}
-              >
-                {event.type}
-              </span>
+              <div className="flex items-center gap-2 mt-2">
+                <span
+                  className={`px-2 py-0.5 rounded text-xs font-medium ${EVENT_TYPE_COLORS[event.type]}`}
+                >
+                  {event.type}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {formatDate(event.date)}
+                </span>
+                {event.dateHeld && event.dateHeld !== event.date && (
+                  <span className="text-xs text-green-600">
+                    (held {formatDate(event.dateHeld)})
+                  </span>
+                )}
+              </div>
               {event.notes && (
                 <p className="text-xs text-slate-500 mt-2 line-clamp-2">
                   {event.notes}

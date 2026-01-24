@@ -167,8 +167,10 @@ function transformEventsRecord(record: EventsRecord): LocalEventsRecord {
     id: record.id,
     name: record.fields.Name || '',
     date: record.fields['Date organised'] || '',
+    dateHeld: record.fields['Date held'] ?? null,
     notes: record.fields.Notes ?? null,
     type: record.fields.Type || 'Event',
+    status: record.fields.Status || 'Planned',
     createdTime: record.createdTime,
   }
 }
@@ -231,8 +233,10 @@ function localEventsToAirtable(record: LocalEventsRecord): Record<string, unknow
   return {
     Name: record.name,
     'Date organised': record.date,
+    'Date held': record.dateHeld,
     Notes: record.notes,
     Type: record.type,
+    Status: record.status,
   }
 }
 
@@ -925,7 +929,7 @@ class SyncService {
   // Update an event record (handles offline)
   async updateEventsRecord(
     eventId: string,
-    updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'notes' | 'type'>>
+    updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status'>>
   ): Promise<void> {
     const event = await db.events.get(eventId)
     if (!event) throw new Error('Event not found')
@@ -939,8 +943,10 @@ class SyncService {
     const updateData: Record<string, unknown> = {}
     if (updates.name !== undefined) updateData.Name = updates.name
     if (updates.date !== undefined) updateData['Date organised'] = updates.date
+    if (updates.dateHeld !== undefined) updateData['Date held'] = updates.dateHeld
     if (updates.notes !== undefined) updateData.Notes = updates.notes
     if (updates.type !== undefined) updateData.Type = updates.type
+    if (updates.status !== undefined) updateData.Status = updates.status
 
     if (navigator.onLine) {
       try {

@@ -323,7 +323,7 @@ export function useUpdateEvent() {
       updates,
     }: {
       eventId: string
-      updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'notes' | 'type'>>
+      updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status'>>
     }) => syncService.updateEventsRecord(eventId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.events })

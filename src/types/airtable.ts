@@ -120,8 +120,10 @@ export interface EventsRecord extends AirtableRecord {
   fields: {
     Name: string
     'Date organised': string // ISO date string
+    'Date held'?: string // ISO date string - when event actually happened
     Notes?: string
     Type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+    Status?: 'Planned' | 'Held' | 'Cancelled'
   }
 }
 
@@ -271,12 +273,23 @@ export interface LocalRulesRecord {
 export interface LocalEventsRecord {
   id: string
   name: string
-  date: string
+  date: string // Date organised
+  dateHeld: string | null // Date actually held
   notes: string | null
   type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+  status: 'Planned' | 'Held' | 'Cancelled'
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
+}
+
+export const EVENT_STATUSES = ['Planned', 'Held', 'Cancelled'] as const
+export type EventStatus = LocalEventsRecord['status']
+
+export const EVENT_STATUS_COLORS: Record<EventStatus, string> = {
+  'Planned': 'bg-blue-100 text-blue-700',
+  'Held': 'bg-green-100 text-green-700',
+  'Cancelled': 'bg-red-100 text-red-700',
 }
 
 export const EVENT_TYPES = [
