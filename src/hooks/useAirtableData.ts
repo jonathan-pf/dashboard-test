@@ -465,3 +465,37 @@ export function useYearlyFeaturesPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Events per week average for a given year
+export function useYearlyEventsPerWeek(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const totalEvents = useLiveQuery(
+    async () => {
+      const events = await db.events
+        .filter((event) => event.date >= yearStart)
+        .toArray()
+
+      return events.length
+    },
+    [yearStart]
+  )
+
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalEvents === undefined || weekNumber <= 0) {
+    return { eventsPerWeek: 0, totalEvents: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    eventsPerWeek: totalEvents / weekNumber,
+    totalEvents,
+    weekNumber,
+    loading: false,
+  }
+}
