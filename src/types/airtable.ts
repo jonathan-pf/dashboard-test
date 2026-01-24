@@ -122,7 +122,7 @@ export interface EventsRecord extends AirtableRecord {
     'Date organised': string // ISO date string
     'Date held'?: string // ISO date string - when event actually happened
     Notes?: string
-    Type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+    Type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure'
     Status?: 'Planned' | 'Held' | 'Cancelled'
   }
 }
@@ -276,7 +276,7 @@ export interface LocalEventsRecord {
   date: string // Date organised
   dateHeld: string | null // Date actually held
   notes: string | null
-  type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby'
+  type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure'
   status: 'Planned' | 'Held' | 'Cancelled'
   createdTime: string
   _pendingSync?: boolean
@@ -301,6 +301,7 @@ export const EVENT_TYPES = [
   'Event',
   'Work Trip',
   'Hobby',
+  'Adventure',
 ] as const
 
 export type EventType = LocalEventsRecord['type']
@@ -314,6 +315,7 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   'Event': 'bg-orange-100 text-orange-700',
   'Work Trip': 'bg-red-100 text-red-700',
   'Hobby': 'bg-pink-100 text-pink-700',
+  'Adventure': 'bg-purple-100 text-purple-700',
 }
 
 // Pending mutation for offline sync
