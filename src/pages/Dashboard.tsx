@@ -118,6 +118,11 @@ export function Dashboard() {
           value={stats?.totalReps ?? 0}
           loading={loading}
         />
+        <StatCard
+          label="Units Budget"
+          value={Math.max(0, Math.round(40 * yearlyUnits.weekNumber - yearlyUnits.totalUnits))}
+          loading={yearlyUnits.loading}
+        />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
