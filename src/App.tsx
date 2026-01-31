@@ -8,6 +8,7 @@ import { Goals } from './pages/Goals'
 import { LongTermGoals } from './pages/LongTermGoals'
 import { NextWeekGoals } from './pages/NextWeekGoals'
 import { Ideas } from './pages/Ideas'
+import { Revelations } from './pages/Revelations'
 import { Events } from './pages/Events'
 import { Rules } from './pages/Rules'
 import { Settings } from './pages/Settings'
@@ -25,6 +26,7 @@ function App() {
           <Route path="/goals/long-term" element={<LongTermGoals />} />
           <Route path="/goals/next-week" element={<NextWeekGoals />} />
           <Route path="/ideas" element={<Ideas />} />
+          <Route path="/ideas/revelations" element={<Revelations />} />
           <Route path="/events" element={<Events />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
