@@ -173,44 +173,37 @@ export function Ideas() {
         </Link>
       </div>
 
-      {/* This Week Summary */}
+      {/* Summary */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-3">This Week</h3>
-        <div className="flex flex-wrap gap-2">
-          {IDEA_TYPES.map(type => (
-            <div
-              key={type}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium ${TYPE_COLORS[type]} ${
-                typeCountsThisWeek[type] === 0 ? 'opacity-40' : ''
-              }`}
-            >
-              {type}: {typeCountsThisWeek[type]}
-            </div>
-          ))}
-        </div>
-        <p className="text-sm text-slate-500 mt-3">
-          Total: {currentWeekIdeas.length} ideas this week
-        </p>
-      </div>
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1.5 items-center">
+          <div className="text-xs font-medium text-slate-400 uppercase tracking-wide">Type</div>
+          <div className="text-xs font-medium text-slate-400 uppercase tracking-wide text-center w-12">Week</div>
+          <div className="text-xs font-medium text-slate-400 uppercase tracking-wide text-center w-12">Year</div>
 
-      {/* This Year Summary */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-3">This Year</h3>
-        <div className="flex flex-wrap gap-2">
           {IDEA_TYPES.map(type => (
-            <div
-              key={type}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium ${TYPE_COLORS[type]} ${
-                typeCountsThisYear[type] === 0 ? 'opacity-40' : ''
-              }`}
-            >
-              {type}: {typeCountsThisYear[type]}
-            </div>
+            <>
+              <div key={`${type}-label`} className={`px-2.5 py-1 rounded-md text-sm font-medium ${TYPE_COLORS[type]}`}>
+                {type}
+              </div>
+              <div
+                key={`${type}-week`}
+                className={`text-center text-sm font-semibold ${typeCountsThisWeek[type] > 0 ? 'text-slate-900' : 'text-slate-300'}`}
+              >
+                {typeCountsThisWeek[type]}
+              </div>
+              <div
+                key={`${type}-year`}
+                className={`text-center text-sm font-semibold ${typeCountsThisYear[type] > 0 ? 'text-slate-900' : 'text-slate-300'}`}
+              >
+                {typeCountsThisYear[type]}
+              </div>
+            </>
           ))}
+
+          <div className="pt-2 border-t border-slate-100 mt-1 text-sm font-semibold text-slate-700">Total</div>
+          <div className="pt-2 border-t border-slate-100 mt-1 text-center text-sm font-bold text-slate-900">{currentWeekIdeas.length}</div>
+          <div className="pt-2 border-t border-slate-100 mt-1 text-center text-sm font-bold text-slate-900">{currentYearIdeas.length}</div>
         </div>
-        <p className="text-sm text-slate-500 mt-3">
-          Total: {currentYearIdeas.length} ideas this year
-        </p>
       </div>
 
       {/* Add/Edit Idea Form */}
