@@ -563,3 +563,39 @@ export function useYearlyWordsPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Revelations per week average for a given year
+export function useYearlyRevelationsPerWeek(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const totalRevelations = useLiveQuery(
+    async () => {
+      const revelations = await db.ideas
+        .where('type')
+        .equals('Revelation')
+        .and((idea) => idea.when >= yearStart)
+        .toArray()
+
+      return revelations.length
+    },
+    [yearStart]
+  )
+
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalRevelations === undefined || weekNumber <= 0) {
+    return { revelationsPerWeek: 0, totalRevelations: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    revelationsPerWeek: totalRevelations / weekNumber,
+    totalRevelations,
+    weekNumber,
+    loading: false,
+  }
+}
