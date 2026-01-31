@@ -178,7 +178,7 @@ export function Dashboard() {
           <h3 className="font-semibold text-slate-900">Goal Progress</h3>
           {avgConfidence !== null && (
             <span className={`text-sm font-medium ${
-              avgConfidence >= 0.7 ? 'text-green-600' : avgConfidence >= 0.4 ? 'text-amber-600' : 'text-red-600'
+              avgConfidence >= 0.6 ? 'text-green-600' : avgConfidence >= 0.4 ? 'text-amber-600' : 'text-red-600'
             }`}>
               Avg: {Math.round(avgConfidence * 100)}%
             </span>
