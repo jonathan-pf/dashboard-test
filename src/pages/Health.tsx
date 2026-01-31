@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { StatCard } from '@/components/widgets/StatCard'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import {
   useHealthByType,
@@ -44,15 +43,6 @@ export function Health() {
   const createHealth = useCreateHealth()
 
   const today = new Date().toISOString().split('T')[0]
-  const todayGlucose = glucoseData?.filter((h) => h.date === today) ?? []
-  const todayUnits = unitsData?.filter((h) => h.date === today) ?? []
-
-  const avgTodayGlucose =
-    todayGlucose.length > 0
-      ? todayGlucose.reduce((sum, h) => sum + h.value, 0) / todayGlucose.length
-      : null
-
-  const totalTodayUnits = todayUnits.reduce((sum, h) => sum + h.value, 0)
 
   const handleSubmit = async (type: HealthType) => {
     const value = parseFloat(entryValue)
@@ -93,19 +83,6 @@ export function Health() {
         >
           Rules
         </Link>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard
-          label="Today's Glucose"
-          value={avgTodayGlucose?.toFixed(1) ?? '--'}
-          loading={!glucoseData}
-        />
-        <StatCard
-          label="Today's Units"
-          value={totalTodayUnits}
-          loading={!unitsData}
-        />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
