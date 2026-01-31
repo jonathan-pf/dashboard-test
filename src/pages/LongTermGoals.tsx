@@ -30,8 +30,27 @@ export function LongTermGoals() {
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalDetails = useUpdateGoalDetails()
 
-  const monthlyGoals = allGoals?.filter((g) => g.type === 'Monthly') ?? []
-  const annualGoals = allGoals?.filter((g) => g.type === 'Annual') ?? []
+  // Get current month and year for filtering
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
+
+  // Filter monthly goals to current month only
+  const monthlyGoals = allGoals?.filter((g) => {
+    if (g.type !== 'Monthly') return false
+    const createdDate = new Date(g.createdTime)
+    return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear
+  }) ?? []
+
+  // Filter annual goals to current year only
+  const annualGoals = allGoals?.filter((g) => {
+    if (g.type !== 'Annual') return false
+    const createdDate = new Date(g.createdTime)
+    return createdDate.getFullYear() === currentYear
+  }) ?? []
+
+  // Format month name for display
+  const monthName = now.toLocaleString('default', { month: 'long' })
 
   const liveMonthly = monthlyGoals.filter((g) => g.status === 'Live')
   const completedMonthly = monthlyGoals.filter((g) => g.status === 'Success')
@@ -226,7 +245,7 @@ export function LongTermGoals() {
       {/* Monthly Goals */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">Monthly Goals</h3>
+          <h3 className="font-semibold text-slate-900">{monthName} Goals</h3>
           <span className="text-sm text-slate-500">
             {completedMonthly.length} / {monthlyGoals.length}
           </span>
@@ -255,7 +274,7 @@ export function LongTermGoals() {
 
         {monthlyGoals.length === 0 && (
           <div className="text-center py-4 text-slate-400">
-            No monthly goals
+            No goals for {monthName}
           </div>
         )}
       </div>
@@ -263,7 +282,7 @@ export function LongTermGoals() {
       {/* Annual Goals */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">Annual Goals</h3>
+          <h3 className="font-semibold text-slate-900">{currentYear} Goals</h3>
           <span className="text-sm text-slate-500">
             {completedAnnual.length} / {annualGoals.length}
           </span>
@@ -292,7 +311,7 @@ export function LongTermGoals() {
 
         {annualGoals.length === 0 && (
           <div className="text-center py-4 text-slate-400">
-            No annual goals
+            No goals for {currentYear}
           </div>
         )}
       </div>
