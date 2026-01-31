@@ -68,6 +68,7 @@ export function Ideas() {
       type: ideaType,
       when: new Date().toISOString(),
       weekId: currentWeek?.id ?? null,
+      notes: null,
     })
 
     setIdeaName('')

@@ -100,6 +100,7 @@ export interface IdeasRecord extends AirtableRecord {
     'When?': string // Created time
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
+    Notes?: string // Long text
   }
 }
 
@@ -242,6 +243,7 @@ export interface LocalIdeasRecord {
   type: 'Revelation' | 'Crux Test' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature'
   when: string
   weekId: string | null
+  notes: string | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
