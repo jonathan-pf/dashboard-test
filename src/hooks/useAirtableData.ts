@@ -599,3 +599,39 @@ export function useYearlyRevelationsPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Cruxes per week average for a given year
+export function useYearlyCruxesPerWeek(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const totalCruxes = useLiveQuery(
+    async () => {
+      const cruxes = await db.ideas
+        .where('type')
+        .equals('Crux Test')
+        .and((idea) => idea.when >= yearStart)
+        .toArray()
+
+      return cruxes.length
+    },
+    [yearStart]
+  )
+
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalCruxes === undefined || weekNumber <= 0) {
+    return { cruxesPerWeek: 0, totalCruxes: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    cruxesPerWeek: totalCruxes / weekNumber,
+    totalCruxes,
+    weekNumber,
+    loading: false,
+  }
+}
