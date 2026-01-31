@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useIdeasByType } from '@/hooks/useAirtableData'
 
@@ -9,9 +10,30 @@ export function Revelations() {
     return date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
     })
   }
+
+  const getYear = (dateStr: string) => {
+    return new Date(dateStr).getFullYear()
+  }
+
+  const revelationsByYear = useMemo(() => {
+    if (!revelations) return []
+
+    const grouped = revelations.reduce((acc, revelation) => {
+      const year = getYear(revelation.when)
+      if (!acc[year]) {
+        acc[year] = []
+      }
+      acc[year].push(revelation)
+      return acc
+    }, {} as Record<number, typeof revelations>)
+
+    // Sort years descending (most recent first)
+    return Object.entries(grouped)
+      .map(([year, items]) => ({ year: Number(year), items }))
+      .sort((a, b) => b.year - a.year)
+  }, [revelations])
 
   return (
     <div className="space-y-6">
@@ -25,40 +47,47 @@ export function Revelations() {
           </svg>
         </Link>
         <h2 className="text-2xl font-bold text-slate-900">Revelations</h2>
+        <span className="text-sm text-slate-500">
+          {revelations?.length ?? 0} total
+        </span>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">All Revelations</h3>
-          <span className="text-sm text-slate-500">
-            {revelations?.length ?? 0} total
-          </span>
-        </div>
+      {revelationsByYear.map(({ year, items }) => (
+        <div key={year} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-slate-900">{year}</h3>
+            <span className="text-sm text-slate-500">
+              {items.length} revelation{items.length !== 1 ? 's' : ''}
+            </span>
+          </div>
 
-        <div className="space-y-2">
-          {revelations?.map((idea) => (
-            <div
-              key={idea.id}
-              className="p-3 bg-purple-50 rounded-lg"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-slate-900 flex-1">
-                  {idea.name}
-                </p>
-                <span className="text-xs text-slate-400 whitespace-nowrap">
-                  {formatDate(idea.when)}
-                </span>
+          <div className="space-y-2">
+            {items.map((idea) => (
+              <div
+                key={idea.id}
+                className="p-3 bg-purple-50 rounded-lg"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-900 flex-1">
+                    {idea.name}
+                  </p>
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    {formatDate(idea.when)}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-
-          {(!revelations || revelations.length === 0) && (
-            <div className="text-center py-8 text-slate-400">
-              No revelations yet
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      ))}
+
+      {(!revelations || revelations.length === 0) && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="text-center py-8 text-slate-400">
+            No revelations yet
+          </div>
+        </div>
+      )}
     </div>
   )
 }
