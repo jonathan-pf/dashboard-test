@@ -21,6 +21,15 @@ const IDEA_TYPES: LocalIdeasRecord['type'][] = [
   'Feature',
 ]
 
+// Types shown in the summary grid (hide unused types)
+const SUMMARY_TYPES: LocalIdeasRecord['type'][] = [
+  'Revelation',
+  'Crux',
+  'Step',
+  'Bit',
+  'Feature',
+]
+
 const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
   Revelation: 'bg-purple-100 text-purple-700',
   'Crux': 'bg-blue-100 text-blue-700',
@@ -180,7 +189,7 @@ export function Ideas() {
           <div className="text-xs font-medium text-slate-400 uppercase tracking-wide text-center w-12">Week</div>
           <div className="text-xs font-medium text-slate-400 uppercase tracking-wide text-center w-12">Year</div>
 
-          {IDEA_TYPES.map(type => (
+          {SUMMARY_TYPES.map(type => (
             <>
               <div key={`${type}-label`} className={`px-2.5 py-1 rounded-md text-sm font-medium ${TYPE_COLORS[type]}`}>
                 {type}
