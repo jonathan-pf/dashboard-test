@@ -10,7 +10,7 @@ A personal productivity dashboard with offline-first architecture, built to trac
 - **Health Tracking** - Monitor glucose, units, reps, and willpoints
 - **Words** - Track writing progress across projects (Arcadia, Blog, Notes, Novella)
 - **Goals** - Manage weekly, monthly, and annual goals with status and confidence tracking
-- **Ideas** - Capture ideas by type (Revelation, Crux Test, Driver, Bottleneck, etc.)
+- **Ideas** - Capture ideas by type (Revelation, Crux, Driver, Bottleneck, etc.)
 - **Rules** - Personal goals and limits with status management
 - **Offline Support** - Full functionality without internet, syncs when online
 - **PWA** - Installable on mobile devices as a native-like app

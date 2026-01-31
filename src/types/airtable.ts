@@ -96,7 +96,7 @@ export interface AreasRecord extends AirtableRecord {
 export interface IdeasRecord extends AirtableRecord {
   fields: {
     Name: string
-    Type: 'Revelation' | 'Crux Test' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature'
+    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature'
     'When?': string // Created time
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
@@ -240,7 +240,7 @@ export interface LocalAreasRecord {
 export interface LocalIdeasRecord {
   id: string
   name: string
-  type: 'Revelation' | 'Crux Test' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature'
+  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature'
   when: string
   weekId: string | null
   notes: string | null

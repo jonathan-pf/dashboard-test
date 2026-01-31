@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useIdeasByType, useUpdateIdea } from '@/hooks/useAirtableData'
 
 export function Cruxes() {
-  const cruxes = useIdeasByType('Crux Test')
+  const cruxes = useIdeasByType('Crux')
   const updateIdea = useUpdateIdea()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingNotes, setEditingNotes] = useState('')

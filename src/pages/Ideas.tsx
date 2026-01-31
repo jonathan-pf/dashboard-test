@@ -11,7 +11,7 @@ import type { LocalIdeasRecord } from '@/types/airtable'
 
 const IDEA_TYPES: LocalIdeasRecord['type'][] = [
   'Revelation',
-  'Crux Test',
+  'Crux',
   'Driver',
   'Bottleneck',
   'Step',
@@ -23,7 +23,7 @@ const IDEA_TYPES: LocalIdeasRecord['type'][] = [
 
 const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
   Revelation: 'bg-purple-100 text-purple-700',
-  'Crux Test': 'bg-blue-100 text-blue-700',
+  'Crux': 'bg-blue-100 text-blue-700',
   Driver: 'bg-green-100 text-green-700',
   Bottleneck: 'bg-red-100 text-red-700',
   Step: 'bg-amber-100 text-amber-700',

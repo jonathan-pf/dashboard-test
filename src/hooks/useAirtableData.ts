@@ -608,7 +608,7 @@ export function useYearlyCruxesPerWeek(year: number = 2026) {
     async () => {
       const cruxes = await db.ideas
         .where('type')
-        .equals('Crux Test')
+        .equals('Crux')
         .and((idea) => idea.when >= yearStart)
         .toArray()
 
