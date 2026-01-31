@@ -46,6 +46,12 @@ export function Dashboard() {
   const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
 
+  // Average confidence for this week's goals
+  const goalsWithConfidence = currentWeekGoals?.filter((g) => g.currentConfidence !== null) ?? []
+  const avgConfidence = goalsWithConfidence.length > 0
+    ? goalsWithConfidence.reduce((sum, g) => sum + (g.currentConfidence ?? 0), 0) / goalsWithConfidence.length
+    : null
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
@@ -168,7 +174,16 @@ export function Dashboard() {
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Goal Progress</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900">Goal Progress</h3>
+          {avgConfidence !== null && (
+            <span className={`text-sm font-medium ${
+              avgConfidence >= 0.7 ? 'text-green-600' : avgConfidence >= 0.4 ? 'text-amber-600' : 'text-red-600'
+            }`}>
+              Avg: {Math.round(avgConfidence * 100)}%
+            </span>
+          )}
+        </div>
         <div className="flex justify-center">
           <GoalProgressRing
             completed={completedGoals.length}
