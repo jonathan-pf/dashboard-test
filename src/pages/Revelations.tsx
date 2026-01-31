@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useIdeasByType } from '@/hooks/useAirtableData'
+import { useIdeasByType, useUpdateIdea } from '@/hooks/useAirtableData'
 
 export function Revelations() {
   const revelations = useIdeasByType('Revelation')
+  const updateIdea = useUpdateIdea()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingNotes, setEditingNotes] = useState('')
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -34,6 +37,26 @@ export function Revelations() {
       .map(([year, items]) => ({ year: Number(year), items }))
       .sort((a, b) => b.year - a.year)
   }, [revelations])
+
+  const handleStartEdit = (id: string, notes: string | null) => {
+    setEditingId(id)
+    setEditingNotes(notes || '')
+  }
+
+  const handleSaveNotes = async () => {
+    if (!editingId) return
+    await updateIdea.mutateAsync({
+      ideaId: editingId,
+      updates: { notes: editingNotes.trim() || null },
+    })
+    setEditingId(null)
+    setEditingNotes('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditingNotes('')
+  }
 
   return (
     <div className="space-y-6">
@@ -75,6 +98,49 @@ export function Revelations() {
                     {formatDate(idea.when)}
                   </span>
                 </div>
+
+                {editingId === idea.id ? (
+                  <div className="mt-2 space-y-2">
+                    <textarea
+                      value={editingNotes}
+                      onChange={(e) => setEditingNotes(e.target.value)}
+                      placeholder="Add notes..."
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none resize-none"
+                      rows={3}
+                      autoFocus
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-3 py-1 text-xs text-slate-600 hover:text-slate-800"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveNotes}
+                        disabled={updateIdea.isPending}
+                        className="px-3 py-1 text-xs bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {updateIdea.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => handleStartEdit(idea.id, idea.notes)}
+                    className="mt-1 cursor-pointer group"
+                  >
+                    {idea.notes ? (
+                      <p className="text-xs text-slate-600 whitespace-pre-wrap group-hover:text-slate-800">
+                        {idea.notes}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic group-hover:text-slate-500">
+                        Click to add notes...
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
