@@ -7,6 +7,7 @@ import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
 import { LongTermGoals } from './pages/LongTermGoals'
 import { NextWeekGoals } from './pages/NextWeekGoals'
+import { NextMonthGoals } from './pages/NextMonthGoals'
 import { Ideas } from './pages/Ideas'
 import { Revelations } from './pages/Revelations'
 import { Cruxes } from './pages/Cruxes'
@@ -27,6 +28,7 @@ function App() {
           <Route path="/goals" element={<Goals />} />
           <Route path="/goals/long-term" element={<LongTermGoals />} />
           <Route path="/goals/next-week" element={<NextWeekGoals />} />
+          <Route path="/goals/next-month" element={<NextMonthGoals />} />
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/ideas/revelations" element={<Revelations />} />
           <Route path="/ideas/cruxes" element={<Cruxes />} />
