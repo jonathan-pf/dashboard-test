@@ -112,6 +112,20 @@ export function Goals() {
     closeActionSheet()
   }
 
+  const handleQuickConfidenceChange = async (
+    e: React.MouseEvent,
+    goal: LocalGoalsRecord,
+    delta: number
+  ) => {
+    e.stopPropagation()
+    const currentConfidence = goal.currentConfidence ?? 0.5
+    const newConfidence = Math.max(0, Math.min(1, currentConfidence + delta))
+    await updateGoalConfidence.mutateAsync({
+      goalId: goal.id,
+      confidence: newConfidence,
+    })
+  }
+
   const handleAddGoal = async () => {
     if (!goalName.trim()) return
 
@@ -215,24 +229,51 @@ export function Goals() {
                 <div className="space-y-2 mb-3">
                   <p className="text-sm font-medium text-slate-500">Active</p>
                   {live.map((goal) => (
-                    <button
+                    <div
                       key={goal.id}
-                      onClick={() => openActionSheet(goal)}
-                      className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
+                      className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg"
                     >
-                      <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-                        {goal.currentConfidence !== null && (
-                          <p className="text-xs text-slate-500">
-                            Confidence: {Math.round(goal.currentConfidence * 100)}%
-                          </p>
-                        )}
+                      <button
+                        onClick={() => openActionSheet(goal)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-70 transition-opacity"
+                      >
+                        <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={(e) => handleQuickConfidenceChange(e, goal, -0.1)}
+                          disabled={updateGoalConfidence.isPending}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 active:bg-slate-400 transition-colors text-sm font-medium disabled:opacity-50"
+                          title="Decrease confidence by 10%"
+                        >
+                          -
+                        </button>
+                        <span className="w-12 text-center text-xs font-medium text-slate-600">
+                          {goal.currentConfidence !== null
+                            ? `${Math.round(goal.currentConfidence * 100)}%`
+                            : '50%'}
+                        </span>
+                        <button
+                          onClick={(e) => handleQuickConfidenceChange(e, goal, 0.1)}
+                          disabled={updateGoalConfidence.isPending}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 active:bg-slate-400 transition-colors text-sm font-medium disabled:opacity-50"
+                          title="Increase confidence by 10%"
+                        >
+                          +
+                        </button>
                       </div>
-                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+                      <button
+                        onClick={() => openActionSheet(goal)}
+                        className="flex-shrink-0 p-1 hover:bg-slate-200 rounded transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
