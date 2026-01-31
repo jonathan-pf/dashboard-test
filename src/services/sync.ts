@@ -208,6 +208,7 @@ export function localGoalsToAirtable(record: LocalGoalsRecord): Record<string, u
     Type: record.type,
     Notes: record.notes,
     Weeks: record.weekId ? [record.weekId] : undefined,
+    Deadline: record.deadline,
   }
 }
 
