@@ -54,6 +54,12 @@ export function Ideas() {
 
   const currentWeekIdeas = ideas?.filter(idea => idea.weekId === currentWeek?.id) ?? []
 
+  const currentYear = new Date().getFullYear()
+  const currentYearIdeas = ideas?.filter(idea => {
+    const ideaYear = new Date(idea.when).getFullYear()
+    return ideaYear === currentYear
+  }) ?? []
+
   const handleAddIdea = async () => {
     if (!ideaName.trim()) return
 
@@ -124,6 +130,12 @@ export function Ideas() {
     return acc
   }, {} as Record<LocalIdeasRecord['type'], number>)
 
+  // Count ideas by type for this year
+  const typeCountsThisYear = IDEA_TYPES.reduce((acc, type) => {
+    acc[type] = currentYearIdeas.filter(i => i.type === type).length
+    return acc
+  }, {} as Record<LocalIdeasRecord['type'], number>)
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900">Ideas</h2>
@@ -158,6 +170,26 @@ export function Ideas() {
         </div>
         <p className="text-sm text-slate-500 mt-3">
           Total: {currentWeekIdeas.length} ideas this week
+        </p>
+      </div>
+
+      {/* This Year Summary */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-3">This Year</h3>
+        <div className="flex flex-wrap gap-2">
+          {IDEA_TYPES.map(type => (
+            <div
+              key={type}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium ${TYPE_COLORS[type]} ${
+                typeCountsThisYear[type] === 0 ? 'opacity-40' : ''
+              }`}
+            >
+              {type}: {typeCountsThisYear[type]}
+            </div>
+          ))}
+        </div>
+        <p className="text-sm text-slate-500 mt-3">
+          Total: {currentYearIdeas.length} ideas this year
         </p>
       </div>
 
