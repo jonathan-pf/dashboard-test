@@ -269,6 +269,36 @@ export function useCreateIdea() {
   })
 }
 
+// Update idea record mutation
+export function useUpdateIdea() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      ideaId,
+      updates,
+    }: {
+      ideaId: string
+      updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type'>>
+    }) => syncService.updateIdeaRecord(ideaId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ideas })
+    },
+  })
+}
+
+// Delete idea record mutation
+export function useDeleteIdea() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (ideaId: string) => syncService.deleteIdeaRecord(ideaId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.ideas })
+    },
+  })
+}
+
 // Create rule record mutation
 export function useCreateRule() {
   const queryClient = useQueryClient()

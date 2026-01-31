@@ -4,6 +4,8 @@ import {
   useIdeas,
   useCurrentWeek,
   useCreateIdea,
+  useUpdateIdea,
+  useDeleteIdea,
 } from '@/hooks/useAirtableData'
 import type { LocalIdeasRecord } from '@/types/airtable'
 
@@ -36,10 +38,14 @@ export function Ideas() {
   const [ideaName, setIdeaName] = useState('')
   const [ideaType, setIdeaType] = useState<LocalIdeasRecord['type']>('Step')
   const [filterType, setFilterType] = useState<LocalIdeasRecord['type'] | 'All'>('All')
+  const [editingIdea, setEditingIdea] = useState<LocalIdeasRecord | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const ideas = useIdeas()
   const currentWeek = useCurrentWeek()
   const createIdea = useCreateIdea()
+  const updateIdea = useUpdateIdea()
+  const deleteIdea = useDeleteIdea()
 
   const filteredIdeas = filterType === 'All'
     ? ideas
@@ -66,6 +72,36 @@ export function Ideas() {
     setIdeaName('')
     setIdeaType('Revelation')
     setShowAddForm(false)
+    setEditingIdea(null)
+  }
+
+  const handleEditClick = (idea: LocalIdeasRecord) => {
+    setEditingIdea(idea)
+    setIdeaName(idea.name)
+    setIdeaType(idea.type)
+    setShowAddForm(true)
+  }
+
+  const handleUpdateIdea = async () => {
+    if (!editingIdea || !ideaName.trim()) return
+
+    await updateIdea.mutateAsync({
+      ideaId: editingIdea.id,
+      updates: {
+        name: ideaName.trim(),
+        type: ideaType,
+      },
+    })
+
+    setIdeaName('')
+    setIdeaType('Revelation')
+    setShowAddForm(false)
+    setEditingIdea(null)
+  }
+
+  const handleDeleteIdea = async (ideaId: string) => {
+    await deleteIdea.mutateAsync(ideaId)
+    setDeleteConfirmId(null)
   }
 
   const formatDate = (dateStr: string) => {
@@ -119,10 +155,12 @@ export function Ideas() {
         </p>
       </div>
 
-      {/* Add Idea Form */}
+      {/* Add/Edit Idea Form */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">Add Idea</h3>
+          <h3 className="font-semibold text-slate-900">
+            {editingIdea ? 'Edit Idea' : 'Add Idea'}
+          </h3>
         </div>
 
         {showAddForm ? (
@@ -162,11 +200,14 @@ export function Ideas() {
                 Cancel
               </button>
               <button
-                onClick={handleAddIdea}
-                disabled={!ideaName.trim() || createIdea.isPending}
+                onClick={editingIdea ? handleUpdateIdea : handleAddIdea}
+                disabled={!ideaName.trim() || createIdea.isPending || updateIdea.isPending}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
               >
-                {createIdea.isPending ? 'Adding...' : 'Add Idea'}
+                {editingIdea
+                  ? (updateIdea.isPending ? 'Saving...' : 'Save Changes')
+                  : (createIdea.isPending ? 'Adding...' : 'Add Idea')
+                }
               </button>
             </div>
           </div>
@@ -206,13 +247,55 @@ export function Ideas() {
                 <p className="text-sm font-medium text-slate-900 flex-1">
                   {idea.name}
                 </p>
-                <span className="text-xs text-slate-400 whitespace-nowrap">
-                  {formatDate(idea.when)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    {formatDate(idea.when)}
+                  </span>
+                  <button
+                    onClick={() => handleEditClick(idea)}
+                    className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Edit"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(idea.id)}
+                    className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                    title="Delete"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <span className={`inline-block mt-2 px-2 py-0.5 rounded text-xs font-medium ${TYPE_COLORS[idea.type]}`}>
                 {idea.type}
               </span>
+
+              {/* Delete Confirmation */}
+              {deleteConfirmId === idea.id && (
+                <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-sm text-red-700 mb-2">Delete this idea?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="flex-1 py-2 bg-white text-slate-600 rounded border border-slate-300 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleDeleteIdea(idea.id)}
+                      disabled={deleteIdea.isPending}
+                      className="flex-1 py-2 bg-red-600 text-white rounded text-sm font-medium disabled:opacity-50"
+                    >
+                      {deleteIdea.isPending ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
