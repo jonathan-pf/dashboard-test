@@ -26,6 +26,8 @@ export function Rules() {
   const [editName, setEditName] = useState('')
   const [editSelect, setEditSelect] = useState<LocalRulesRecord['select']>('Goal')
   const [editStatus, setEditStatus] = useState<LocalRulesRecord['status']>('Live')
+  const [editConfidence, setEditConfidence] = useState('')
+  const [editDeadline, setEditDeadline] = useState('')
 
   const rules = useRules()
   const createRule = useCreateRule()
@@ -84,10 +86,15 @@ export function Rules() {
     setEditName(rule.name)
     setEditSelect(rule.select)
     setEditStatus(rule.status)
+    setEditConfidence(rule.currentConfidence !== null ? String(Math.round(rule.currentConfidence * 100)) : '')
+    setEditDeadline(rule.deadline ?? '')
   }
 
   const handleUpdateRule = async () => {
     if (!editingRule || !editName.trim()) return
+
+    const confidenceValue = editConfidence.trim() === '' ? null : Number(editConfidence) / 100
+    const deadlineValue = editDeadline.trim() === '' ? null : editDeadline
 
     await updateRule.mutateAsync({
       ruleId: editingRule.id,
@@ -95,6 +102,8 @@ export function Rules() {
         name: editName.trim(),
         select: editSelect,
         status: editStatus,
+        currentConfidence: confidenceValue,
+        deadline: deadlineValue,
       },
     })
 
@@ -265,6 +274,33 @@ export function Rules() {
                         <option value="Backlog">Backlog</option>
                         <option value="Archive">Archive</option>
                       </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Confidence %
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editConfidence}
+                        onChange={(e) => setEditConfidence(e.target.value)}
+                        placeholder="0-100"
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Deadline
+                      </label>
+                      <input
+                        type="date"
+                        value={editDeadline}
+                        onChange={(e) => setEditDeadline(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                      />
                     </div>
                   </div>
                   <div className="flex gap-3">
