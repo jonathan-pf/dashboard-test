@@ -728,7 +728,7 @@ class SyncService {
   // Update an idea record (handles offline)
   async updateIdeaRecord(
     ideaId: string,
-    updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type'>>
+    updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type' | 'when'>>
   ): Promise<void> {
     const idea = await db.ideas.get(ideaId)
     if (!idea) throw new Error('Idea not found')
@@ -736,6 +736,7 @@ class SyncService {
     // Apply updates to local record
     if (updates.name !== undefined) idea.name = updates.name
     if (updates.type !== undefined) idea.type = updates.type
+    if (updates.when !== undefined) idea.when = updates.when
     idea._pendingSync = true
     await db.ideas.put(idea)
 
@@ -743,6 +744,7 @@ class SyncService {
     const updateData: Record<string, unknown> = {}
     if (updates.name !== undefined) updateData.Name = updates.name
     if (updates.type !== undefined) updateData.Type = updates.type
+    if (updates.when !== undefined) updateData['When?'] = updates.when
 
     if (navigator.onLine) {
       try {

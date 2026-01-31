@@ -37,6 +37,7 @@ export function Ideas() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [ideaName, setIdeaName] = useState('')
   const [ideaType, setIdeaType] = useState<LocalIdeasRecord['type']>('Step')
+  const [ideaDate, setIdeaDate] = useState('')
   const [filterType, setFilterType] = useState<LocalIdeasRecord['type'] | 'All'>('All')
   const [editingIdea, setEditingIdea] = useState<LocalIdeasRecord | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -71,6 +72,7 @@ export function Ideas() {
   const handleCancelAdd = () => {
     setIdeaName('')
     setIdeaType('Revelation')
+    setIdeaDate('')
     setShowAddForm(false)
     setEditingIdea(null)
   }
@@ -79,6 +81,8 @@ export function Ideas() {
     setEditingIdea(idea)
     setIdeaName(idea.name)
     setIdeaType(idea.type)
+    // Convert ISO date string to YYYY-MM-DD format for the date input
+    setIdeaDate(idea.when.split('T')[0])
     setShowAddForm(true)
   }
 
@@ -90,11 +94,13 @@ export function Ideas() {
       updates: {
         name: ideaName.trim(),
         type: ideaType,
+        when: new Date(ideaDate).toISOString(),
       },
     })
 
     setIdeaName('')
     setIdeaType('Revelation')
+    setIdeaDate('')
     setShowAddForm(false)
     setEditingIdea(null)
   }
@@ -192,6 +198,19 @@ export function Ideas() {
                 ))}
               </select>
             </div>
+            {editingIdea && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={ideaDate}
+                  onChange={(e) => setIdeaDate(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                />
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={handleCancelAdd}
