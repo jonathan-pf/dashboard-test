@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { StatCard } from '@/components/widgets/StatCard'
+import { CompactStatCard } from '@/components/widgets/CompactStatCard'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import { WordsBarChart } from '@/components/charts/WordsBarChart'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
@@ -48,56 +48,65 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-3">Totals</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            label="Total Donations"
-            value={careerTotals?.totalDonations ?? 0}
-            loading={!careerTotals}
-          />
-          <StatCard
-            label="Total Lives"
-            value={Math.floor(careerTotals?.totalLives ?? 0)}
-            loading={!careerTotals}
-          />
-          <StatCard
-            label="Units/Week (2026)"
+      <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-2 text-sm">Totals</h3>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-blue-600 font-medium">Donations</p>
+            {!careerTotals ? (
+              <div className="h-6 w-12 bg-blue-200 animate-pulse rounded mt-0.5" />
+            ) : (
+              <p className="text-xl font-bold text-blue-900">{(careerTotals.totalDonations ?? 0).toLocaleString()}</p>
+            )}
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-green-600 font-medium">Lives Saved</p>
+            {!careerTotals ? (
+              <div className="h-6 w-12 bg-green-200 animate-pulse rounded mt-0.5" />
+            ) : (
+              <p className="text-xl font-bold text-green-900">{Math.floor(careerTotals.totalLives ?? 0).toLocaleString()}</p>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mb-2">2026 Weekly Averages</p>
+        <div className="grid grid-cols-3 gap-2">
+          <CompactStatCard
+            label="Units"
             value={yearlyUnits.unitsPerWeek.toFixed(1)}
             loading={yearlyUnits.loading}
             goal={40}
             goalDirection="under"
           />
-          <StatCard
-            label="Features/Week (2026)"
+          <CompactStatCard
+            label="Features"
             value={features2026.featuresPerWeek.toFixed(1)}
             loading={features2026.loading}
             goal={3}
             goalDirection="over"
           />
-          <StatCard
-            label="Events/Week (2026)"
+          <CompactStatCard
+            label="Events"
             value={events2026.eventsPerWeek.toFixed(1)}
             loading={events2026.loading}
             goal={1}
             goalDirection="over"
           />
-          <StatCard
-            label="Words/Week (2026)"
+          <CompactStatCard
+            label="Words"
             value={Math.round(words2026.wordsPerWeek)}
             loading={words2026.loading}
             goal={300}
             goalDirection="over"
           />
-          <StatCard
-            label="Revelations/Week (2026)"
+          <CompactStatCard
+            label="Revelations"
             value={revelations2026.revelationsPerWeek.toFixed(2)}
             loading={revelations2026.loading}
             goal={1}
             goalDirection="over"
           />
-          <StatCard
-            label="Cruxes/Week (2026)"
+          <CompactStatCard
+            label="Cruxes"
             value={cruxes2026.cruxesPerWeek.toFixed(2)}
             loading={cruxes2026.loading}
             goal={3}
@@ -106,41 +115,42 @@ export function Dashboard() {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold text-slate-900">
-        {currentWeek?.name ?? 'This Week'}
-      </h2>
-
-      <div className="grid grid-cols-2 gap-4">
-        <StatCard
-          label="Words Written"
-          value={stats?.totalWords ?? 0}
-          loading={loading}
-        />
-        <StatCard
-          label="Goals Complete"
-          value={`${completedGoals.length}/${(currentWeekGoals?.length ?? 0)}`}
-          loading={loading}
-        />
-        <StatCard
-          label="Avg Glucose"
-          value={typeof stats?.averageSugar === 'number' ? stats.averageSugar.toFixed(1) : '--'}
-          loading={loading}
-        />
-        <StatCard
-          label="Total Units"
-          value={stats?.totalUnits ?? 0}
-          loading={loading}
-        />
-        <StatCard
-          label="Total Reps"
-          value={stats?.totalReps ?? 0}
-          loading={loading}
-        />
-        <StatCard
-          label="Units Budget"
-          value={Math.max(0, Math.round(40 * yearlyUnits.weekNumber - yearlyUnits.totalUnits))}
-          loading={yearlyUnits.loading}
-        />
+      <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-2 text-sm">
+          {currentWeek?.name ?? 'This Week'}
+        </h3>
+        <div className="grid grid-cols-3 gap-2">
+          <CompactStatCard
+            label="Words"
+            value={stats?.totalWords ?? 0}
+            loading={loading}
+          />
+          <CompactStatCard
+            label="Goals"
+            value={`${completedGoals.length}/${(currentWeekGoals?.length ?? 0)}`}
+            loading={loading}
+          />
+          <CompactStatCard
+            label="Glucose"
+            value={typeof stats?.averageSugar === 'number' ? stats.averageSugar.toFixed(1) : '--'}
+            loading={loading}
+          />
+          <CompactStatCard
+            label="Units"
+            value={stats?.totalUnits ?? 0}
+            loading={loading}
+          />
+          <CompactStatCard
+            label="Reps"
+            value={stats?.totalReps ?? 0}
+            loading={loading}
+          />
+          <CompactStatCard
+            label="Budget"
+            value={Math.max(0, Math.round(40 * yearlyUnits.weekNumber - yearlyUnits.totalUnits))}
+            loading={yearlyUnits.loading}
+          />
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
