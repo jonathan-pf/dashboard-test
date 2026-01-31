@@ -91,7 +91,7 @@ export function Dashboard() {
             label="Revelations/Week (2026)"
             value={revelations2026.revelationsPerWeek.toFixed(2)}
             loading={revelations2026.loading}
-            goal={0.02}
+            goal={1}
             goalDirection="over"
           />
         </div>
