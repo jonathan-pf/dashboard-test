@@ -725,6 +725,62 @@ class SyncService {
     return record
   }
 
+  // Update an idea record (handles offline)
+  async updateIdeaRecord(
+    ideaId: string,
+    updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type'>>
+  ): Promise<void> {
+    const idea = await db.ideas.get(ideaId)
+    if (!idea) throw new Error('Idea not found')
+
+    // Apply updates to local record
+    if (updates.name !== undefined) idea.name = updates.name
+    if (updates.type !== undefined) idea.type = updates.type
+    idea._pendingSync = true
+    await db.ideas.put(idea)
+
+    // Prepare Airtable update data
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.type !== undefined) updateData.Type = updates.type
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Ideas', ideaId, updateData)
+        idea._pendingSync = false
+        await db.ideas.put(idea)
+      } catch {
+        await this.queueMutation('Ideas', 'update', ideaId, updateData)
+      }
+    } else {
+      await this.queueMutation('Ideas', 'update', ideaId, updateData)
+    }
+  }
+
+  // Delete an idea record (handles offline)
+  async deleteIdeaRecord(ideaId: string): Promise<void> {
+    const idea = await db.ideas.get(ideaId)
+    if (!idea) throw new Error('Idea not found')
+
+    // Delete from local DB immediately
+    await db.ideas.delete(ideaId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (ideaId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Ideas', ideaId)
+      } catch {
+        await this.queueMutation('Ideas', 'delete', ideaId, {})
+      }
+    } else {
+      await this.queueMutation('Ideas', 'delete', ideaId, {})
+    }
+  }
+
   // Update goal status (handles offline)
   async updateGoalStatus(
     goalId: string,
