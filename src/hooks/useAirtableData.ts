@@ -144,6 +144,36 @@ export function useNextWeekGoals() {
   )
 }
 
+export function useNextMonthGoals() {
+  return useLiveQuery(async () => {
+    const now = new Date()
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const nextMonthEnd = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+
+    const nextMonthStart = nextMonth.toISOString().split('T')[0]
+    const nextMonthEndStr = nextMonthEnd.toISOString().split('T')[0]
+
+    // Get monthly goals with deadline in next month
+    const goals = await db.goals
+      .filter((g) =>
+        g.type === 'Monthly' &&
+        g.deadline !== null &&
+        g.deadline >= nextMonthStart &&
+        g.deadline <= nextMonthEndStr
+      )
+      .toArray()
+
+    return goals
+  }, [])
+}
+
+export function useAnnualGoals() {
+  return useLiveQuery(
+    () => db.goals.filter((g) => g.type === 'Annual' && g.status === 'Live').toArray(),
+    []
+  )
+}
+
 // Sync hook
 export function useSync() {
   const queryClient = useQueryClient()
