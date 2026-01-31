@@ -134,6 +134,7 @@ function transformIdeasRecord(record: IdeasRecord): LocalIdeasRecord {
     when: record.fields['When?'] || record.createdTime,
     weekId: record.fields.Weeks?.[0] || null,
     notes: record.fields.Notes ?? null,
+    status: record.fields.Status ?? null,
     createdTime: record.createdTime,
   }
 }
@@ -216,6 +217,7 @@ function localIdeasToAirtable(record: LocalIdeasRecord): Record<string, unknown>
     Type: record.type,
     Weeks: record.weekId ? [record.weekId] : undefined,
     Notes: record.notes,
+    Status: record.status,
   }
 }
 
@@ -730,7 +732,7 @@ class SyncService {
   // Update an idea record (handles offline)
   async updateIdeaRecord(
     ideaId: string,
-    updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type' | 'when' | 'notes'>>
+    updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type' | 'when' | 'notes' | 'status'>>
   ): Promise<void> {
     const idea = await db.ideas.get(ideaId)
     if (!idea) throw new Error('Idea not found')
@@ -740,6 +742,7 @@ class SyncService {
     if (updates.type !== undefined) idea.type = updates.type
     if (updates.when !== undefined) idea.when = updates.when
     if (updates.notes !== undefined) idea.notes = updates.notes
+    if (updates.status !== undefined) idea.status = updates.status
     idea._pendingSync = true
     await db.ideas.put(idea)
 
@@ -749,6 +752,7 @@ class SyncService {
     if (updates.type !== undefined) updateData.Type = updates.type
     if (updates.when !== undefined) updateData['When?'] = updates.when
     if (updates.notes !== undefined) updateData.Notes = updates.notes
+    if (updates.status !== undefined) updateData.Status = updates.status
 
     if (navigator.onLine) {
       try {

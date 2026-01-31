@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useIdeasByType, useUpdateIdea } from '@/hooks/useAirtableData'
+import { IDEA_STATUSES, IDEA_STATUS_COLORS, type IdeaStatus } from '@/types/airtable'
 
 export function Cruxes() {
   const cruxes = useIdeasByType('Crux')
@@ -58,6 +59,13 @@ export function Cruxes() {
     setEditingNotes('')
   }
 
+  const handleStatusChange = async (ideaId: string, status: IdeaStatus) => {
+    await updateIdea.mutateAsync({
+      ideaId,
+      updates: { status },
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -97,6 +105,34 @@ export function Cruxes() {
                   <span className="text-xs text-slate-400 whitespace-nowrap">
                     {formatDate(idea.when)}
                   </span>
+                </div>
+
+                {/* Status buttons */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {IDEA_STATUSES.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(idea.id, status)}
+                      disabled={updateIdea.isPending}
+                      className={`px-2 py-0.5 text-xs font-medium rounded transition-all ${
+                        idea.status === status
+                          ? IDEA_STATUS_COLORS[status]
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                      } disabled:opacity-50`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                  {idea.status && (
+                    <button
+                      onClick={() => handleStatusChange(idea.id, null)}
+                      disabled={updateIdea.isPending}
+                      className="px-2 py-0.5 text-xs text-slate-400 hover:text-slate-600 disabled:opacity-50"
+                      title="Clear status"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
 
                 {editingId === idea.id ? (

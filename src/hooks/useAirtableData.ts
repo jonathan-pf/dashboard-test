@@ -279,7 +279,7 @@ export function useUpdateIdea() {
       updates,
     }: {
       ideaId: string
-      updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type' | 'when' | 'notes'>>
+      updates: Partial<Pick<LocalIdeasRecord, 'name' | 'type' | 'when' | 'notes' | 'status'>>
     }) => syncService.updateIdeaRecord(ideaId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.ideas })
