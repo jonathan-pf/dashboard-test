@@ -164,6 +164,7 @@ export function NextWeekGoals() {
         <div className="flex justify-center mb-6">
           <GoalProgressRing
             completed={completedGoals.length}
+            failed={failedGoals.length}
             total={nextWeekGoals?.length ?? 0}
             size={140}
           />
