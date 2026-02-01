@@ -204,6 +204,7 @@ export function localGoalsToAirtable(record: LocalGoalsRecord): Record<string, u
     Area: record.areaId ? [record.areaId] : undefined,
     'Initial Confidence': record.initialConfidence,
     'Current Confidence': record.currentConfidence,
+    Deadline: record.deadline,
     Status: record.status,
     Type: record.type,
     Notes: record.notes,
