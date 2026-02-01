@@ -38,3 +38,25 @@ To deploy changes to production:
 3. Deploy to Vercel: `vercel --prod`
 
 The production URL is: https://dashboard-iota-topaz-17.vercel.app
+
+## Known Issues
+
+### iPad External Keyboard Viewport Jump Bug
+
+**Symptoms:** When typing in input fields on iPad with an external keyboard (e.g., Magic Keyboard), the screen jumps down, hiding the input from view.
+
+**Root Cause:** iOS has a built-in "scroll element into view" behavior when inputs receive focus. The existing fixes in `main.tsx` (visualViewport.resize listener) only work for on-screen keyboards because external keyboards don't trigger viewport resize events.
+
+**Existing Mitigations (partial):**
+- `src/main.tsx` lines 8-32: Listens to `visualViewport.resize` to restore scroll position
+- `src/index.css` lines 36-55: Uses `-webkit-fill-available` and `100dvh` for dynamic viewport
+- `index.html`: Viewport meta with `interactive-widget=resizes-content`
+
+**Current Fix Approach:**
+- Using `focus({ preventScroll: true })` instead of `autoFocus` attribute on inputs
+- This tells the browser not to auto-scroll when focusing elements
+
+**If issue persists, additional options:**
+1. Enhanced JS fix to prevent scroll during `focusin` event with `requestAnimationFrame`
+2. CSS `scroll-margin-top/bottom` on input elements
+3. Change viewport meta to `interactive-widget=overlays-content`
