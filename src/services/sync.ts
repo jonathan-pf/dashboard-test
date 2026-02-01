@@ -683,6 +683,11 @@ class SyncService {
         )
         await db.goals.delete(localId)
         const updatedRecord = transformGoalsRecord(created)
+        // Preserve weekId from input if Airtable response didn't include it
+        // This can happen when linked record fields aren't returned in create response
+        if (updatedRecord.weekId === null && record.weekId !== null) {
+          updatedRecord.weekId = record.weekId
+        }
         await db.goals.add(updatedRecord)
         return updatedRecord
       } catch {
