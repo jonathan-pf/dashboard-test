@@ -106,11 +106,17 @@ export function NextWeekGoals() {
   const handleAddGoal = async () => {
     if (!goalName.trim()) return
 
+    // Ensure nextWeek is loaded before creating a goal
+    if (!nextWeek?.id) {
+      console.error('Cannot create goal: nextWeek not loaded')
+      return
+    }
+
     const confidence = goalConfidence ? parseFloat(goalConfidence) / 100 : null
 
     // Calculate default deadline as end of next week (6 days after week commencing)
     let defaultDeadline: string | null = null
-    if (nextWeek?.weekCommencing) {
+    if (nextWeek.weekCommencing) {
       const weekStart = new Date(nextWeek.weekCommencing)
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekStart.getDate() + 6)
@@ -121,7 +127,7 @@ export function NextWeekGoals() {
       name: goalName.trim(),
       type: goalType,
       status: 'Live',
-      weekId: nextWeek?.id ?? null,
+      weekId: nextWeek.id,
       areaId: goalAreaId || null,
       initialConfidence: confidence,
       currentConfidence: confidence,
@@ -259,12 +265,12 @@ export function NextWeekGoals() {
 
         {(!nextWeekGoals || nextWeekGoals.length === 0) && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
-            No goals for next week yet
+            {nextWeek ? 'No goals for next week yet' : 'Loading week data...'}
           </div>
         )}
 
         {/* Add Goal Form */}
-        {showAddForm ? (
+        {showAddForm && nextWeek ? (
           <div className="mt-4 space-y-4 pt-4 border-t border-slate-200">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -334,17 +340,22 @@ export function NextWeekGoals() {
               </button>
               <button
                 onClick={handleAddGoal}
-                disabled={!goalName.trim() || createGoal.isPending}
+                disabled={!goalName.trim() || createGoal.isPending || !nextWeek}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
               >
                 {createGoal.isPending ? 'Adding...' : 'Add Goal'}
               </button>
             </div>
           </div>
+        ) : showAddForm && !nextWeek ? (
+          <div className="mt-4 p-4 bg-amber-50 text-amber-700 rounded-lg text-sm">
+            Unable to add goal: Next week data not available. Please sync first.
+          </div>
         ) : (
           <button
             onClick={() => setShowAddForm(true)}
-            className="w-full mt-4 py-3 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+            disabled={!nextWeek}
+            className="w-full mt-4 py-3 bg-blue-50 text-blue-600 rounded-lg font-medium hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             + Add Goal
           </button>
