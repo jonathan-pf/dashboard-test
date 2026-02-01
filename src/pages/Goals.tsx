@@ -49,6 +49,7 @@ export function Goals() {
 
   // Legacy groupings for progress calculation
   const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
+  const failedGoals = currentWeekGoals?.filter((g) => g.status === 'Fail') ?? []
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -209,6 +210,7 @@ export function Goals() {
         <div className="flex justify-center mb-6">
           <GoalProgressRing
             completed={completedGoals.length}
+            failed={failedGoals.length}
             total={currentWeekGoals?.length ?? 0}
             size={140}
           />

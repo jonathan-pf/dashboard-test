@@ -45,6 +45,7 @@ export function Dashboard() {
 
   const liveGoals = currentWeekGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
+  const failedGoals = currentWeekGoals?.filter((g) => g.status === 'Fail') ?? []
 
   // Average confidence for this week's goals
   const goalsWithConfidence = currentWeekGoals?.filter((g) => g.currentConfidence !== null) ?? []
@@ -187,6 +188,7 @@ export function Dashboard() {
         <div className="flex justify-center">
           <GoalProgressRing
             completed={completedGoals.length}
+            failed={failedGoals.length}
             total={currentWeekGoals?.length ?? 0}
           />
         </div>
