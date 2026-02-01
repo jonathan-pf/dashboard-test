@@ -106,6 +106,15 @@ export function NextWeekGoals() {
 
     const confidence = goalConfidence ? parseFloat(goalConfidence) / 100 : null
 
+    // Calculate default deadline as end of next week (6 days after week commencing)
+    let defaultDeadline: string | null = null
+    if (nextWeek?.weekCommencing) {
+      const weekStart = new Date(nextWeek.weekCommencing)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+      defaultDeadline = weekEnd.toISOString().split('T')[0]
+    }
+
     await createGoal.mutateAsync({
       name: goalName.trim(),
       type: goalType,
@@ -114,7 +123,7 @@ export function NextWeekGoals() {
       areaId: goalAreaId || null,
       initialConfidence: confidence,
       currentConfidence: confidence,
-      deadline: null,
+      deadline: defaultDeadline,
       notes: null,
     })
 
