@@ -4,6 +4,7 @@ import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useNextWeekGoals,
   useNextWeek,
+  useCurrentMonthGoals,
   useAreas,
   useCreateGoal,
   useUpdateGoalStatus,
@@ -29,6 +30,7 @@ export function NextWeekGoals() {
 
   const nextWeek = useNextWeek()
   const nextWeekGoals = useNextWeekGoals()
+  const currentMonthGoals = useCurrentMonthGoals()
   const areas = useAreas()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
@@ -348,6 +350,31 @@ export function NextWeekGoals() {
           </button>
         )}
       </div>
+
+      {/* Monthly Goals Reference Section */}
+      {currentMonthGoals && currentMonthGoals.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-3">Monthly Goals (Reference)</h3>
+          <div className="space-y-2">
+            {currentMonthGoals.map((goal) => (
+              <div
+                key={goal.id}
+                className="flex items-center gap-3 p-3 bg-indigo-50 rounded-lg"
+              >
+                <span className="w-6 h-6 rounded-full border-2 border-indigo-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                  {goal.currentConfidence !== null && (
+                    <p className="text-xs text-slate-500">
+                      Confidence: {Math.round(goal.currentConfidence * 100)}%
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Action Sheet Modal */}
       {selectedGoal && (
