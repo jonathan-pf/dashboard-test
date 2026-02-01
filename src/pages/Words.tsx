@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { WordsBarChart } from '@/components/charts/WordsBarChart'
 import {
   useWeeks,
@@ -16,6 +16,18 @@ export function Words() {
   const [entryName, setEntryName] = useState('')
   const [entryWords, setEntryWords] = useState('')
   const [entryProject, setEntryProject] = useState<ProjectType>('Arcadia')
+  const titleInputRef = useRef<HTMLInputElement>(null)
+
+  // Focus input without scrolling to prevent iPad keyboard jump bug
+  useEffect(() => {
+    if (showEntry && titleInputRef.current) {
+      // Small delay to let layout settle, then focus without scrolling
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus({ preventScroll: true })
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [showEntry])
 
   const weeks = useWeeks()
   const currentWeek = useCurrentWeek()
@@ -94,12 +106,12 @@ export function Words() {
                 Title
               </label>
               <input
+                ref={titleInputRef}
                 type="text"
                 value={entryName}
                 onChange={(e) => setEntryName(e.target.value)}
                 placeholder="What did you write?"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                autoFocus
               />
             </div>
 
