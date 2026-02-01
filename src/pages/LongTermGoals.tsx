@@ -6,6 +6,7 @@ import {
   useCreateGoal,
   useUpdateGoalStatus,
   useUpdateGoalDetails,
+  useUpdateGoalConfidence,
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
@@ -29,6 +30,7 @@ export function LongTermGoals() {
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalDetails = useUpdateGoalDetails()
+  const updateGoalConfidence = useUpdateGoalConfidence()
 
   // Get current month and year for filtering
   const now = new Date()
@@ -113,7 +115,21 @@ export function LongTermGoals() {
     closeActionSheet()
   }
 
-  const isPending = updateGoalStatus.isPending || updateGoalDetails.isPending
+  const handleQuickConfidenceChange = async (
+    e: React.MouseEvent,
+    goal: LocalGoalsRecord,
+    delta: number
+  ) => {
+    e.stopPropagation()
+    const currentConfidence = goal.currentConfidence ?? 0.5
+    const newConfidence = Math.max(0, Math.min(1, currentConfidence + delta))
+    await updateGoalConfidence.mutateAsync({
+      goalId: goal.id,
+      confidence: newConfidence,
+    })
+  }
+
+  const isPending = updateGoalStatus.isPending || updateGoalDetails.isPending || updateGoalConfidence.isPending
 
   const handleAddGoal = async () => {
     if (!goalName.trim()) return
@@ -168,17 +184,33 @@ export function LongTermGoals() {
             className="flex-1 min-w-0 text-left"
           >
             <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              {areaName && (
-                <span className="text-xs text-slate-500">{areaName}</span>
-              )}
-              {goal.currentConfidence !== null && (
-                <span className="text-xs text-slate-400">
-                  {Math.round(goal.currentConfidence * 100)}%
-                </span>
-              )}
-            </div>
+            {areaName && (
+              <span className="text-xs text-slate-500">{areaName}</span>
+            )}
           </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={(e) => handleQuickConfidenceChange(e, goal, -0.1)}
+              disabled={updateGoalConfidence.isPending}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 active:bg-slate-400 transition-colors text-sm font-medium disabled:opacity-50"
+              title="Decrease confidence by 10%"
+            >
+              -
+            </button>
+            <span className="w-12 text-center text-xs font-medium text-slate-600">
+              {goal.currentConfidence !== null
+                ? `${Math.round(goal.currentConfidence * 100)}%`
+                : '50%'}
+            </span>
+            <button
+              onClick={(e) => handleQuickConfidenceChange(e, goal, 0.1)}
+              disabled={updateGoalConfidence.isPending}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 active:bg-slate-400 transition-colors text-sm font-medium disabled:opacity-50"
+              title="Increase confidence by 10%"
+            >
+              +
+            </button>
+          </div>
           <button
             onClick={() => handleMarkFailed(goal.id)}
             className="text-xs text-slate-400 hover:text-red-500 transition-colors"
