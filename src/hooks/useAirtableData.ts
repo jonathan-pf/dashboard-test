@@ -689,3 +689,38 @@ export function useYearlyCruxesPerWeek(year: number = 2026) {
     loading: false,
   }
 }
+
+// Reps per week average for a given year
+export function useYearlyRepsPerWeek(year: number = 2026) {
+  const yearStart = `${year}-01-01`
+
+  const totalReps = useLiveQuery(
+    async () => {
+      // Sum all Reps entries on or after Jan 1 of the year
+      const entries = await db.health
+        .filter((h) => h.type === 'Reps' && h.date >= yearStart)
+        .toArray()
+
+      return entries.reduce((sum, entry) => sum + (entry.value ?? 0), 0)
+    },
+    [yearStart]
+  )
+
+  // Calculate current week number of the year
+  const now = new Date()
+  const janFirst = new Date(year, 0, 1)
+  const diffMs = now.getTime() - janFirst.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const weekNumber = Math.floor(diffDays / 7) + 1
+
+  if (totalReps === undefined || weekNumber <= 0) {
+    return { repsPerWeek: 0, totalReps: 0, weekNumber: 0, loading: true }
+  }
+
+  return {
+    repsPerWeek: totalReps / weekNumber,
+    totalReps,
+    weekNumber,
+    loading: false,
+  }
+}

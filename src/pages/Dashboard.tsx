@@ -18,6 +18,7 @@ import {
   useYearlyWordsPerWeek,
   useYearlyRevelationsPerWeek,
   useYearlyCruxesPerWeek,
+  useYearlyRepsPerWeek,
 } from '@/hooks/useAirtableData'
 import { syncService } from '@/services/sync'
 
@@ -35,6 +36,7 @@ export function Dashboard() {
   const words2026 = useYearlyWordsPerWeek(2026)
   const revelations2026 = useYearlyRevelationsPerWeek(2026)
   const cruxes2026 = useYearlyCruxesPerWeek(2026)
+  const reps2026 = useYearlyRepsPerWeek(2026)
 
   // Initialize sync on mount
   useEffect(() => {
@@ -57,7 +59,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2 text-sm">Totals</h3>
-        <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2">
             <p className="text-xs text-blue-600 font-medium">Donations</p>
             {!careerTotals ? (
@@ -72,6 +74,14 @@ export function Dashboard() {
               <div className="h-6 w-12 bg-green-200 animate-pulse rounded mt-0.5" />
             ) : (
               <p className="text-xl font-bold text-green-900">{Math.floor(careerTotals.totalLives ?? 0).toLocaleString()}</p>
+            )}
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-purple-600 font-medium">Reps 2026</p>
+            {reps2026.loading ? (
+              <div className="h-6 w-12 bg-purple-200 animate-pulse rounded mt-0.5" />
+            ) : (
+              <p className="text-xl font-bold text-purple-900">{reps2026.totalReps.toLocaleString()}</p>
             )}
           </div>
         </div>
