@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import {
@@ -46,6 +46,20 @@ export function Health() {
 
   const createHealth = useCreateHealth()
   const updateHealth = useUpdateHealth()
+
+  const { theoryTotal, socialTotal } = useMemo(() => {
+    if (!unitsData) return { theoryTotal: 0, socialTotal: 0 }
+    return unitsData
+      .filter((e) => e.date >= '2026-01-01' && e.date < '2027-01-01')
+      .reduce(
+        (acc, e) => {
+          if (e.unitsType === 'Theory') acc.theoryTotal += e.value
+          else if (e.unitsType === 'Social') acc.socialTotal += e.value
+          return acc
+        },
+        { theoryTotal: 0, socialTotal: 0 }
+      )
+  }, [unitsData])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -215,6 +229,17 @@ export function Health() {
             </button>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <p className="text-sm text-slate-500 mb-1">Theory Units (2026)</p>
+          <p className="text-2xl font-bold text-indigo-600">{theoryTotal.toFixed(1)}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <p className="text-sm text-slate-500 mb-1">Social Units (2026)</p>
+          <p className="text-2xl font-bold text-sky-600">{socialTotal.toFixed(1)}</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
