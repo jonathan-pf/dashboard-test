@@ -58,6 +58,7 @@ function transformHealthRecord(record: HealthRecord): LocalHealthRecord {
     type: record.fields.Type,
     date: record.fields.Date,
     weekId: record.fields['Week Link']?.[0] || null,
+    unitsType: record.fields['Units Type'] ?? null,
     createdTime: record.createdTime,
   }
 }
@@ -184,6 +185,7 @@ function localHealthToAirtable(record: LocalHealthRecord): Record<string, unknow
     Type: record.type,
     Date: record.date,
     'Week Link': record.weekId ? [record.weekId] : undefined,
+    'Units Type': record.unitsType ?? undefined,
   }
 }
 
@@ -623,6 +625,40 @@ class SyncService {
     }
 
     return record
+  }
+
+  // Update a health record (handles offline)
+  async updateHealthRecord(
+    healthId: string,
+    updates: Partial<Pick<LocalHealthRecord, 'value' | 'date' | 'unitsType'>>
+  ): Promise<void> {
+    const health = await db.health.get(healthId)
+    if (!health) throw new Error('Health record not found')
+
+    // Apply updates to local record
+    if (updates.value !== undefined) health.value = updates.value
+    if (updates.date !== undefined) health.date = updates.date
+    if (updates.unitsType !== undefined) health.unitsType = updates.unitsType
+    health._pendingSync = true
+    await db.health.put(health)
+
+    // Prepare Airtable update data
+    const updateData: Record<string, unknown> = {}
+    if (updates.value !== undefined) updateData.Value = updates.value
+    if (updates.date !== undefined) updateData.Date = updates.date
+    if (updates.unitsType !== undefined) updateData['Units Type'] = updates.unitsType
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Health', healthId, updateData)
+        health._pendingSync = false
+        await db.health.put(health)
+      } catch {
+        await this.queueMutation('Health', 'update', healthId, updateData)
+      }
+    } else {
+      await this.queueMutation('Health', 'update', healthId, updateData)
+    }
   }
 
   // Create a words record (handles offline)
