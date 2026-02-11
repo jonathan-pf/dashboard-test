@@ -230,6 +230,24 @@ export function useCreateHealth() {
   })
 }
 
+// Update health record mutation
+export function useUpdateHealth() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      healthId,
+      updates,
+    }: {
+      healthId: string
+      updates: Partial<Pick<LocalHealthRecord, 'value' | 'date' | 'unitsType'>>
+    }) => syncService.updateHealthRecord(healthId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.health })
+    },
+  })
+}
+
 // Create words record mutation
 export function useCreateWords() {
   const queryClient = useQueryClient()

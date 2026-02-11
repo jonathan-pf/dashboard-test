@@ -13,6 +13,7 @@ export interface HealthRecord extends AirtableRecord {
     Date: string // ISO date string
     'Week Number Name': string // Formula field
     'Week Link': string[] // Record IDs linking to Weeks table
+    'Units Type'?: 'Theory' | 'Social' | null // Single select for Units classification
   }
 }
 
@@ -173,10 +174,14 @@ export interface LocalHealthRecord {
   type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint'
   date: string
   weekId: string | null
+  unitsType: 'Theory' | 'Social' | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
 }
+
+export const UNITS_TYPES = ['Theory', 'Social'] as const
+export type UnitsType = LocalHealthRecord['unitsType']
 
 export interface LocalWordsRecord {
   id: string
