@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CompactStatCard } from '@/components/widgets/CompactStatCard'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
@@ -55,11 +55,22 @@ export function Dashboard() {
     ? goalsWithConfidence.reduce((sum, g) => sum + (g.currentConfidence ?? 0), 0) / goalsWithConfidence.length
     : null
 
+  const daysRemaining = useMemo(() => {
+    const now = new Date()
+    const target = new Date(2032, 3, 1) // April 1st 2032
+    const diffMs = target.getTime() - now.getTime()
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  }, [])
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2 text-sm">Totals</h3>
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-amber-600 font-medium">Countdown</p>
+            <p className="text-xl font-bold text-amber-900">{daysRemaining.toLocaleString()}</p>
+          </div>
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2">
             <p className="text-xs text-blue-600 font-medium">Donations</p>
             {!careerTotals ? (
