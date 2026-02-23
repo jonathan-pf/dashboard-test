@@ -9,6 +9,7 @@ import type {
   LocalIdeasRecord,
   LocalRulesRecord,
   LocalEventsRecord,
+  LocalLeisureRecord,
 } from '@/types/airtable'
 
 // Query keys
@@ -22,6 +23,7 @@ export const queryKeys = {
   career: ['career'] as const,
   rules: ['rules'] as const,
   events: ['events'] as const,
+  leisure: ['leisure'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -105,6 +107,10 @@ export function useRulesByStatus(status: LocalRulesRecord['status']) {
 
 export function useEvents() {
   return useLiveQuery(() => db.events.orderBy('date').reverse().toArray(), [])
+}
+
+export function useLeisure() {
+  return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
 }
 
 export function useCurrentWeekIdeas() {
@@ -429,6 +435,49 @@ export function useUpdateEvent() {
     }) => syncService.updateEventsRecord(eventId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.events })
+    },
+  })
+}
+
+// Create leisure record mutation
+export function useCreateLeisure() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalLeisureRecord, 'id' | 'createdTime'>) =>
+      syncService.createLeisureRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leisure })
+    },
+  })
+}
+
+// Update leisure record mutation
+export function useUpdateLeisure() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      leisureId,
+      updates,
+    }: {
+      leisureId: string
+      updates: Partial<Pick<LocalLeisureRecord, 'name' | 'status' | 'type' | 'dateStarted' | 'dateEnded' | 'url' | 'duration' | 'rating'>>
+    }) => syncService.updateLeisureRecord(leisureId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leisure })
+    },
+  })
+}
+
+// Delete leisure record mutation
+export function useDeleteLeisure() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (leisureId: string) => syncService.deleteLeisureRecord(leisureId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.leisure })
     },
   })
 }

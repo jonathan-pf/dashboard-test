@@ -336,6 +336,70 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   'Adventure': 'bg-purple-100 text-purple-700',
 }
 
+// Leisure table
+export interface LeisureRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Status?: 'Planned' | 'Consumed' | 'Live'
+    Type?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum'
+    'Date Started'?: string
+    'Date Ended'?: string
+    URL?: string
+    Duration?: number // seconds
+    Rating?: number // 1-5
+  }
+}
+
+export interface LocalLeisureRecord {
+  id: string
+  name: string
+  status: 'Planned' | 'Consumed' | 'Live'
+  type: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum'
+  dateStarted: string | null
+  dateEnded: string | null
+  url: string | null
+  duration: number | null // seconds
+  rating: number | null // 1-5
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+export const LEISURE_STATUSES = ['Planned', 'Consumed', 'Live'] as const
+export type LeisureStatus = LocalLeisureRecord['status']
+
+export const LEISURE_STATUS_COLORS: Record<LeisureStatus, string> = {
+  'Planned': 'bg-blue-100 text-blue-700',
+  'Consumed': 'bg-green-100 text-green-700',
+  'Live': 'bg-amber-100 text-amber-700',
+}
+
+export const LEISURE_TYPES = [
+  'Article',
+  'Book',
+  'Film',
+  'TV Show',
+  'Game',
+  'Play',
+  'Cinema',
+  'Immersive',
+  'Museum',
+] as const
+
+export type LeisureType = LocalLeisureRecord['type']
+
+export const LEISURE_TYPE_COLORS: Record<LeisureType, string> = {
+  'Article': 'bg-blue-100 text-blue-700',
+  'Book': 'bg-cyan-100 text-cyan-700',
+  'Film': 'bg-teal-100 text-teal-700',
+  'TV Show': 'bg-green-100 text-green-700',
+  'Game': 'bg-yellow-100 text-yellow-700',
+  'Play': 'bg-orange-100 text-orange-700',
+  'Cinema': 'bg-red-100 text-red-700',
+  'Immersive': 'bg-pink-100 text-pink-700',
+  'Museum': 'bg-purple-100 text-purple-700',
+}
+
 // Pending mutation for offline sync
 export interface PendingMutation {
   id?: number // Auto-incremented
@@ -366,6 +430,7 @@ export const TABLES = {
   CAREER: 'Career',
   RULES: 'Rules',
   EVENTS: 'Events',
+  LEISURE: 'Leisure',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

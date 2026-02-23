@@ -297,6 +297,17 @@ export function Dashboard() {
         </div>
         <p className="text-sm text-slate-500 mt-1">Track meals, parties, cinema trips and more</p>
       </Link>
+
+      <Link
+        to="/leisure"
+        className="block bg-white rounded-xl p-4 shadow-sm border border-slate-200 hover:border-blue-300 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-slate-900">Leisure</h3>
+          <span className="text-blue-600 text-sm">View all</span>
+        </div>
+        <p className="text-sm text-slate-500 mt-1">Track books, films, TV shows, games and more</p>
+      </Link>
     </div>
   )
 }

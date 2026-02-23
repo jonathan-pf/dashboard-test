@@ -13,6 +13,7 @@ import { Revelations } from './pages/Revelations'
 import { Cruxes } from './pages/Cruxes'
 import { Features } from './pages/Features'
 import { Events } from './pages/Events'
+import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
 import { Settings } from './pages/Settings'
 
@@ -34,6 +35,7 @@ function App() {
           <Route path="/ideas/cruxes" element={<Cruxes />} />
           <Route path="/ideas/features" element={<Features />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/leisure" element={<Leisure />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>
