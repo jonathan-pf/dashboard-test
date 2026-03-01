@@ -4,6 +4,7 @@ import {
   useCreateLeisure,
   useUpdateLeisure,
   useDeleteLeisure,
+  useCurrentWeek,
 } from '@/hooks/useAirtableData'
 import {
   LEISURE_TYPES,
@@ -75,6 +76,7 @@ export function Leisure() {
   const [formRating, setFormRating] = useState<number | null>(null)
 
   const leisure = useLeisure()
+  const currentWeek = useCurrentWeek()
   const createLeisure = useCreateLeisure()
   const updateLeisure = useUpdateLeisure()
   const deleteLeisure = useDeleteLeisure()
@@ -122,6 +124,49 @@ export function Leisure() {
     if (filterType === 'all') return leisure
     return leisure.filter((item) => item.type === filterType)
   }, [leisure, filterType])
+
+  const weeklyBreakdown = useMemo(() => {
+    if (!leisure || !currentWeek?.weekCommencing) return null
+
+    const weekStart = new Date(currentWeek.weekCommencing)
+    const weekEnd = new Date(currentWeek.weekCommencing)
+    weekEnd.setDate(weekEnd.getDate() + 6)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const items: { name: string; type: LocalLeisureRecord['type']; attributedSeconds: number }[] = []
+    let totalSeconds = 0
+
+    for (const item of leisure) {
+      if (item.status !== 'Consumed' && item.status !== 'Live') continue
+      if (!item.dateStarted || !item.duration || item.duration <= 0) continue
+
+      const itemStart = new Date(item.dateStarted)
+      const itemEnd = item.status === 'Live' || !item.dateEnded ? today : new Date(item.dateEnded)
+
+      const overlapStart = itemStart > weekStart ? itemStart : weekStart
+      const overlapEnd = itemEnd < weekEnd ? itemEnd : weekEnd
+
+      const overlapDays = Math.max(
+        0,
+        Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      )
+      if (overlapDays <= 0) continue
+
+      const totalDays = Math.max(
+        1,
+        Math.floor((itemEnd.getTime() - itemStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      )
+
+      const attributed = (overlapDays / totalDays) * item.duration
+      items.push({ name: item.name, type: item.type, attributedSeconds: attributed })
+      totalSeconds += attributed
+    }
+
+    items.sort((a, b) => b.attributedSeconds - a.attributedSeconds)
+    return { items, totalSeconds }
+  }, [leisure, currentWeek?.weekCommencing])
 
   const resetForm = () => {
     setFormName('')
@@ -282,6 +327,35 @@ export function Leisure() {
                 )
               })
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* This Week Breakdown */}
+      {weeklyBreakdown && weeklyBreakdown.items.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-900 text-sm">This Week</h3>
+            <span className="text-sm font-bold text-slate-900">
+              {formatDuration(weeklyBreakdown.totalSeconds) || '0h'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {weeklyBreakdown.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${LEISURE_TYPE_COLORS[item.type]}`}
+                  >
+                    {item.type}
+                  </span>
+                  <span className="text-sm text-slate-700 truncate">{item.name}</span>
+                </div>
+                <span className="text-sm text-slate-500 font-medium shrink-0 ml-2">
+                  {formatDuration(item.attributedSeconds) || '<1m'}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
