@@ -132,8 +132,8 @@ export function Leisure() {
     const weekEnd = new Date(currentWeek.weekCommencing)
     weekEnd.setDate(weekEnd.getDate() + 6)
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const now = new Date()
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 
     const items: { name: string; type: LocalLeisureRecord['type']; attributedSeconds: number }[] = []
     let totalSeconds = 0
@@ -143,7 +143,11 @@ export function Leisure() {
       if (!item.dateStarted || !item.duration || item.duration <= 0) continue
 
       const itemStart = new Date(item.dateStarted)
-      const itemEnd = item.status === 'Live' || !item.dateEnded ? today : new Date(item.dateEnded)
+      const itemEnd = item.status === 'Live'
+        ? today
+        : item.dateEnded
+          ? new Date(item.dateEnded)
+          : itemStart
 
       const overlapStart = itemStart > weekStart ? itemStart : weekStart
       const overlapEnd = itemEnd < weekEnd ? itemEnd : weekEnd
