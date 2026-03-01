@@ -12,6 +12,8 @@ import { Ideas } from './pages/Ideas'
 import { Revelations } from './pages/Revelations'
 import { Cruxes } from './pages/Cruxes'
 import { Features } from './pages/Features'
+import { Blog } from './pages/Blog'
+import { Questions } from './pages/Questions'
 import { Events } from './pages/Events'
 import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
@@ -34,6 +36,8 @@ function App() {
           <Route path="/ideas/revelations" element={<Revelations />} />
           <Route path="/ideas/cruxes" element={<Cruxes />} />
           <Route path="/ideas/features" element={<Features />} />
+          <Route path="/ideas/blog" element={<Blog />} />
+          <Route path="/ideas/questions" element={<Questions />} />
           <Route path="/events" element={<Events />} />
           <Route path="/leisure" element={<Leisure />} />
           <Route path="/settings" element={<Settings />} />
