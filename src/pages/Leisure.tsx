@@ -292,74 +292,6 @@ export function Leisure() {
         </div>
       )}
 
-      {/* Type Breakdown Chart */}
-      {stats && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-          <h3 className="font-semibold text-slate-900 mb-3 text-sm">Time by Type (2026)</h3>
-          <div className="space-y-2">
-            {(() => {
-              const maxDuration = Math.max(
-                ...LEISURE_TYPES.map((t) => stats.typeBreakdown[t].duration)
-              )
-              return LEISURE_TYPES.filter(
-                (t) => stats.typeBreakdown[t].duration > 0 || stats.typeBreakdown[t].count > 0
-              ).map((type) => {
-                const { duration, count } = stats.typeBreakdown[type]
-                const widthPct = maxDuration > 0 ? (duration / maxDuration) * 100 : 0
-                return (
-                  <div key={type} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-600 w-16 shrink-0">{type}</span>
-                    <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
-                      {widthPct > 0 && (
-                        <div
-                          className="h-full rounded"
-                          style={{
-                            width: `${Math.max(widthPct, 4)}%`,
-                            backgroundColor: TYPE_BAR_COLORS[type],
-                          }}
-                        />
-                      )}
-                    </div>
-                    <span className="text-xs text-slate-500 w-14 text-right shrink-0">
-                      {duration > 0 ? formatDuration(duration) : `${count}`}
-                    </span>
-                  </div>
-                )
-              })
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* This Week Breakdown */}
-      {weeklyBreakdown && weeklyBreakdown.items.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-slate-900 text-sm">This Week</h3>
-            <span className="text-sm font-bold text-slate-900">
-              {formatDuration(weeklyBreakdown.totalSeconds) || '0h'}
-            </span>
-          </div>
-          <div className="space-y-2">
-            {weeklyBreakdown.items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${LEISURE_TYPE_COLORS[item.type]}`}
-                  >
-                    {item.type}
-                  </span>
-                  <span className="text-sm text-slate-700 truncate">{item.name}</span>
-                </div>
-                <span className="text-sm text-slate-500 font-medium shrink-0 ml-2">
-                  {formatDuration(item.attributedSeconds) || '<1m'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Add/Edit Form */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
@@ -521,6 +453,74 @@ export function Leisure() {
           </button>
         )}
       </div>
+
+      {/* Type Breakdown Chart */}
+      {stats && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-3 text-sm">Time by Type (2026)</h3>
+          <div className="space-y-2">
+            {(() => {
+              const maxDuration = Math.max(
+                ...LEISURE_TYPES.map((t) => stats.typeBreakdown[t].duration)
+              )
+              return LEISURE_TYPES.filter(
+                (t) => stats.typeBreakdown[t].duration > 0 || stats.typeBreakdown[t].count > 0
+              ).map((type) => {
+                const { duration, count } = stats.typeBreakdown[type]
+                const widthPct = maxDuration > 0 ? (duration / maxDuration) * 100 : 0
+                return (
+                  <div key={type} className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600 w-16 shrink-0">{type}</span>
+                    <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden">
+                      {widthPct > 0 && (
+                        <div
+                          className="h-full rounded"
+                          style={{
+                            width: `${Math.max(widthPct, 4)}%`,
+                            backgroundColor: TYPE_BAR_COLORS[type],
+                          }}
+                        />
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-500 w-14 text-right shrink-0">
+                      {duration > 0 ? formatDuration(duration) : `${count}`}
+                    </span>
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* This Week Breakdown */}
+      {weeklyBreakdown && weeklyBreakdown.items.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-900 text-sm">This Week</h3>
+            <span className="text-sm font-bold text-slate-900">
+              {formatDuration(weeklyBreakdown.totalSeconds) || '0h'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {weeklyBreakdown.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${LEISURE_TYPE_COLORS[item.type]}`}
+                  >
+                    {item.type}
+                  </span>
+                  <span className="text-sm text-slate-700 truncate">{item.name}</span>
+                </div>
+                <span className="text-sm text-slate-500 font-medium shrink-0 ml-2">
+                  {formatDuration(item.attributedSeconds) || '<1m'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Items List */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
