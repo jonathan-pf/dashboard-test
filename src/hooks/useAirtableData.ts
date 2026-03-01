@@ -204,6 +204,67 @@ export function useAnnualGoals() {
   )
 }
 
+// Weekly leisure duration with pro-rated attribution
+export function useWeeklyLeisureDuration(weekCommencing: string | null) {
+  const result = useLiveQuery(
+    async () => {
+      if (!weekCommencing) return 0
+
+      const weekStart = new Date(weekCommencing)
+      const weekEnd = new Date(weekCommencing)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const items = await db.leisure
+        .filter(
+          (item) =>
+            (item.status === 'Consumed' || item.status === 'Live') &&
+            item.dateStarted !== null &&
+            item.duration !== null &&
+            item.duration > 0
+        )
+        .toArray()
+
+      let totalSeconds = 0
+
+      for (const item of items) {
+        const itemStart = new Date(item.dateStarted!)
+        const itemEnd = item.status === 'Live' || !item.dateEnded
+          ? today
+          : new Date(item.dateEnded)
+
+        // Check for overlap with the week
+        const overlapStart = itemStart > weekStart ? itemStart : weekStart
+        const overlapEnd = itemEnd < weekEnd ? itemEnd : weekEnd
+
+        const overlapDays = Math.max(
+          0,
+          Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        )
+
+        if (overlapDays <= 0) continue
+
+        const totalDays = Math.max(
+          1,
+          Math.floor((itemEnd.getTime() - itemStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        )
+
+        totalSeconds += (overlapDays / totalDays) * item.duration!
+      }
+
+      return totalSeconds
+    },
+    [weekCommencing]
+  )
+
+  return {
+    totalSeconds: result ?? 0,
+    loading: result === undefined,
+  }
+}
+
 // Sync hook
 export function useSync() {
   const queryClient = useQueryClient()

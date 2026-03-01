@@ -6,6 +6,7 @@ import { WordsBarChart } from '@/components/charts/WordsBarChart'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useCurrentWeek,
+  useLastWeek,
   useWeeklyStats,
   useHealthTrends,
   useWeeks,
@@ -19,7 +20,9 @@ import {
   useYearlyRevelationsPerWeek,
   useYearlyCruxesPerWeek,
   useYearlyRepsPerWeek,
+  useWeeklyLeisureDuration,
 } from '@/hooks/useAirtableData'
+import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
 
 export function Dashboard() {
@@ -37,6 +40,9 @@ export function Dashboard() {
   const revelations2026 = useYearlyRevelationsPerWeek(2026)
   const cruxes2026 = useYearlyCruxesPerWeek(2026)
   const reps2026 = useYearlyRepsPerWeek(2026)
+  const lastWeek = useLastWeek()
+  const weeklyLeisure = useWeeklyLeisureDuration(currentWeek?.weekCommencing ?? null)
+  const lastWeekLeisure = useWeeklyLeisureDuration(lastWeek?.weekCommencing ?? null)
 
   // Initialize sync on mount
   useEffect(() => {
@@ -177,6 +183,16 @@ export function Dashboard() {
             label="Budget"
             value={Math.max(0, Math.round(40 * yearlyUnits.weekNumber - yearlyUnits.totalUnits))}
             loading={yearlyUnits.loading}
+          />
+          <CompactStatCard
+            label="Leisure"
+            value={formatDuration(weeklyLeisure.totalSeconds) || '0h'}
+            loading={weeklyLeisure.loading}
+          />
+          <CompactStatCard
+            label="LW Leisure"
+            value={formatDuration(lastWeekLeisure.totalSeconds) || '0h'}
+            loading={lastWeekLeisure.loading}
           />
         </div>
       </div>
