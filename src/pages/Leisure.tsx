@@ -128,12 +128,13 @@ export function Leisure() {
   const weeklyBreakdown = useMemo(() => {
     if (!leisure || !currentWeek?.weekCommencing) return null
 
-    const weekStart = new Date(currentWeek.weekCommencing)
-    const weekEnd = new Date(currentWeek.weekCommencing)
-    weekEnd.setDate(weekEnd.getDate() + 6)
+    const weekStartStr = currentWeek.weekCommencing
+    const weekEndDate = new Date(weekStartStr + 'T00:00:00Z')
+    weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6)
+    const weekEndStr = weekEndDate.toISOString().split('T')[0]
 
     const now = new Date()
-    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
     const items: { name: string; type: LocalLeisureRecord['type']; attributedSeconds: number }[] = []
     let totalSeconds = 0
@@ -142,26 +143,25 @@ export function Leisure() {
       if (item.status !== 'Consumed' && item.status !== 'Live') continue
       if (!item.dateStarted || !item.duration || item.duration <= 0) continue
 
-      const itemStart = new Date(item.dateStarted)
-      const itemEnd = item.status === 'Live'
+      const itemStartStr = item.dateStarted
+      const itemEndStr = item.status === 'Live'
         ? today
-        : item.dateEnded
-          ? new Date(item.dateEnded)
-          : itemStart
+        : item.dateEnded ?? itemStartStr
 
-      const overlapStart = itemStart > weekStart ? itemStart : weekStart
-      const overlapEnd = itemEnd < weekEnd ? itemEnd : weekEnd
+      // No overlap if item ends before week starts or starts after week ends
+      if (itemEndStr < weekStartStr || itemStartStr > weekEndStr) continue
 
-      const overlapDays = Math.max(
-        0,
-        Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      )
+      const overlapStartStr = itemStartStr > weekStartStr ? itemStartStr : weekStartStr
+      const overlapEndStr = itemEndStr < weekEndStr ? itemEndStr : weekEndStr
+
+      const msA = Date.UTC(+overlapStartStr.slice(0, 4), +overlapStartStr.slice(5, 7) - 1, +overlapStartStr.slice(8, 10))
+      const msB = Date.UTC(+overlapEndStr.slice(0, 4), +overlapEndStr.slice(5, 7) - 1, +overlapEndStr.slice(8, 10))
+      const overlapDays = Math.round((msB - msA) / 86400000) + 1
       if (overlapDays <= 0) continue
 
-      const totalDays = Math.max(
-        1,
-        Math.floor((itemEnd.getTime() - itemStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      )
+      const msStart = Date.UTC(+itemStartStr.slice(0, 4), +itemStartStr.slice(5, 7) - 1, +itemStartStr.slice(8, 10))
+      const msEnd = Date.UTC(+itemEndStr.slice(0, 4), +itemEndStr.slice(5, 7) - 1, +itemEndStr.slice(8, 10))
+      const totalDays = Math.max(1, Math.round((msEnd - msStart) / 86400000) + 1)
 
       const attributed = (overlapDays / totalDays) * item.duration
       items.push({ name: item.name, type: item.type, attributedSeconds: attributed })

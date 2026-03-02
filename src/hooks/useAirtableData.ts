@@ -204,18 +204,35 @@ export function useAnnualGoals() {
   )
 }
 
+// Helper: add N days to a YYYY-MM-DD string, returns YYYY-MM-DD
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().split('T')[0]
+}
+
+// Helper: count days between two YYYY-MM-DD strings (inclusive)
+function daysBetweenInclusive(a: string, b: string): number {
+  const msA = Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))
+  const msB = Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10))
+  return Math.round((msB - msA) / 86400000) + 1
+}
+
+// Helper: get today as YYYY-MM-DD in local time
+function todayStr(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 // Weekly leisure duration with pro-rated attribution
 export function useWeeklyLeisureDuration(weekCommencing: string | null) {
   const result = useLiveQuery(
     async () => {
       if (!weekCommencing) return 0
 
-      const weekStart = new Date(weekCommencing)
-      const weekEnd = new Date(weekCommencing)
-      weekEnd.setDate(weekEnd.getDate() + 6)
-
-      const now = new Date()
-      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+      const weekStartStr = weekCommencing
+      const weekEndStr = addDays(weekCommencing, 6)
+      const today = todayStr()
 
       const items = await db.leisure
         .filter(
@@ -230,29 +247,21 @@ export function useWeeklyLeisureDuration(weekCommencing: string | null) {
       let totalSeconds = 0
 
       for (const item of items) {
-        const itemStart = new Date(item.dateStarted!)
-        const itemEnd = item.status === 'Live'
+        const itemStartStr = item.dateStarted!
+        const itemEndStr = item.status === 'Live'
           ? today
-          : item.dateEnded
-            ? new Date(item.dateEnded)
-            : itemStart
+          : item.dateEnded ?? itemStartStr
 
-        // Check for overlap with the week
-        const overlapStart = itemStart > weekStart ? itemStart : weekStart
-        const overlapEnd = itemEnd < weekEnd ? itemEnd : weekEnd
+        // No overlap if item ends before week starts or starts after week ends
+        if (itemEndStr < weekStartStr || itemStartStr > weekEndStr) continue
 
-        const overlapDays = Math.max(
-          0,
-          Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-        )
+        const overlapStartStr = itemStartStr > weekStartStr ? itemStartStr : weekStartStr
+        const overlapEndStr = itemEndStr < weekEndStr ? itemEndStr : weekEndStr
 
+        const overlapDays = daysBetweenInclusive(overlapStartStr, overlapEndStr)
         if (overlapDays <= 0) continue
 
-        const totalDays = Math.max(
-          1,
-          Math.floor((itemEnd.getTime() - itemStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-        )
-
+        const totalDays = Math.max(1, daysBetweenInclusive(itemStartStr, itemEndStr))
         totalSeconds += (overlapDays / totalDays) * item.duration!
       }
 
