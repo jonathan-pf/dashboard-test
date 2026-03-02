@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useNextWeekGoals,
@@ -148,16 +147,6 @@ export function NextWeekGoals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Next Week's Goals</h2>
-        <Link
-          to="/goals"
-          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-        >
-          This Week
-        </Link>
-      </div>
-
       {nextWeek && (
         <p className="text-sm text-slate-500">
           {nextWeek.name} (starting {new Date(nextWeek.weekCommencing).toLocaleDateString()})

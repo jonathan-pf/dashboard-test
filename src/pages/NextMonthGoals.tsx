@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useNextMonthGoals,
@@ -149,16 +148,6 @@ export function NextMonthGoals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Next Month's Goals</h2>
-        <Link
-          to="/goals"
-          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-        >
-          This Week
-        </Link>
-      </div>
-
       <p className="text-sm text-slate-500">
         {monthName}
       </p>

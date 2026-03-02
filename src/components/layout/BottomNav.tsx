@@ -1,36 +1,58 @@
-import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { MoreSheet } from './MoreSheet'
 
 const navItems = [
   { path: '/', label: 'Home', icon: HomeIcon },
   { path: '/ideas', label: 'Ideas', icon: LightbulbIcon },
-  { path: '/words', label: 'Words', icon: PenIcon },
-  { path: '/health', label: 'Health', icon: HeartIcon },
   { path: '/goals', label: 'Goals', icon: TargetIcon },
-  { path: '/settings', label: 'Settings', icon: SettingsIcon },
+  { path: '/health', label: 'Health', icon: HeartIcon },
 ]
 
+// Paths that live under "More" — used to highlight the More button
+const morePaths = ['/words', '/events', '/leisure', '/settings']
+
 export function BottomNav() {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const location = useLocation()
+  const isMoreActive = morePaths.some((p) => location.pathname.startsWith(p))
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 pb-safe">
-      <div className="flex justify-around items-center h-16">
-        {navItems.map(({ path, label, icon: Icon }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                isActive
-                  ? 'text-blue-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`
-            }
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 pb-safe z-40">
+        <div className="flex justify-around items-center h-16">
+          {navItems.map(({ path, label, icon: Icon }) => (
+            <NavLink
+              key={path}
+              to={path}
+              onClick={() => setMoreOpen(false)}
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                  isActive
+                    ? 'text-blue-600'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`
+              }
+            >
+              <Icon className="w-6 h-6" />
+              <span className="text-xs font-medium">{label}</span>
+            </NavLink>
+          ))}
+          <button
+            onClick={() => setMoreOpen((prev) => !prev)}
+            className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+              isMoreActive || moreOpen
+                ? 'text-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
           >
-            <Icon className="w-6 h-6" />
-            <span className="text-xs font-medium">{label}</span>
-          </NavLink>
-        ))}
-      </div>
-    </nav>
+            <MoreIcon className="w-6 h-6" />
+            <span className="text-xs font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+      <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+    </>
   )
 }
 
@@ -47,14 +69,6 @@ function HeartIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-    </svg>
-  )
-}
-
-function PenIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
     </svg>
   )
 }
@@ -77,11 +91,10 @@ function LightbulbIcon({ className }: { className?: string }) {
   )
 }
 
-function SettingsIcon({ className }: { className?: string }) {
+function MoreIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   )
 }

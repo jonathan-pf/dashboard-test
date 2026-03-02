@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useIdeasByType, useUpdateIdea } from '@/hooks/useAirtableData'
 
 export function Revelations() {
@@ -61,15 +60,6 @@ export function Revelations() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link
-          to="/ideas"
-          className="p-2 -ml-2 text-slate-500 hover:text-slate-700 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h2 className="text-2xl font-bold text-slate-900">Revelations</h2>
         <span className="text-sm text-slate-500">
           {revelations?.length ?? 0} total
         </span>
