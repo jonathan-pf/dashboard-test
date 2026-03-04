@@ -43,22 +43,15 @@ export function Goals() {
   const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
     goals.filter((g) => g.status === status)
 
-  // Get current month's monthly goals (by deadline OR createdTime)
+  // Get current month's monthly goals (by deadline falling in current month)
   const currentMonthMonthlyGoals = (() => {
     if (!allGoals) return []
     const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
-    const start = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
-    const end = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
-    return allGoals.filter((g) => {
-      if (g.type !== 'Monthly') return false
-      // Match by deadline in current month
-      if (g.deadline !== null && g.deadline >= start && g.deadline <= end) return true
-      // Match by createdTime in current month (same logic as LongTermGoals page)
-      const created = new Date(g.createdTime)
-      return created.getMonth() === currentMonth && created.getFullYear() === currentYear
-    })
+    // Use YYYY-MM prefix to avoid timezone issues with date boundaries
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    return allGoals.filter(
+      (g) => g.type === 'Monthly' && g.deadline && g.deadline.startsWith(currentYearMonth)
+    )
   })()
 
   // Merge weekly goals (by weekId) with monthly goals (by deadline), deduplicating
