@@ -79,9 +79,9 @@ export function Goals() {
       .map(([, group]) => group)
   })()
 
-  // Progress calculation using all current goals
-  const completedGoals = currentWeekGoals ?? [].filter((g) => g.status === 'Success')
-  const failedGoals = currentWeekGoals ?? [].filter((g) => g.status === 'Fail')
+  // Progress calculation
+  const completedGoals = (currentWeekGoals ?? []).filter((g) => g.status === 'Success')
+  const failedGoals = (currentWeekGoals ?? []).filter((g) => g.status === 'Fail')
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -235,7 +235,7 @@ export function Goals() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900">This Week's Goals</h3>
           <span className="text-sm text-slate-500">
-            {completedGoals.length} / {currentWeekGoals ?? [].length}
+            {completedGoals.length} / {(currentWeekGoals ?? []).length}
           </span>
         </div>
 
@@ -243,7 +243,7 @@ export function Goals() {
           <GoalProgressRing
             completed={completedGoals.length}
             failed={failedGoals.length}
-            total={currentWeekGoals ?? [].length}
+            total={(currentWeekGoals ?? []).length}
             size={140}
           />
         </div>
@@ -366,7 +366,7 @@ export function Goals() {
           )
         })}
 
-        {currentWeekGoals ?? [].length === 0 && !showAddForm && (
+        {(currentWeekGoals ?? []).length === 0 && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
             No goals for this week
           </div>
