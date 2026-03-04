@@ -43,15 +43,22 @@ export function Goals() {
   const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
     goals.filter((g) => g.status === status)
 
-  // Get current month's monthly goals (by deadline date range)
+  // Get current month's monthly goals (by deadline OR createdTime)
   const currentMonthMonthlyGoals = (() => {
     if (!allGoals) return []
     const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
-    return allGoals.filter(
-      (g) => g.type === 'Monthly' && g.deadline !== null && g.deadline >= start && g.deadline <= end
-    )
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+    const start = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
+    const end = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+    return allGoals.filter((g) => {
+      if (g.type !== 'Monthly') return false
+      // Match by deadline in current month
+      if (g.deadline !== null && g.deadline >= start && g.deadline <= end) return true
+      // Match by createdTime in current month (same logic as LongTermGoals page)
+      const created = new Date(g.createdTime)
+      return created.getMonth() === currentMonth && created.getFullYear() === currentYear
+    })
   })()
 
   // Merge weekly goals (by weekId) with monthly goals (by deadline), deduplicating
