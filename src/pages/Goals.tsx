@@ -43,9 +43,33 @@ export function Goals() {
   const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
     goals.filter((g) => g.status === status)
 
+  // Get current month's monthly goals (by deadline date range)
+  const currentMonthMonthlyGoals = (() => {
+    if (!allGoals) return []
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+    return allGoals.filter(
+      (g) => g.type === 'Monthly' && g.deadline !== null && g.deadline >= start && g.deadline <= end
+    )
+  })()
+
+  // Merge weekly goals (by weekId) with monthly goals (by deadline), deduplicating
+  const allCurrentGoals = (() => {
+    const weekGoals = currentWeekGoals ?? []
+    const seen = new Set(weekGoals.map((g) => g.id))
+    const merged = [...weekGoals]
+    for (const g of currentMonthMonthlyGoals) {
+      if (!seen.has(g.id)) {
+        merged.push(g)
+      }
+    }
+    return merged
+  })()
+
   // Group goals by area
   const goalsByArea = (() => {
-    const goals = currentWeekGoals ?? []
+    const goals = allCurrentGoals
     const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
 
     // Build area groups in area order
@@ -79,9 +103,9 @@ export function Goals() {
       .map(([, group]) => group)
   })()
 
-  // Legacy groupings for progress calculation
-  const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
-  const failedGoals = currentWeekGoals?.filter((g) => g.status === 'Fail') ?? []
+  // Progress calculation using all current goals
+  const completedGoals = allCurrentGoals.filter((g) => g.status === 'Success')
+  const failedGoals = allCurrentGoals.filter((g) => g.status === 'Fail')
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -235,7 +259,7 @@ export function Goals() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900">This Week's Goals</h3>
           <span className="text-sm text-slate-500">
-            {completedGoals.length} / {currentWeekGoals?.length ?? 0}
+            {completedGoals.length} / {allCurrentGoals.length}
           </span>
         </div>
 
@@ -243,7 +267,7 @@ export function Goals() {
           <GoalProgressRing
             completed={completedGoals.length}
             failed={failedGoals.length}
-            total={currentWeekGoals?.length ?? 0}
+            total={allCurrentGoals.length}
             size={140}
           />
         </div>
@@ -366,7 +390,7 @@ export function Goals() {
           )
         })}
 
-        {(!currentWeekGoals || currentWeekGoals.length === 0) && !showAddForm && (
+        {allCurrentGoals.length === 0 && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
             No goals for this week
           </div>
