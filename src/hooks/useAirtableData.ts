@@ -248,7 +248,7 @@ export function useWeeklyLeisureDuration(weekCommencing: string | null) {
 
       for (const item of items) {
         const itemStartStr = item.dateStarted!
-        const itemEndStr = item.status === 'Live'
+        const itemEndStr = item.status === 'Live' && !item.dateEnded
           ? today
           : item.dateEnded ?? itemStartStr
 

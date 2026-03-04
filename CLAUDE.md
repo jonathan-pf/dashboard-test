@@ -1,5 +1,9 @@
 # Claude Instructions
 
+## Shell Commands
+
+- Never ask about or confirm whitespace escaping in file paths. Just handle it correctly (e.g., quoting paths with spaces).
+
 ## Before Starting Work
 
 **Important:** Before making any changes, always check for and pull remote changes:

@@ -144,7 +144,7 @@ export function Leisure() {
       if (!item.dateStarted || !item.duration || item.duration <= 0) continue
 
       const itemStartStr = item.dateStarted
-      const itemEndStr = item.status === 'Live'
+      const itemEndStr = item.status === 'Live' && !item.dateEnded
         ? today
         : item.dateEnded ?? itemStartStr
 
