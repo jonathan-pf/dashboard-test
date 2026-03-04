@@ -396,6 +396,19 @@ export function Goals() {
           </div>
         )}
 
+        {/* Temporary debug info */}
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 space-y-1">
+          <p>DEBUG: allGoals: {allGoals?.length ?? 'undefined'}</p>
+          <p>DEBUG: monthly in allGoals: {allGoals?.filter(g => g.type === 'Monthly').length ?? 'n/a'}</p>
+          <p>DEBUG: currentMonthMonthlyGoals: {currentMonthMonthlyGoals.length}</p>
+          <p>DEBUG: currentWeekGoals: {currentWeekGoals?.length ?? 'undefined'}</p>
+          <p>DEBUG: allCurrentGoals: {allCurrentGoals.length}</p>
+          <p>DEBUG: goalsByArea groups: {goalsByArea.length}</p>
+          {allGoals?.filter(g => g.type === 'Monthly').slice(0, 3).map(g => (
+            <p key={g.id}>  Monthly: "{g.name}" deadline={String(g.deadline)} type={g.type}</p>
+          ))}
+        </div>
+
         {/* Add Goal Form */}
         {showAddForm ? (
           <div className="mt-4 space-y-4 pt-4 border-t border-slate-200">
