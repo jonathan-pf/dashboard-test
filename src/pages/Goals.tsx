@@ -43,33 +43,9 @@ export function Goals() {
   const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
     goals.filter((g) => g.status === status)
 
-  // Get current month's monthly goals (by deadline falling in current month)
-  const currentMonthMonthlyGoals = (() => {
-    if (!allGoals) return []
-    const now = new Date()
-    // Use YYYY-MM prefix to avoid timezone issues with date boundaries
-    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    return allGoals.filter(
-      (g) => g.type === 'Monthly' && g.deadline && g.deadline.startsWith(currentYearMonth)
-    )
-  })()
-
-  // Merge weekly goals (by weekId) with monthly goals (by deadline), deduplicating
-  const allCurrentGoals = (() => {
-    const weekGoals = currentWeekGoals ?? []
-    const seen = new Set(weekGoals.map((g) => g.id))
-    const merged = [...weekGoals]
-    for (const g of currentMonthMonthlyGoals) {
-      if (!seen.has(g.id)) {
-        merged.push(g)
-      }
-    }
-    return merged
-  })()
-
   // Group goals by area
   const goalsByArea = (() => {
-    const goals = allCurrentGoals
+    const goals = currentWeekGoals ?? []
     const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
 
     // Build area groups in area order
@@ -104,8 +80,8 @@ export function Goals() {
   })()
 
   // Progress calculation using all current goals
-  const completedGoals = allCurrentGoals.filter((g) => g.status === 'Success')
-  const failedGoals = allCurrentGoals.filter((g) => g.status === 'Fail')
+  const completedGoals = currentWeekGoals ?? [].filter((g) => g.status === 'Success')
+  const failedGoals = currentWeekGoals ?? [].filter((g) => g.status === 'Fail')
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -259,7 +235,7 @@ export function Goals() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-slate-900">This Week's Goals</h3>
           <span className="text-sm text-slate-500">
-            {completedGoals.length} / {allCurrentGoals.length}
+            {completedGoals.length} / {currentWeekGoals ?? [].length}
           </span>
         </div>
 
@@ -267,7 +243,7 @@ export function Goals() {
           <GoalProgressRing
             completed={completedGoals.length}
             failed={failedGoals.length}
-            total={allCurrentGoals.length}
+            total={currentWeekGoals ?? [].length}
             size={140}
           />
         </div>
@@ -390,24 +366,11 @@ export function Goals() {
           )
         })}
 
-        {allCurrentGoals.length === 0 && !showAddForm && (
+        {currentWeekGoals ?? [].length === 0 && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
             No goals for this week
           </div>
         )}
-
-        {/* Temporary debug info */}
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800 space-y-1">
-          <p>DEBUG: allGoals: {allGoals?.length ?? 'undefined'}</p>
-          <p>DEBUG: monthly in allGoals: {allGoals?.filter(g => g.type === 'Monthly').length ?? 'n/a'}</p>
-          <p>DEBUG: currentMonthMonthlyGoals: {currentMonthMonthlyGoals.length}</p>
-          <p>DEBUG: currentWeekGoals: {currentWeekGoals?.length ?? 'undefined'}</p>
-          <p>DEBUG: allCurrentGoals: {allCurrentGoals.length}</p>
-          <p>DEBUG: goalsByArea groups: {goalsByArea.length}</p>
-          {allGoals?.filter(g => g.type === 'Monthly').slice(0, 3).map(g => (
-            <p key={g.id}>  Monthly: "{g.name}" deadline={String(g.deadline)} type={g.type}</p>
-          ))}
-        </div>
 
         {/* Add Goal Form */}
         {showAddForm ? (

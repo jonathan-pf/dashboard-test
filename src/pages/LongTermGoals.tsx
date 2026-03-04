@@ -37,11 +37,11 @@ export function LongTermGoals() {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  // Filter monthly goals to current month only
+  // Filter monthly goals to current month by deadline
+  const currentYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
   const monthlyGoals = allGoals?.filter((g) => {
     if (g.type !== 'Monthly') return false
-    const createdDate = new Date(g.createdTime)
-    return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear
+    return g.deadline && g.deadline.startsWith(currentYearMonth)
   }) ?? []
 
   // Filter annual goals to current year only
