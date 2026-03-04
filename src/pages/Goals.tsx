@@ -39,13 +39,45 @@ export function Goals() {
   const updateGoalConfidence = useUpdateGoalConfidence()
   const updateGoalDetails = useUpdateGoalDetails()
 
-  // Group goals by period type
-  const weeklyGoals = currentWeekGoals?.filter((g) => g.type === 'Weekly') ?? []
-  const monthlyGoals = currentWeekGoals?.filter((g) => g.type === 'Monthly') ?? []
-
   // Helper to get goals by status within a group
   const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
     goals.filter((g) => g.status === status)
+
+  // Group goals by area
+  const goalsByArea = (() => {
+    const goals = currentWeekGoals ?? []
+    const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
+
+    // Build area groups in area order
+    if (areas) {
+      for (const area of areas) {
+        areaMap.set(area.id, { name: area.name, goals: [] })
+      }
+    }
+    // Null for ungrouped
+    areaMap.set(null, { name: 'No Area', goals: [] })
+
+    for (const goal of goals) {
+      const key = goal.areaId ?? null
+      const group = areaMap.get(key)
+      if (group) {
+        group.goals.push(goal)
+      } else {
+        // Area exists in goal but not in areas list — put in ungrouped
+        areaMap.get(null)!.goals.push(goal)
+      }
+    }
+
+    // Return only groups that have goals, with ungrouped last
+    return [...areaMap.entries()]
+      .filter(([, group]) => group.goals.length > 0)
+      .sort(([keyA], [keyB]) => {
+        if (keyA === null) return 1
+        if (keyB === null) return -1
+        return 0
+      })
+      .map(([, group]) => group)
+  })()
 
   // Legacy groupings for progress calculation
   const completedGoals = currentWeekGoals?.filter((g) => g.status === 'Success') ?? []
@@ -216,21 +248,16 @@ export function Goals() {
           />
         </div>
 
-        {/* Render goal section by period */}
-        {[
-          { title: 'Weekly Goals', goals: weeklyGoals },
-          { title: 'Monthly Goals', goals: monthlyGoals },
-        ].map(({ title, goals }) => {
+        {/* Render goal sections by area */}
+        {goalsByArea.map(({ name, goals }) => {
           const live = getGoalsByStatus(goals, 'Live')
           const completed = getGoalsByStatus(goals, 'Success')
           const failed = getGoalsByStatus(goals, 'Fail')
 
-          if (goals.length === 0) return null
-
           return (
-            <div key={title} className="mb-6 last:mb-0">
+            <div key={name} className="mb-6 last:mb-0">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                {title}
+                {name}
               </p>
 
               {live.length > 0 && (
