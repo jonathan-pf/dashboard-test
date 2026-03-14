@@ -15,6 +15,7 @@ import { Features } from './pages/Features'
 import { Blog } from './pages/Blog'
 import { Questions } from './pages/Questions'
 import { Skills } from './pages/Skills'
+import { Gen } from './pages/Gen'
 import { Events } from './pages/Events'
 import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
@@ -40,6 +41,7 @@ function App() {
           <Route path="/ideas/blog" element={<Blog />} />
           <Route path="/ideas/questions" element={<Questions />} />
           <Route path="/ideas/skills" element={<Skills />} />
+          <Route path="/ideas/gen" element={<Gen />} />
           <Route path="/events" element={<Events />} />
           <Route path="/leisure" element={<Leisure />} />
           <Route path="/settings" element={<Settings />} />
