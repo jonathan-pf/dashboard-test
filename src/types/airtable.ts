@@ -246,7 +246,7 @@ export interface LocalAreasRecord {
 export interface LocalIdeasRecord {
   id: string
   name: string
-  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen'
+  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model'
   when: string
   weekId: string | null
   notes: string | null
