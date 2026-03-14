@@ -20,6 +20,8 @@ const typeColors: Record<LocalHealthRecord['type'], string> = {
   Units: '#3b82f6',
   Reps: '#10b981',
   Willpoint: '#8b5cf6',
+  Tidy: '#ec4899',
+  Weight: '#6366f1',
 }
 
 export function HealthTrendChart({ data, type, loading }: HealthTrendChartProps) {

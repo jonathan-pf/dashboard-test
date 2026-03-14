@@ -9,7 +9,7 @@ export interface HealthRecord extends AirtableRecord {
   fields: {
     Name: string // Formula field (Date - Type)
     Value: number
-    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint'
+    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight'
     Date: string // ISO date string
     'Week Number Name': string // Formula field
     'Week Link': string[] // Record IDs linking to Weeks table
@@ -171,7 +171,7 @@ export interface LocalHealthRecord {
   id: string
   name: string
   value: number
-  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint'
+  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight'
   date: string
   weekId: string | null
   unitsType: 'Theory' | 'Social' | null
