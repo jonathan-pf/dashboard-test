@@ -31,15 +31,21 @@ export function Health() {
   const glucoseData = useHealthByType('Glucose')
   const unitsData = useHealthByType('Units')
   const repsData = useHealthByType('Reps')
+  const tidyData = useHealthByType('Tidy')
+  const weightData = useHealthByType('Weight')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
   const repsTrends = useHealthTrends('Reps', 30)
+  const tidyTrends = useHealthTrends('Tidy', 30)
+  const weightTrends = useHealthTrends('Weight', 30)
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
     ...(glucoseData ?? []),
     ...(unitsData ?? []),
     ...(repsData ?? []),
+    ...(tidyData ?? []),
+    ...(weightData ?? []),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
@@ -227,6 +233,18 @@ export function Health() {
             >
               + Log Willpoint
             </button>
+            <button
+              onClick={() => startEntry('Tidy')}
+              className="w-full py-3 bg-pink-50 text-pink-600 rounded-lg font-medium hover:bg-pink-100 transition-colors"
+            >
+              + Log Tidy
+            </button>
+            <button
+              onClick={() => startEntry('Weight')}
+              className="w-full py-3 bg-indigo-50 text-indigo-600 rounded-lg font-medium hover:bg-indigo-100 transition-colors"
+            >
+              + Log Weight
+            </button>
           </div>
         )}
       </div>
@@ -269,6 +287,24 @@ export function Health() {
         />
       </div>
 
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Tidy Trend (30 days)</h3>
+        <HealthTrendChart
+          data={tidyTrends}
+          type="Tidy"
+          loading={!tidyTrends}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Weight Trend (30 days)</h3>
+        <HealthTrendChart
+          data={weightTrends}
+          type="Weight"
+          loading={!weightTrends}
+        />
+      </div>
+
       {/* Recent entries */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Recent Entries</h3>
@@ -288,6 +324,10 @@ export function Health() {
                         ? 'bg-blue-500'
                         : entry.type === 'Reps'
                         ? 'bg-green-500'
+                        : entry.type === 'Tidy'
+                        ? 'bg-pink-500'
+                        : entry.type === 'Weight'
+                        ? 'bg-indigo-500'
                         : 'bg-purple-500'
                     }`}
                   />
