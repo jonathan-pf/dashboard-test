@@ -597,6 +597,41 @@ export function useHealthTrends(type: LocalHealthRecord['type'], days: number = 
   )
 }
 
+// Last recorded value for a health type
+export function useLastHealthValue(type: LocalHealthRecord['type']) {
+  return useLiveQuery(
+    async () => {
+      const records = await db.health
+        .where('type')
+        .equals(type)
+        .reverse()
+        .sortBy('date')
+      if (records.length === 0) return null
+      return records[0].value
+    },
+    [type]
+  )
+}
+
+// Sum of health values over last N days
+export function useHealthSumLastDays(type: LocalHealthRecord['type'], days: number = 7) {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      const records = await db.health
+        .where('type')
+        .equals(type)
+        .and((r) => r.date >= startDateStr)
+        .toArray()
+      return records.reduce((sum, r) => sum + (r.value ?? 0), 0)
+    },
+    [type, startDateStr]
+  )
+}
+
 // Words by project for current week
 export function useCurrentWeekWordsByProject() {
   const currentWeek = useCurrentWeek()
