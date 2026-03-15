@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CompactStatCard } from '@/components/widgets/CompactStatCard'
+import { TrafficLightWidgets } from '@/components/widgets/TrafficLightWidget'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
 import { WordsBarChart } from '@/components/charts/WordsBarChart'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
@@ -148,6 +149,8 @@ export function Dashboard() {
           />
         </div>
       </div>
+
+      <TrafficLightWidgets />
 
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2 text-sm">
