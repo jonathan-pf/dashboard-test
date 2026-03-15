@@ -111,7 +111,7 @@ function transformGoalsRecord(record: GoalsRecord): LocalGoalsRecord {
     areaId: record.fields.Area?.[0] || null,
     initialConfidence: record.fields['Initial Confidence'] ?? null,
     currentConfidence: record.fields['Current Confidence'] ?? null,
-    deadline: record.fields.Deadline,
+    deadline: record.fields.Deadline ?? null,
     status: record.fields.Status,
     weekId: record.fields.Weeks?.[0] || null,
     type: record.fields.Type,
@@ -757,6 +757,10 @@ class SyncService {
         // This can happen when linked record fields aren't returned in create response
         if (updatedRecord.weekId === null && record.weekId !== null) {
           updatedRecord.weekId = record.weekId
+        }
+        // Preserve deadline from input if Airtable response didn't include it
+        if (updatedRecord.deadline === null && record.deadline !== null) {
+          updatedRecord.deadline = record.deadline
         }
         await db.goals.add(updatedRecord)
         return updatedRecord
