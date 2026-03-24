@@ -103,6 +103,7 @@ export interface IdeasRecord extends AirtableRecord {
     Weeks: string[] // Record IDs linking to Weeks table
     Notes?: string // Long text
     Status?: 'Planned' | 'Researched' | 'Shipped' // Single select
+    'Question Category'?: string // Single select
   }
 }
 
@@ -251,6 +252,7 @@ export interface LocalIdeasRecord {
   weekId: string | null
   notes: string | null
   status: 'Planned' | 'Researched' | 'Shipped' | null
+  questionCategory: string | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string

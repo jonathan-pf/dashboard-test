@@ -94,6 +94,7 @@ export function Ideas() {
       weekId: currentWeek?.id ?? null,
       notes: null,
       status: null,
+      questionCategory: null,
     })
 
     setIdeaName('')
