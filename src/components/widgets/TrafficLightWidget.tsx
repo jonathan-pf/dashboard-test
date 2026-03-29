@@ -1,4 +1,4 @@
-import { useLastHealthValue, useHealthSumLastDays, useIdeasCountLastDays } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays } from '@/hooks/useAirtableData'
 import {
   TRAFFIC_LIGHT_DEFINITIONS,
   getTrafficLightColor,
@@ -18,8 +18,10 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 function HealthTrafficLightItem({ definition }: { definition: HealthTrafficLightDefinition }) {
   const lastValue = useLastHealthValue(definition.healthType)
   const sumValue = useHealthSumLastDays(definition.healthType, 7)
+  const avgLast3Value = useHealthAverageLast(definition.healthType, 3)
 
-  const value = definition.aggregation === 'lastValue' ? lastValue : sumValue
+  const value = definition.aggregation === 'averageLast3' ? avgLast3Value
+    : definition.aggregation === 'lastValue' ? lastValue : sumValue
   const loading = value === undefined
   const color = getTrafficLightColor(value ?? null, definition)
 
