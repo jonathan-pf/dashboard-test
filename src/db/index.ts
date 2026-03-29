@@ -142,6 +142,21 @@ class DashboardDatabase extends Dexie {
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
+
+    this.version(10).stores({
+      health: 'id, type, date, weekId, unitsType, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
+      ideas: 'id, type, when, weekId, status, _pendingSync',
+      career: 'id, name',
+      rules: 'id, status, select',
+      events: 'id, type, date, status, dateHeld, _pendingSync',
+      leisure: 'id, type, status, dateStarted, dateEnded, _pendingSync',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
   }
 }
 

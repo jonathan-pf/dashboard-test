@@ -80,6 +80,13 @@ export function useIdeas() {
   return useLiveQuery(() => db.ideas.orderBy('when').reverse().toArray(), [])
 }
 
+export function useIdeasByStatus(status: NonNullable<LocalIdeasRecord['status']>) {
+  return useLiveQuery(
+    () => db.ideas.where('status').equals(status).reverse().sortBy('when'),
+    [status]
+  )
+}
+
 export function useIdeasByType(type: LocalIdeasRecord['type']) {
   return useLiveQuery(
     () => db.ideas.where('type').equals(type).reverse().sortBy('when'),

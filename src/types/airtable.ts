@@ -102,7 +102,7 @@ export interface IdeasRecord extends AirtableRecord {
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
     Notes?: string // Long text
-    Status?: 'Planned' | 'Researched' | 'Shipped' // Single select
+    Status?: 'Planned' | 'Researched' | 'Shipped' | 'Active' // Single select
   }
 }
 
@@ -250,17 +250,18 @@ export interface LocalIdeasRecord {
   when: string
   weekId: string | null
   notes: string | null
-  status: 'Planned' | 'Researched' | 'Shipped' | null
+  status: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
 }
 
-export const IDEA_STATUSES = ['Planned', 'Researched', 'Shipped'] as const
+export const IDEA_STATUSES = ['Planned', 'Active', 'Researched', 'Shipped'] as const
 export type IdeaStatus = LocalIdeasRecord['status']
 
 export const IDEA_STATUS_COLORS: Record<NonNullable<IdeaStatus>, string> = {
   'Planned': 'bg-blue-100 text-blue-700',
+  'Active': 'bg-amber-100 text-amber-700',
   'Researched': 'bg-cyan-100 text-cyan-700',
   'Shipped': 'bg-teal-100 text-teal-700',
 }
