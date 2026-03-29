@@ -1,9 +1,11 @@
-import { useLastHealthValue, useHealthSumLastDays } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useIdeasCountLastDays } from '@/hooks/useAirtableData'
 import {
   TRAFFIC_LIGHT_DEFINITIONS,
   getTrafficLightColor,
   type TrafficLightDefinition,
   type TrafficLightColor,
+  type HealthTrafficLightDefinition,
+  type IdeasTrafficLightDefinition,
 } from '@/config/trafficLights'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
@@ -13,7 +15,7 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   grey: 'bg-slate-300',
 }
 
-function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }) {
+function HealthTrafficLightItem({ definition }: { definition: HealthTrafficLightDefinition }) {
   const lastValue = useLastHealthValue(definition.healthType)
   const sumValue = useHealthSumLastDays(definition.healthType, 7)
 
@@ -31,6 +33,30 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.label} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
+function IdeasTrafficLightItem({ definition }: { definition: IdeasTrafficLightDefinition }) {
+  const count = useIdeasCountLastDays(definition.ideaType, definition.days)
+
+  const loading = count === undefined
+  const color = getTrafficLightColor(count ?? null, definition)
+  const displayValue = count ?? '--'
+
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}`
+    : `≥ ${definition.greenThreshold}`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.label} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
+function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHint }: {
+  loading: boolean
+  color: TrafficLightColor
+  label: string
+  displayValue: string | number
+  thresholdHint: string
+}) {
   return (
     <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
       {loading ? (
@@ -39,7 +65,7 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
         <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[color]} shrink-0`} />
       )}
       <div className="min-w-0">
-        <p className="text-xs text-slate-500 truncate">{definition.label}</p>
+        <p className="text-xs text-slate-500 truncate">{label}</p>
         {loading ? (
           <div className="h-5 w-8 bg-slate-200 animate-pulse rounded mt-0.5" />
         ) : (
@@ -53,10 +79,17 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
   )
 }
 
+function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }) {
+  if (definition.source === 'ideas') {
+    return <IdeasTrafficLightItem definition={definition} />
+  }
+  return <HealthTrafficLightItem definition={definition} />
+}
+
 export function TrafficLightWidgets() {
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-      <h3 className="font-semibold text-slate-900 mb-2 text-sm">Health Indicators</h3>
+      <h3 className="font-semibold text-slate-900 mb-2 text-sm">Thresholds</h3>
       <div className="grid grid-cols-4 gap-2">
         {TRAFFIC_LIGHT_DEFINITIONS.map((def) => (
           <TrafficLightItem key={def.label} definition={def} />

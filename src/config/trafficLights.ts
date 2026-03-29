@@ -1,10 +1,11 @@
-import type { LocalHealthRecord } from '@/types/airtable'
+import type { LocalHealthRecord, LocalIdeasRecord } from '@/types/airtable'
 
 export type TrafficLightColor = 'green' | 'amber' | 'red' | 'grey'
 
 export type AggregationType = 'lastValue' | 'sumLast7Days'
 
-export interface TrafficLightDefinition {
+export interface HealthTrafficLightDefinition {
+  source: 'health'
   /** Display label */
   label: string
   /** Health record type to query */
@@ -19,6 +20,21 @@ export interface TrafficLightDefinition {
   lowerIsBetter: boolean
 }
 
+export interface IdeasTrafficLightDefinition {
+  source: 'ideas'
+  /** Display label */
+  label: string
+  /** Idea type to count */
+  ideaType: LocalIdeasRecord['type']
+  /** Number of days to look back */
+  days: number
+  redThreshold: number
+  greenThreshold: number
+  lowerIsBetter: boolean
+}
+
+export type TrafficLightDefinition = HealthTrafficLightDefinition | IdeasTrafficLightDefinition
+
 /**
  * Traffic light widget definitions.
  *
@@ -27,6 +43,7 @@ export interface TrafficLightDefinition {
  */
 export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
   {
+    source: 'health',
     label: 'Tidy',
     healthType: 'Tidy',
     aggregation: 'lastValue',
@@ -35,6 +52,7 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
     lowerIsBetter: false,
   },
   {
+    source: 'health',
     label: 'Reps',
     healthType: 'Reps',
     aggregation: 'sumLast7Days',
@@ -43,6 +61,7 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
     lowerIsBetter: false,
   },
   {
+    source: 'health',
     label: 'Sugar',
     healthType: 'Glucose',
     aggregation: 'lastValue',
@@ -51,12 +70,40 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
     lowerIsBetter: true,
   },
   {
+    source: 'health',
     label: 'Weight',
     healthType: 'Weight',
     aggregation: 'lastValue',
     redThreshold: 96,
     greenThreshold: 95,
     lowerIsBetter: true,
+  },
+  {
+    source: 'ideas',
+    label: 'Steps/wk',
+    ideaType: 'Step',
+    days: 7,
+    redThreshold: 1,
+    greenThreshold: 3,
+    lowerIsBetter: false,
+  },
+  {
+    source: 'ideas',
+    label: 'Revelations/mo',
+    ideaType: 'Revelation',
+    days: 30,
+    redThreshold: 1,
+    greenThreshold: 3,
+    lowerIsBetter: false,
+  },
+  {
+    source: 'ideas',
+    label: 'Skills/wk',
+    ideaType: 'Skill',
+    days: 7,
+    redThreshold: 1,
+    greenThreshold: 3,
+    lowerIsBetter: false,
   },
 ]
 
