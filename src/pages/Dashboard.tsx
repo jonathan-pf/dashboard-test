@@ -22,6 +22,7 @@ import {
   useYearlyCruxesPerWeek,
   useYearlyRepsPerWeek,
   useWeeklyLeisureDuration,
+  useIdeasByStatus,
 } from '@/hooks/useAirtableData'
 import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
@@ -44,6 +45,7 @@ export function Dashboard() {
   const lastWeek = useLastWeek()
   const weeklyLeisure = useWeeklyLeisureDuration(currentWeek?.weekCommencing ?? null)
   const lastWeekLeisure = useWeeklyLeisureDuration(lastWeek?.weekCommencing ?? null)
+  const activeIdeas = useIdeasByStatus('Active')
 
   // Initialize sync on mount
   useEffect(() => {
@@ -151,6 +153,25 @@ export function Dashboard() {
       </div>
 
       <TrafficLightWidgets />
+
+      {activeIdeas && activeIdeas.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-3 text-sm">Active Ideas</h3>
+          <div className="space-y-2">
+            {activeIdeas.map((idea) => (
+              <div
+                key={idea.id}
+                className="flex items-center gap-2 text-sm"
+              >
+                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                  {idea.type}
+                </span>
+                <span className="text-slate-700 truncate">{idea.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2 text-sm">
