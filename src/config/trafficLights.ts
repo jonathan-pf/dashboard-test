@@ -105,6 +105,15 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
     greenThreshold: 3,
     lowerIsBetter: false,
   },
+  {
+    source: 'ideas',
+    label: 'Blogs/mo',
+    ideaType: 'Blog',
+    days: 30,
+    redThreshold: 1,
+    greenThreshold: 3,
+    lowerIsBetter: false,
+  },
 ]
 
 /** Determine the traffic light color for a given value and definition */
