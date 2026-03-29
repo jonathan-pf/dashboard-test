@@ -98,9 +98,9 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
   },
   {
     source: 'ideas',
-    label: 'Skills/wk',
+    label: 'Skills/mo',
     ideaType: 'Skill',
-    days: 7,
+    days: 30,
     redThreshold: 1,
     greenThreshold: 3,
     lowerIsBetter: false,
