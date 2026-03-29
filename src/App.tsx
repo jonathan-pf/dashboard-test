@@ -5,7 +5,8 @@ import { Dashboard } from './pages/Dashboard'
 import { Health } from './pages/Health'
 import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
-import { LongTermGoals } from './pages/LongTermGoals'
+import { MonthlyGoals } from './pages/MonthlyGoals'
+import { AnnualGoals } from './pages/AnnualGoals'
 import { NextWeekGoals } from './pages/NextWeekGoals'
 import { NextMonthGoals } from './pages/NextMonthGoals'
 import { Ideas } from './pages/Ideas'
@@ -33,7 +34,8 @@ function App() {
           <Route path="/health/rules" element={<Rules />} />
           <Route path="/words" element={<Words />} />
           <Route path="/goals" element={<Goals />} />
-          <Route path="/goals/long-term" element={<LongTermGoals />} />
+          <Route path="/goals/this-month" element={<MonthlyGoals />} />
+          <Route path="/goals/this-year" element={<AnnualGoals />} />
           <Route path="/goals/next-week" element={<NextWeekGoals />} />
           <Route path="/goals/next-month" element={<NextMonthGoals />} />
           <Route path="/ideas" element={<Ideas />} />

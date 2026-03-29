@@ -223,10 +223,16 @@ export function Goals() {
             Next Month
           </Link>
           <Link
-            to="/goals/long-term"
+            to="/goals/this-month"
             className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
           >
-            Monthly & Annual
+            This Month
+          </Link>
+          <Link
+            to="/goals/this-year"
+            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            This Year
           </Link>
         </div>
       </div>
