@@ -27,6 +27,10 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
       : value
     : '--'
 
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}`
+    : `≥ ${definition.greenThreshold}`
+
   return (
     <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
       {loading ? (
@@ -39,7 +43,10 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
         {loading ? (
           <div className="h-5 w-8 bg-slate-200 animate-pulse rounded mt-0.5" />
         ) : (
-          <p className="text-sm font-semibold text-slate-900">{displayValue}</p>
+          <>
+            <p className="text-sm font-semibold text-slate-900">{displayValue}</p>
+            <p className="text-[10px] text-slate-400 leading-tight">{thresholdHint}</p>
+          </>
         )}
       </div>
     </div>
