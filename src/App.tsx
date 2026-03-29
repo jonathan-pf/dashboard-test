@@ -17,6 +17,7 @@ import { Questions } from './pages/Questions'
 import { Skills } from './pages/Skills'
 import { Gen } from './pages/Gen'
 import { Model } from './pages/Model'
+import { Agenda } from './pages/Agenda'
 import { Events } from './pages/Events'
 import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
@@ -44,6 +45,7 @@ function App() {
           <Route path="/ideas/skills" element={<Skills />} />
           <Route path="/ideas/gen" element={<Gen />} />
           <Route path="/ideas/model" element={<Model />} />
+          <Route path="/ideas/agenda" element={<Agenda />} />
           <Route path="/events" element={<Events />} />
           <Route path="/leisure" element={<Leisure />} />
           <Route path="/settings" element={<Settings />} />
