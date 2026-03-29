@@ -632,6 +632,25 @@ export function useHealthSumLastDays(type: LocalHealthRecord['type'], days: numb
   )
 }
 
+// Count of ideas of a given type over last N days
+export function useIdeasCountLastDays(type: LocalIdeasRecord['type'], days: number) {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      const records = await db.ideas
+        .where('type')
+        .equals(type)
+        .and((r) => r.when >= startDateStr)
+        .toArray()
+      return records.length
+    },
+    [type, startDateStr]
+  )
+}
+
 // Words by project for current week
 export function useCurrentWeekWordsByProject() {
   const currentWeek = useCurrentWeek()
