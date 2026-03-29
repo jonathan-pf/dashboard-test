@@ -161,12 +161,12 @@ export function Dashboard() {
             {activeIdeas.map((idea) => (
               <div
                 key={idea.id}
-                className="flex items-center gap-2 text-sm"
+                className="flex items-start gap-2 text-sm"
               >
-                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 shrink-0">
                   {idea.type}
                 </span>
-                <span className="text-slate-700 truncate">{idea.name}</span>
+                <span className="text-slate-700">{idea.name}</span>
               </div>
             ))}
           </div>
