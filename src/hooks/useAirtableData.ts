@@ -620,6 +620,23 @@ export function useLastHealthValue(type: LocalHealthRecord['type']) {
   )
 }
 
+// Average of last N recorded values for a health type
+export function useHealthAverageLast(type: LocalHealthRecord['type'], count: number) {
+  return useLiveQuery(
+    async () => {
+      const records = await db.health
+        .where('type')
+        .equals(type)
+        .reverse()
+        .sortBy('date')
+      if (records.length === 0) return null
+      const slice = records.slice(0, count)
+      return slice.reduce((sum, r) => sum + r.value, 0) / slice.length
+    },
+    [type, count]
+  )
+}
+
 // Sum of health values over last N days
 export function useHealthSumLastDays(type: LocalHealthRecord['type'], days: number = 7) {
   const startDate = new Date()

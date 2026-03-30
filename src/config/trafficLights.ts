@@ -2,7 +2,7 @@ import type { LocalHealthRecord, LocalIdeasRecord } from '@/types/airtable'
 
 export type TrafficLightColor = 'green' | 'amber' | 'red' | 'grey'
 
-export type AggregationType = 'lastValue' | 'sumLast7Days'
+export type AggregationType = 'lastValue' | 'sumLast7Days' | 'averageLast3'
 
 export interface HealthTrafficLightDefinition {
   source: 'health'
@@ -64,7 +64,7 @@ export const TRAFFIC_LIGHT_DEFINITIONS: TrafficLightDefinition[] = [
     source: 'health',
     label: 'Sugar',
     healthType: 'Glucose',
-    aggregation: 'lastValue',
+    aggregation: 'averageLast3',
     redThreshold: 9,
     greenThreshold: 8,
     lowerIsBetter: true,
