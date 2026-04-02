@@ -132,7 +132,7 @@ export function Dashboard() {
             label="Words"
             value={Math.round(words2026.wordsPerWeek)}
             loading={words2026.loading}
-            goal={300}
+            goal={1000}
             goalDirection="over"
           />
           <CompactStatCard
