@@ -165,6 +165,7 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
     deadline: record.fields.Deadline ?? null,
     outputGoal: record.fields['Output Goal'] ?? null,
     exceptions: record.fields.Exceptions ?? null,
+    thresholdTrigger: record.fields['Threshold Trigger'] ?? 'red',
     week: record.fields.Week ?? null,
     thresholdIds: record.fields.Thresholds ?? [],
     createdTime: record.createdTime,
@@ -258,6 +259,7 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
     Deadline: record.deadline,
     'Output Goal': record.outputGoal,
     Exceptions: record.exceptions,
+    'Threshold Trigger': record.thresholdTrigger,
     Thresholds: record.thresholdIds.length > 0 ? record.thresholdIds : undefined,
   }
 }
@@ -1048,7 +1050,7 @@ class SyncService {
   // Update a rule record (handles offline)
   async updateRulesRecord(
     ruleId: string,
-    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'thresholdIds'>>
+    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'thresholdTrigger' | 'thresholdIds'>>
   ): Promise<void> {
     const rule = await db.rules.get(ruleId)
     if (!rule) throw new Error('Rule not found')
@@ -1068,6 +1070,7 @@ class SyncService {
     if (updates.deadline !== undefined) updateData.Deadline = updates.deadline
     if (updates.outputGoal !== undefined) updateData['Output Goal'] = updates.outputGoal
     if (updates.exceptions !== undefined) updateData.Exceptions = updates.exceptions
+    if (updates.thresholdTrigger !== undefined) updateData['Threshold Trigger'] = updates.thresholdTrigger
     if (updates.thresholdIds !== undefined) updateData.Thresholds = updates.thresholdIds.length > 0 ? updates.thresholdIds : []
 
     if (navigator.onLine) {

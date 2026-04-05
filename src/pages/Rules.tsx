@@ -29,6 +29,7 @@ export function Rules() {
   const [editConfidence, setEditConfidence] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
   const [editExceptions, setEditExceptions] = useState('')
+  const [editThresholdTrigger, setEditThresholdTrigger] = useState<'red' | 'amber'>('red')
   const [editThresholdIds, setEditThresholdIds] = useState<string[]>([])
 
   const rules = useRules()
@@ -45,6 +46,10 @@ export function Rules() {
   const filteredRules = statusFilteredRules?.filter(rule => {
     if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
     if (!thresholdColors) return true // show all while loading
+    const trigger = rule.thresholdTrigger ?? 'red'
+    if (trigger === 'amber') {
+      return rule.thresholdIds.some(id => { const c = thresholdColors.get(id); return c === 'red' || c === 'amber' })
+    }
     return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
   })
 
@@ -77,6 +82,7 @@ export function Rules() {
       deadline: null,
       outputGoal: null,
       exceptions: null,
+      thresholdTrigger: 'red' as const,
       week: null,
       thresholdIds: [],
     })
@@ -102,6 +108,7 @@ export function Rules() {
     setEditConfidence(rule.currentConfidence !== null ? String(Math.round(rule.currentConfidence * 100)) : '')
     setEditDeadline(rule.deadline ?? '')
     setEditExceptions(rule.exceptions ?? '')
+    setEditThresholdTrigger(rule.thresholdTrigger ?? 'red')
     setEditThresholdIds(rule.thresholdIds ?? [])
   }
 
@@ -120,6 +127,7 @@ export function Rules() {
         currentConfidence: confidenceValue,
         deadline: deadlineValue,
         exceptions: editExceptions.trim() || null,
+        thresholdTrigger: editThresholdTrigger,
         thresholdIds: editThresholdIds,
       },
     })
@@ -335,7 +343,7 @@ export function Rules() {
                   {thresholds && thresholds.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Thresholds (show rule only when red)
+                        Thresholds
                       </label>
                       <div className="space-y-1 max-h-32 overflow-y-auto border border-slate-300 rounded-lg p-2 bg-white">
                         {thresholds.map((t) => (
@@ -356,6 +364,19 @@ export function Rules() {
                           </label>
                         ))}
                       </div>
+                      {editThresholdIds.length > 0 && (
+                        <div className="mt-2">
+                          <label className="block text-xs text-slate-500 mb-1">Show rule when threshold is</label>
+                          <select
+                            value={editThresholdTrigger}
+                            onChange={(e) => setEditThresholdTrigger(e.target.value as 'red' | 'amber')}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
+                          >
+                            <option value="red">Red only</option>
+                            <option value="amber">Red or Amber</option>
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-3">
@@ -392,7 +413,9 @@ export function Rules() {
                     </p>
                     <div className="flex gap-1.5">
                       {rule.thresholdIds?.length > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          rule.thresholdTrigger === 'amber' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+                        }`}>
                           Catch-up
                         </span>
                       )}

@@ -41,6 +41,10 @@ export function Dashboard() {
   const liveRules = allLiveRules?.filter(rule => {
     if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
     if (!thresholdColors) return true
+    const trigger = rule.thresholdTrigger ?? 'red'
+    if (trigger === 'amber') {
+      return rule.thresholdIds.some(id => { const c = thresholdColors.get(id); return c === 'red' || c === 'amber' })
+    }
     return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
   })
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
