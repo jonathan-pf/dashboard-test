@@ -29,7 +29,7 @@ export function Rules() {
   const [editConfidence, setEditConfidence] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
   const [editExceptions, setEditExceptions] = useState('')
-  const [editThresholdTrigger, setEditThresholdTrigger] = useState<'red' | 'amber'>('red')
+  const [editThresholdTrigger, setEditThresholdTrigger] = useState<'red' | 'amber' | 'amberOnly'>('red')
   const [editThresholdIds, setEditThresholdIds] = useState<string[]>([])
 
   const rules = useRules()
@@ -47,10 +47,12 @@ export function Rules() {
     if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
     if (!thresholdColors) return true // show all while loading
     const trigger = rule.thresholdTrigger ?? 'red'
-    if (trigger === 'amber') {
-      return rule.thresholdIds.some(id => { const c = thresholdColors.get(id); return c === 'red' || c === 'amber' })
-    }
-    return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+    return rule.thresholdIds.some(id => {
+      const c = thresholdColors.get(id)
+      if (trigger === 'red') return c === 'red'
+      if (trigger === 'amberOnly') return c === 'amber'
+      return c === 'red' || c === 'amber'
+    })
   })
 
   const liveRules = rules?.filter(r => r.status === 'Live') ?? []
@@ -369,11 +371,12 @@ export function Rules() {
                           <label className="block text-xs text-slate-500 mb-1">Show rule when threshold is</label>
                           <select
                             value={editThresholdTrigger}
-                            onChange={(e) => setEditThresholdTrigger(e.target.value as 'red' | 'amber')}
+                            onChange={(e) => setEditThresholdTrigger(e.target.value as 'red' | 'amber' | 'amberOnly')}
                             className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
                           >
                             <option value="red">Red only</option>
                             <option value="amber">Red or Amber</option>
+                            <option value="amberOnly">Amber only</option>
                           </select>
                         </div>
                       )}
@@ -414,7 +417,9 @@ export function Rules() {
                     <div className="flex gap-1.5">
                       {rule.thresholdIds?.length > 0 && (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          rule.thresholdTrigger === 'amber' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+                          rule.thresholdTrigger === 'red' ? 'bg-red-50 text-red-600' :
+                          rule.thresholdTrigger === 'amberOnly' ? 'bg-amber-50 text-amber-600' :
+                          'bg-orange-50 text-orange-600'
                         }`}>
                           Catch-up
                         </span>

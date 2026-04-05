@@ -42,10 +42,12 @@ export function Dashboard() {
     if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
     if (!thresholdColors) return true
     const trigger = rule.thresholdTrigger ?? 'red'
-    if (trigger === 'amber') {
-      return rule.thresholdIds.some(id => { const c = thresholdColors.get(id); return c === 'red' || c === 'amber' })
-    }
-    return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+    return rule.thresholdIds.some(id => {
+      const c = thresholdColors.get(id)
+      if (trigger === 'red') return c === 'red'
+      if (trigger === 'amberOnly') return c === 'amber'
+      return c === 'red' || c === 'amber'
+    })
   })
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
