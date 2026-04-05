@@ -5,6 +5,7 @@ import {
   useUpdateLeisure,
   useDeleteLeisure,
   useCurrentWeek,
+  useNextWeek,
 } from '@/hooks/useAirtableData'
 import {
   LEISURE_TYPES,
@@ -77,6 +78,7 @@ export function Leisure() {
 
   const leisure = useLeisure()
   const currentWeek = useCurrentWeek()
+  const nextWeek = useNextWeek()
   const createLeisure = useCreateLeisure()
   const updateLeisure = useUpdateLeisure()
   const deleteLeisure = useDeleteLeisure()
@@ -171,6 +173,53 @@ export function Leisure() {
     items.sort((a, b) => b.attributedSeconds - a.attributedSeconds)
     return { items, totalSeconds }
   }, [leisure, currentWeek?.weekCommencing])
+
+  const nextWeekBreakdown = useMemo(() => {
+    if (!leisure || !nextWeek?.weekCommencing) return null
+
+    const weekStartStr = nextWeek.weekCommencing
+    const weekEndDate = new Date(weekStartStr + 'T00:00:00Z')
+    weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6)
+    const weekEndStr = weekEndDate.toISOString().split('T')[0]
+
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+    const items: { name: string; type: LocalLeisureRecord['type']; attributedSeconds: number }[] = []
+    let totalSeconds = 0
+
+    for (const item of leisure) {
+      if (item.status !== 'Consumed' && item.status !== 'Live') continue
+      if (!item.dateStarted || !item.duration || item.duration <= 0) continue
+
+      const itemStartStr = item.dateStarted
+      const itemEndStr = item.status === 'Live' && !item.dateEnded
+        ? today
+        : item.dateEnded ?? itemStartStr
+
+      // No overlap if item ends before week starts or starts after week ends
+      if (itemEndStr < weekStartStr || itemStartStr > weekEndStr) continue
+
+      const overlapStartStr = itemStartStr > weekStartStr ? itemStartStr : weekStartStr
+      const overlapEndStr = itemEndStr < weekEndStr ? itemEndStr : weekEndStr
+
+      const msA = Date.UTC(+overlapStartStr.slice(0, 4), +overlapStartStr.slice(5, 7) - 1, +overlapStartStr.slice(8, 10))
+      const msB = Date.UTC(+overlapEndStr.slice(0, 4), +overlapEndStr.slice(5, 7) - 1, +overlapEndStr.slice(8, 10))
+      const overlapDays = Math.round((msB - msA) / 86400000) + 1
+      if (overlapDays <= 0) continue
+
+      const msStart = Date.UTC(+itemStartStr.slice(0, 4), +itemStartStr.slice(5, 7) - 1, +itemStartStr.slice(8, 10))
+      const msEnd = Date.UTC(+itemEndStr.slice(0, 4), +itemEndStr.slice(5, 7) - 1, +itemEndStr.slice(8, 10))
+      const totalDays = Math.max(1, Math.round((msEnd - msStart) / 86400000) + 1)
+
+      const attributed = (overlapDays / totalDays) * item.duration
+      items.push({ name: item.name, type: item.type, attributedSeconds: attributed })
+      totalSeconds += attributed
+    }
+
+    items.sort((a, b) => b.attributedSeconds - a.attributedSeconds)
+    return { items, totalSeconds }
+  }, [leisure, nextWeek?.weekCommencing])
 
   const resetForm = () => {
     setFormName('')
@@ -508,6 +557,35 @@ export function Leisure() {
           </div>
           <div className="space-y-2">
             {weeklyBreakdown.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${LEISURE_TYPE_COLORS[item.type]}`}
+                  >
+                    {item.type}
+                  </span>
+                  <span className="text-sm text-slate-700 truncate">{item.name}</span>
+                </div>
+                <span className="text-sm text-slate-500 font-medium shrink-0 ml-2">
+                  {formatDuration(item.attributedSeconds) || '<1m'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Next Week Breakdown */}
+      {nextWeekBreakdown && nextWeekBreakdown.items.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-slate-900 text-sm">Next Week</h3>
+            <span className="text-sm font-bold text-slate-900">
+              {formatDuration(nextWeekBreakdown.totalSeconds) || '0h'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {nextWeekBreakdown.items.map((item, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <span
