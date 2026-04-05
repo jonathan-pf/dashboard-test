@@ -251,7 +251,7 @@ function localIdeasToAirtable(record: LocalIdeasRecord): Record<string, unknown>
 }
 
 function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown> {
-  return {
+  const data: Record<string, unknown> = {
     Name: record.name,
     Select: record.select,
     Status: record.status,
@@ -259,10 +259,11 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
     'Current Confidence': record.currentConfidence,
     Deadline: record.deadline,
     'Output Goal': record.outputGoal,
-    Exceptions: record.exceptions,
-    'Threshold Trigger': record.thresholdTrigger,
-    Thresholds: record.thresholdIds.length > 0 ? record.thresholdIds : undefined,
   }
+  if (record.exceptions) data.Exceptions = record.exceptions
+  if (record.thresholdTrigger && record.thresholdTrigger !== 'red') data['Threshold Trigger'] = record.thresholdTrigger
+  if (record.thresholdIds.length > 0) data.Thresholds = record.thresholdIds
+  return data
 }
 
 function localEventsToAirtable(record: LocalEventsRecord): Record<string, unknown> {
