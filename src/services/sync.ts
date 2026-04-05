@@ -614,15 +614,23 @@ class SyncService {
   private async processMutation(mutation: PendingMutation): Promise<void> {
     const { tableName, operation, recordId, data } = mutation
 
+    // Strip null/undefined values from data to avoid sending unknown fields
+    const cleanData: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== null && value !== undefined) {
+        cleanData[key] = value
+      }
+    }
+
     switch (operation) {
       case 'create':
-        await airtableService.createRecord(tableName as typeof TABLES[keyof typeof TABLES], data)
+        await airtableService.createRecord(tableName as typeof TABLES[keyof typeof TABLES], cleanData)
         break
       case 'update':
         await airtableService.updateRecord(
           tableName as typeof TABLES[keyof typeof TABLES],
           recordId,
-          data
+          cleanData
         )
         break
       case 'delete':
