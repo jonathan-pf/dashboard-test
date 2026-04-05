@@ -28,6 +28,7 @@ export function Rules() {
   const [editStatus, setEditStatus] = useState<LocalRulesRecord['status']>('Live')
   const [editConfidence, setEditConfidence] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
+  const [editExceptions, setEditExceptions] = useState('')
   const [editThresholdIds, setEditThresholdIds] = useState<string[]>([])
 
   const rules = useRules()
@@ -75,6 +76,7 @@ export function Rules() {
       currentConfidence: null,
       deadline: null,
       outputGoal: null,
+      exceptions: null,
       week: null,
       thresholdIds: [],
     })
@@ -99,6 +101,7 @@ export function Rules() {
     setEditStatus(rule.status)
     setEditConfidence(rule.currentConfidence !== null ? String(Math.round(rule.currentConfidence * 100)) : '')
     setEditDeadline(rule.deadline ?? '')
+    setEditExceptions(rule.exceptions ?? '')
     setEditThresholdIds(rule.thresholdIds ?? [])
   }
 
@@ -116,6 +119,7 @@ export function Rules() {
         status: editStatus,
         currentConfidence: confidenceValue,
         deadline: deadlineValue,
+        exceptions: editExceptions.trim() || null,
         thresholdIds: editThresholdIds,
       },
     })
@@ -316,6 +320,18 @@ export function Rules() {
                       />
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Exceptions
+                    </label>
+                    <textarea
+                      value={editExceptions}
+                      onChange={(e) => setEditExceptions(e.target.value)}
+                      placeholder="Any exceptions to this rule..."
+                      rows={3}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white resize-none"
+                    />
+                  </div>
                   {thresholds && thresholds.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -419,6 +435,11 @@ export function Rules() {
                       </div>
                     )}
                   </div>
+                  {rule.exceptions && (
+                    <p className="text-xs text-slate-400 mt-1 ml-0 whitespace-pre-line">
+                      {rule.exceptions}
+                    </p>
+                  )}
                 </button>
               )}
             </div>

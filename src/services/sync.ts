@@ -164,6 +164,7 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
     currentConfidence: record.fields['Current Confidence'] ?? null,
     deadline: record.fields.Deadline ?? null,
     outputGoal: record.fields['Output Goal'] ?? null,
+    exceptions: record.fields.Exceptions ?? null,
     week: record.fields.Week ?? null,
     thresholdIds: record.fields.Thresholds ?? [],
     createdTime: record.createdTime,
@@ -256,6 +257,7 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
     'Current Confidence': record.currentConfidence,
     Deadline: record.deadline,
     'Output Goal': record.outputGoal,
+    Exceptions: record.exceptions,
     Thresholds: record.thresholdIds.length > 0 ? record.thresholdIds : undefined,
   }
 }
@@ -1046,7 +1048,7 @@ class SyncService {
   // Update a rule record (handles offline)
   async updateRulesRecord(
     ruleId: string,
-    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'thresholdIds'>>
+    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'thresholdIds'>>
   ): Promise<void> {
     const rule = await db.rules.get(ruleId)
     if (!rule) throw new Error('Rule not found')
@@ -1065,6 +1067,7 @@ class SyncService {
     if (updates.currentConfidence !== undefined) updateData['Current Confidence'] = updates.currentConfidence
     if (updates.deadline !== undefined) updateData.Deadline = updates.deadline
     if (updates.outputGoal !== undefined) updateData['Output Goal'] = updates.outputGoal
+    if (updates.exceptions !== undefined) updateData.Exceptions = updates.exceptions
     if (updates.thresholdIds !== undefined) updateData.Thresholds = updates.thresholdIds.length > 0 ? updates.thresholdIds : []
 
     if (navigator.onLine) {

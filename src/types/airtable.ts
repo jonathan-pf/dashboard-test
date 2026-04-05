@@ -149,6 +149,7 @@ export interface RulesRecord extends AirtableRecord {
     'Current Confidence': number | null // Current confidence 0-1
     Deadline: string | null // ISO date string
     'Output Goal': string | null // Optional goal description
+    Exceptions: string | null // Long text
     Week: number | null // Week number
     Thresholds?: string[] // Linked record IDs (auto-created by Airtable)
   }
@@ -301,6 +302,7 @@ export interface LocalRulesRecord {
   currentConfidence: number | null
   deadline: string | null
   outputGoal: string | null
+  exceptions: string | null
   week: number | null
   thresholdIds: string[]
   createdTime: string

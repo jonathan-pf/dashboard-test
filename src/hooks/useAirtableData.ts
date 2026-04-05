@@ -567,7 +567,7 @@ export function useUpdateRule() {
       updates,
     }: {
       ruleId: string
-      updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'thresholdIds'>>
+      updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'thresholdIds'>>
     }) => syncService.updateRulesRecord(ruleId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rules })
