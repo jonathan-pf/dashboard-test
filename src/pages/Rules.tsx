@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useRules, useCreateRule, useUpdateRule, useAllThresholdColors, useThresholds } from '@/hooks/useAirtableData'
+import { useRules, useCreateRule, useUpdateRule, useThresholds } from '@/hooks/useAirtableData'
 import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
@@ -35,25 +35,11 @@ export function Rules() {
   const rules = useRules()
   const createRule = useCreateRule()
   const updateRule = useUpdateRule()
-  const thresholdColors = useAllThresholdColors()
   const thresholds = useThresholds()
 
-  const statusFilteredRules = filterStatus === 'All'
+  const filteredRules = filterStatus === 'All'
     ? rules
     : rules?.filter(rule => rule.status === filterStatus)
-
-  // A rule is visible if it has no linked thresholds, or at least one is red
-  const filteredRules = statusFilteredRules?.filter(rule => {
-    if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
-    if (!thresholdColors) return true // show all while loading
-    const trigger = rule.thresholdTrigger ?? 'red'
-    return rule.thresholdIds.some(id => {
-      const c = thresholdColors.get(id)
-      if (trigger === 'red') return c === 'red'
-      if (trigger === 'amberOnly') return c === 'amber'
-      return c === 'red' || c === 'amber'
-    })
-  })
 
   const liveRules = rules?.filter(r => r.status === 'Live') ?? []
   const backlogRules = rules?.filter(r => r.status === 'Backlog') ?? []
