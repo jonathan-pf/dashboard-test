@@ -163,6 +163,42 @@ export function useAllThresholdColors() {
         const cutoffStr = cutoff.toISOString().split('T')[0]
         const records = await db.ideas.where('type').equals(t.ideaType).and(r => r.when >= cutoffStr).toArray()
         value = records.length
+      } else if (t.source === 'words' && t.wordsProject) {
+        const days = t.days ?? 7
+        const cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - days)
+        const cutoffStr = cutoff.toISOString().split('T')[0]
+
+        const getWordsRecords = async () => {
+          if (t.wordsProject === 'All') {
+            return db.words.filter(r => r.when >= cutoffStr).toArray()
+          }
+          return db.words.where('project').equals(t.wordsProject!).and(r => r.when >= cutoffStr).toArray()
+        }
+
+        if (t.aggregation === 'sumLast7Days' || t.aggregation === 'countLastNDays') {
+          const records = await getWordsRecords()
+          value = records.reduce((sum, r) => sum + r.words, 0)
+        } else if (t.aggregation === 'lastValue') {
+          let records
+          if (t.wordsProject === 'All') {
+            records = await db.words.orderBy('when').reverse().toArray()
+          } else {
+            records = await db.words.where('project').equals(t.wordsProject!).reverse().sortBy('when')
+          }
+          value = records[0]?.words ?? null
+        } else if (t.aggregation === 'averageLast3') {
+          let records
+          if (t.wordsProject === 'All') {
+            records = await db.words.orderBy('when').reverse().toArray()
+          } else {
+            records = await db.words.where('project').equals(t.wordsProject!).reverse().sortBy('when')
+          }
+          if (records.length > 0) {
+            const slice = records.slice(0, 3)
+            value = slice.reduce((sum, r) => sum + r.words, 0) / slice.length
+          }
+        }
       }
 
       colors.set(t.id, getTrafficLightColor(value, t))
@@ -613,6 +649,61 @@ export function useDeleteLeisure() {
   })
 }
 
+// Sum of words for a project (or all) over last N days
+export function useWordsSumLastDays(project: LocalWordsRecord['project'] | 'All', days: number = 7) {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      let records
+      if (project === 'All') {
+        records = await db.words.filter((r) => r.when >= startDateStr).toArray()
+      } else {
+        records = await db.words.where('project').equals(project).and((r) => r.when >= startDateStr).toArray()
+      }
+      return records.reduce((sum, r) => sum + (r.words ?? 0), 0)
+    },
+    [project, startDateStr]
+  )
+}
+
+// Last recorded words value for a project (or all)
+export function useLastWordsValue(project: LocalWordsRecord['project'] | 'All') {
+  return useLiveQuery(
+    async () => {
+      let records
+      if (project === 'All') {
+        records = await db.words.orderBy('when').reverse().toArray()
+      } else {
+        records = await db.words.where('project').equals(project).reverse().sortBy('when')
+      }
+      if (records.length === 0) return null
+      return records[0].words
+    },
+    [project]
+  )
+}
+
+// Average of last N words entries for a project (or all)
+export function useWordsAverageLast(project: LocalWordsRecord['project'] | 'All', count: number) {
+  return useLiveQuery(
+    async () => {
+      let records
+      if (project === 'All') {
+        records = await db.words.orderBy('when').reverse().toArray()
+      } else {
+        records = await db.words.where('project').equals(project).reverse().sortBy('when')
+      }
+      if (records.length === 0) return null
+      const slice = records.slice(0, count)
+      return slice.reduce((sum, r) => sum + r.words, 0) / slice.length
+    },
+    [project, count]
+  )
+}
+
 // Create threshold record mutation
 export function useCreateThreshold() {
   const queryClient = useQueryClient()
@@ -636,7 +727,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

@@ -29,9 +29,10 @@ export function getTrafficLightColor(
 /** Fallback definitions used before first sync populates the thresholds table */
 export const FALLBACK_DEFINITIONS: Array<{
   name: string
-  source: 'health' | 'ideas'
+  source: 'health' | 'ideas' | 'words'
   healthType?: string
   ideaType?: string
+  wordsProject?: string
   aggregation: string
   days?: number
   redThreshold: number

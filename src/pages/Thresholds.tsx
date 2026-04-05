@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors } from '@/hooks/useAirtableData'
-import type { LocalThresholdsRecord, LocalHealthRecord, LocalIdeasRecord } from '@/types/airtable'
+import type { LocalThresholdsRecord, LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
+const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella']
 const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays']
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
@@ -18,14 +19,16 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 const SOURCE_COLORS = {
   health: 'bg-purple-100 text-purple-700',
   ideas: 'bg-blue-100 text-blue-700',
+  words: 'bg-orange-100 text-orange-700',
 }
 
 export function Thresholds() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newSource, setNewSource] = useState<'health' | 'ideas'>('health')
+  const [newSource, setNewSource] = useState<'health' | 'ideas' | 'words'>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
+  const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newAggregation, setNewAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [newDays, setNewDays] = useState('7')
   const [newRedThreshold, setNewRedThreshold] = useState('')
@@ -34,9 +37,10 @@ export function Thresholds() {
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
-  const [editSource, setEditSource] = useState<'health' | 'ideas'>('health')
+  const [editSource, setEditSource] = useState<'health' | 'ideas' | 'words'>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
+  const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editAggregation, setEditAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [editDays, setEditDays] = useState('7')
   const [editRedThreshold, setEditRedThreshold] = useState('')
@@ -58,11 +62,13 @@ export function Thresholds() {
     }
   }
 
-  const handleSourceChange = (source: 'health' | 'ideas', setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
+  const handleSourceChange = (source: 'health' | 'ideas' | 'words', setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
     if (source === 'health') {
       setAgg('lastValue')
-    } else {
+    } else if (source === 'ideas') {
       setAgg('countLastNDays')
+    } else {
+      setAgg('sumLast7Days')
     }
   }
 
@@ -74,6 +80,7 @@ export function Thresholds() {
       source: newSource,
       healthType: newSource === 'health' ? newHealthType : null,
       ideaType: newSource === 'ideas' ? newIdeaType : null,
+      wordsProject: newSource === 'words' ? newWordsProject : null,
       aggregation: newSource === 'ideas' ? 'countLastNDays' : newAggregation,
       days: newAggregation === 'countLastNDays' || newSource === 'ideas' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
@@ -86,6 +93,7 @@ export function Thresholds() {
     setNewSource('health')
     setNewHealthType('Tidy')
     setNewIdeaType('Revelation')
+    setNewWordsProject('All')
     setNewAggregation('lastValue')
     setNewDays('7')
     setNewRedThreshold('')
@@ -105,6 +113,7 @@ export function Thresholds() {
     setEditSource(t.source)
     setEditHealthType((t.healthType as LocalHealthRecord['type']) ?? 'Tidy')
     setEditIdeaType((t.ideaType as LocalIdeasRecord['type']) ?? 'Revelation')
+    setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditAggregation(t.aggregation)
     setEditDays(String(t.days ?? 7))
     setEditRedThreshold(String(t.redThreshold))
@@ -122,6 +131,7 @@ export function Thresholds() {
         source: editSource,
         healthType: editSource === 'health' ? editHealthType : null,
         ideaType: editSource === 'ideas' ? editIdeaType : null,
+        wordsProject: editSource === 'words' ? editWordsProject : null,
         aggregation: editSource === 'ideas' ? 'countLastNDays' : editAggregation,
         days: editAggregation === 'countLastNDays' || editSource === 'ideas' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
@@ -188,6 +198,7 @@ export function Thresholds() {
             source={newSource} setSource={(s) => { setNewSource(s); handleSourceChange(s, setNewAggregation) }}
             healthType={newHealthType} setHealthType={setNewHealthType}
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
+            wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             aggregation={newAggregation} setAggregation={setNewAggregation}
             days={newDays} setDays={setNewDays}
             redThreshold={newRedThreshold} setRedThreshold={setNewRedThreshold}
@@ -222,6 +233,7 @@ export function Thresholds() {
                     source={editSource} setSource={(s) => { setEditSource(s); handleSourceChange(s, setEditAggregation) }}
                     healthType={editHealthType} setHealthType={setEditHealthType}
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
+                    wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     aggregation={editAggregation} setAggregation={setEditAggregation}
                     days={editDays} setDays={setEditDays}
                     redThreshold={editRedThreshold} setRedThreshold={setEditRedThreshold}
@@ -251,7 +263,7 @@ export function Thresholds() {
                         {t.source}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {t.source === 'health' ? t.healthType : t.ideaType}
+                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.wordsProject}
                       </span>
                     </div>
                   </div>
@@ -283,6 +295,7 @@ function ThresholdForm({
   source, setSource,
   healthType, setHealthType,
   ideaType, setIdeaType,
+  wordsProject, setWordsProject,
   aggregation, setAggregation,
   days, setDays,
   redThreshold, setRedThreshold,
@@ -298,9 +311,10 @@ function ThresholdForm({
 }: {
   title: string
   name: string; setName: (v: string) => void
-  source: 'health' | 'ideas'; setSource: (v: 'health' | 'ideas') => void
+  source: 'health' | 'ideas' | 'words'; setSource: (v: 'health' | 'ideas' | 'words') => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
+  wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   aggregation: LocalThresholdsRecord['aggregation']; setAggregation: (v: LocalThresholdsRecord['aggregation']) => void
   days: string; setDays: (v: string) => void
   redThreshold: string; setRedThreshold: (v: string) => void
@@ -332,11 +346,12 @@ function ThresholdForm({
           <label className="block text-sm font-medium text-slate-700 mb-1">Source</label>
           <select
             value={source}
-            onChange={(e) => setSource(e.target.value as 'health' | 'ideas')}
+            onChange={(e) => setSource(e.target.value as 'health' | 'ideas' | 'words')}
             className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           >
             <option value="health">Health</option>
             <option value="ideas">Ideas</option>
+            <option value="words">Words</option>
           </select>
         </div>
         {source === 'health' ? (
@@ -350,7 +365,7 @@ function ThresholdForm({
               {HEALTH_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-        ) : (
+        ) : source === 'ideas' ? (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Idea Type</label>
             <select
@@ -361,10 +376,21 @@ function ThresholdForm({
               {IDEA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Words Project</label>
+            <select
+              value={wordsProject}
+              onChange={(e) => setWordsProject(e.target.value as LocalWordsRecord['project'] | 'All')}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {WORDS_PROJECTS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {source === 'health' && (
+        {(source === 'health' || source === 'words') && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Aggregation</label>
             <select
