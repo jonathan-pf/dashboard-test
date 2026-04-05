@@ -300,34 +300,57 @@ export function Dashboard() {
         </div>
         {liveRules && liveRules.length > 0 ? (
           <div className="space-y-2">
-            {liveRules.slice(0, 5).map((rule) => (
-              <div
-                key={rule.id}
-                className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
-                    }`}
-                  />
-                  <span className="text-sm text-slate-700">{rule.name}</span>
+            {liveRules.slice(0, 5).map((rule) => {
+              const isTriggered = rule.thresholdIds && rule.thresholdIds.length > 0
+              let triggerColor: 'red' | 'amber' | null = null
+              if (isTriggered && thresholdColors) {
+                const hasRed = rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+                triggerColor = hasRed ? 'red' : 'amber'
+              }
+
+              return (
+                <div
+                  key={rule.id}
+                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${
+                    triggerColor === 'red' ? 'bg-red-50 border border-red-200' :
+                    triggerColor === 'amber' ? 'bg-amber-50 border border-amber-200' :
+                    'border-b border-slate-100 last:border-0'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        triggerColor === 'red' ? 'bg-red-500' :
+                        triggerColor === 'amber' ? 'bg-amber-400' :
+                        rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
+                      }`}
+                    />
+                    <span className={`text-sm ${
+                      triggerColor ? 'font-medium text-slate-900' : 'text-slate-700'
+                    }`}>{rule.name}</span>
+                  </div>
+                  {triggerColor ? (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      triggerColor === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      Catch-up
+                    </span>
+                  ) : rule.currentConfidence !== null ? (
+                    <span
+                      className={`text-xs font-medium ${
+                        rule.currentConfidence >= 0.7
+                          ? 'text-green-600'
+                          : rule.currentConfidence >= 0.4
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {Math.round(rule.currentConfidence * 100)}%
+                    </span>
+                  ) : null}
                 </div>
-                {rule.currentConfidence !== null && (
-                  <span
-                    className={`text-xs font-medium ${
-                      rule.currentConfidence >= 0.7
-                        ? 'text-green-600'
-                        : rule.currentConfidence >= 0.4
-                        ? 'text-amber-600'
-                        : 'text-red-600'
-                    }`}
-                  >
-                    {Math.round(rule.currentConfidence * 100)}%
-                  </span>
-                )}
-              </div>
-            ))}
+              )
+            })}
             {liveRules.length > 5 && (
               <p className="text-xs text-slate-400 pt-1">
                 +{liveRules.length - 5} more
