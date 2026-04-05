@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
 
@@ -25,21 +25,26 @@ interface ThresholdDef {
 }
 
 function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
-  const lastValue = useLastHealthValue(definition.healthType as LocalHealthRecord['type'])
-  const sumValue = useHealthSumLastDays(definition.healthType as LocalHealthRecord['type'], 7)
-  const avgLast3Value = useHealthAverageLast(definition.healthType as LocalHealthRecord['type'], 3)
+  const healthType = definition.healthType as LocalHealthRecord['type']
+  const days = definition.days ?? 7
+  const lastValue = useLastHealthValue(healthType)
+  const sumValue = useHealthSumLastDays(healthType, days)
+  const avgLast3Value = useHealthAverageLast(healthType, 3)
+  const avgNDaysValue = useHealthAverageLastDays(healthType, days)
 
   const value = definition.aggregation === 'averageLast3' ? avgLast3Value
-    : definition.aggregation === 'lastValue' ? lastValue : sumValue
+    : definition.aggregation === 'averageLastNDays' ? avgNDaysValue
+    : definition.aggregation === 'lastValue' ? lastValue
+    : sumValue
   const loading = value === undefined
   const color = getTrafficLightColor(value ?? null, definition)
 
   const displayValue = value !== null && value !== undefined
-    ? definition.aggregation === 'lastValue'
-      ? Number.isInteger(value) ? value : value.toFixed(1)
-      : definition.aggregation === 'averageLast3'
+    ? (definition.aggregation === 'lastValue'
+      ? (Number.isInteger(value) ? value : value.toFixed(1))
+      : (definition.aggregation === 'averageLast3' || definition.aggregation === 'averageLastNDays')
         ? value.toFixed(1)
-        : value
+        : value)
     : '--'
 
   const thresholdHint = definition.lowerIsBetter
@@ -94,17 +99,20 @@ function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHin
 
 function WordsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   const project = (definition.wordsProject ?? 'All') as LocalWordsRecord['project'] | 'All'
-  const sumValue = useWordsSumLastDays(project, definition.days ?? 7)
+  const days = definition.days ?? 7
+  const sumValue = useWordsSumLastDays(project, days)
   const lastValue = useLastWordsValue(project)
-  const avgValue = useWordsAverageLast(project, 3)
+  const avgLast3Value = useWordsAverageLast(project, 3)
+  const avgNDaysValue = useWordsAverageLastDays(project, days)
 
   const value = definition.aggregation === 'lastValue' ? lastValue
-    : definition.aggregation === 'averageLast3' ? avgValue
+    : definition.aggregation === 'averageLast3' ? avgLast3Value
+    : definition.aggregation === 'averageLastNDays' ? avgNDaysValue
     : sumValue
   const loading = value === undefined
   const color = getTrafficLightColor(value ?? null, definition)
   const displayValue = value !== null && value !== undefined
-    ? definition.aggregation === 'averageLast3' ? value.toFixed(0) : value
+    ? (definition.aggregation === 'averageLast3' || definition.aggregation === 'averageLastNDays') ? value.toFixed(0) : value
     : '--'
 
   const thresholdHint = definition.lowerIsBetter

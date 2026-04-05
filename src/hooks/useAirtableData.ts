@@ -138,15 +138,22 @@ export function useAllThresholdColors() {
       let value: number | null = null
 
       if (t.source === 'health' && t.healthType) {
+        const getHealthInRange = async (days: number) => {
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() - days)
+          const cutoffStr = cutoff.toISOString().split('T')[0]
+          return db.health.where('type').equals(t.healthType!).and(r => r.date >= cutoffStr).toArray()
+        }
+
         if (t.aggregation === 'lastValue') {
           const records = await db.health.where('type').equals(t.healthType).toArray()
           const sorted = records.sort((a, b) => b.date.localeCompare(a.date))
           value = sorted[0]?.value ?? null
         } else if (t.aggregation === 'sumLast7Days') {
-          const cutoff = new Date()
-          cutoff.setDate(cutoff.getDate() - 7)
-          const cutoffStr = cutoff.toISOString().split('T')[0]
-          const records = await db.health.where('type').equals(t.healthType).and(r => r.date >= cutoffStr).toArray()
+          const records = await getHealthInRange(7)
+          value = records.reduce((sum, r) => sum + r.value, 0)
+        } else if (t.aggregation === 'sumLastNDays') {
+          const records = await getHealthInRange(t.days ?? 7)
           value = records.reduce((sum, r) => sum + r.value, 0)
         } else if (t.aggregation === 'averageLast3') {
           const records = await db.health.where('type').equals(t.healthType).toArray()
@@ -155,6 +162,11 @@ export function useAllThresholdColors() {
             const slice = sorted.slice(0, 3)
             value = slice.reduce((sum, r) => sum + r.value, 0) / slice.length
           }
+        } else if (t.aggregation === 'averageLastNDays') {
+          const records = await getHealthInRange(t.days ?? 7)
+          if (records.length > 0) {
+            value = records.reduce((sum, r) => sum + r.value, 0) / records.length
+          }
         }
       } else if (t.source === 'ideas' && t.ideaType) {
         const days = t.days ?? 7
@@ -162,7 +174,13 @@ export function useAllThresholdColors() {
         cutoff.setDate(cutoff.getDate() - days)
         const cutoffStr = cutoff.toISOString().split('T')[0]
         const records = await db.ideas.where('type').equals(t.ideaType).and(r => r.when >= cutoffStr).toArray()
-        value = records.length
+        if (t.aggregation === 'sumLastNDays') {
+          value = records.length // for ideas, sum = count
+        } else if (t.aggregation === 'averageLastNDays') {
+          value = days > 0 ? records.length / (days / 7) : records.length // per-week average
+        } else {
+          value = records.length
+        }
       } else if (t.source === 'words' && t.wordsProject) {
         const days = t.days ?? 7
         const cutoff = new Date()
@@ -176,9 +194,14 @@ export function useAllThresholdColors() {
           return db.words.where('project').equals(t.wordsProject!).and(r => r.when >= cutoffStr).toArray()
         }
 
-        if (t.aggregation === 'sumLast7Days' || t.aggregation === 'countLastNDays') {
+        if (t.aggregation === 'sumLast7Days' || t.aggregation === 'countLastNDays' || t.aggregation === 'sumLastNDays') {
           const records = await getWordsRecords()
           value = records.reduce((sum, r) => sum + r.words, 0)
+        } else if (t.aggregation === 'averageLastNDays') {
+          const records = await getWordsRecords()
+          if (records.length > 0) {
+            value = records.reduce((sum, r) => sum + r.words, 0) / records.length
+          }
         } else if (t.aggregation === 'lastValue') {
           let records
           if (t.wordsProject === 'All') {
@@ -685,6 +708,26 @@ export function useDeleteLeisure() {
   })
 }
 
+// Average of health values over last N days
+export function useHealthAverageLastDays(type: LocalHealthRecord['type'], days: number = 7) {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      const records = await db.health
+        .where('type')
+        .equals(type)
+        .and((r) => r.date >= startDateStr)
+        .toArray()
+      if (records.length === 0) return null
+      return records.reduce((sum, r) => sum + (r.value ?? 0), 0) / records.length
+    },
+    [type, startDateStr]
+  )
+}
+
 // Sum of words for a project (or all) over last N days
 export function useWordsSumLastDays(project: LocalWordsRecord['project'] | 'All', days: number = 7) {
   const startDate = new Date()
@@ -737,6 +780,27 @@ export function useWordsAverageLast(project: LocalWordsRecord['project'] | 'All'
       return slice.reduce((sum, r) => sum + r.words, 0) / slice.length
     },
     [project, count]
+  )
+}
+
+// Average of words for a project (or all) over last N days
+export function useWordsAverageLastDays(project: LocalWordsRecord['project'] | 'All', days: number = 7) {
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - days)
+  const startDateStr = startDate.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      let records
+      if (project === 'All') {
+        records = await db.words.filter((r) => r.when >= startDateStr).toArray()
+      } else {
+        records = await db.words.where('project').equals(project).and((r) => r.when >= startDateStr).toArray()
+      }
+      if (records.length === 0) return null
+      return records.reduce((sum, r) => sum + (r.words ?? 0), 0) / records.length
+    },
+    [project, startDateStr]
   )
 }
 

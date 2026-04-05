@@ -7,7 +7,7 @@ import type { TrafficLightColor } from '@/config/trafficLights'
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
 const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella']
-const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays']
+const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays', 'sumLastNDays', 'averageLastNDays']
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -429,7 +429,7 @@ function ThresholdForm({
             </select>
           </div>
         )}
-        {(aggregation === 'countLastNDays' || source === 'ideas') && (
+        {(aggregation === 'countLastNDays' || aggregation === 'sumLastNDays' || aggregation === 'averageLastNDays' || source === 'ideas') && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Days</label>
             <input
