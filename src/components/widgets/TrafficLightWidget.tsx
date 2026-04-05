@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
 
@@ -12,10 +12,11 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
-  source: 'health' | 'ideas' | 'words'
+  source: 'health' | 'ideas' | 'words' | 'leisure'
   healthType?: string | null
   ideaType?: string | null
   wordsProject?: string | null
+  leisurePeriod?: string | null
   aggregation: string
   days?: number | null
   redThreshold: number
@@ -113,12 +114,35 @@ function WordsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
+function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const currentWeek = useCurrentWeek()
+  const lastWeek = useLastWeek()
+  const weekCommencing = definition.leisurePeriod === 'Last Week'
+    ? lastWeek?.weekCommencing ?? null
+    : currentWeek?.weekCommencing ?? null
+  const leisure = useWeeklyLeisureDuration(weekCommencing)
+
+  const hours = leisure.totalSeconds / 3600
+  const loading = leisure.loading
+  const color = getTrafficLightColor(loading ? null : hours, definition)
+  const displayValue = loading ? '--' : hours.toFixed(1)
+
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}h`
+    : `≥ ${definition.greenThreshold}h`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
 function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   if (definition.source === 'ideas') {
     return <IdeasTrafficLightItem definition={definition} />
   }
   if (definition.source === 'words') {
     return <WordsTrafficLightItem definition={definition} />
+  }
+  if (definition.source === 'leisure') {
+    return <LeisureTrafficLightItem definition={definition} />
   }
   return <HealthTrafficLightItem definition={definition} />
 }

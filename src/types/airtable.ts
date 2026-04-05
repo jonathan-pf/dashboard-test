@@ -160,10 +160,11 @@ export interface RulesRecord extends AirtableRecord {
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
-    Source: 'health' | 'ideas' | 'words'
+    Source: 'health' | 'ideas' | 'words' | 'leisure'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | null
+    'Leisure Period'?: 'This Week' | 'Last Week' | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays'
     Days?: number | null
     'Red Threshold': number
@@ -315,10 +316,11 @@ export interface LocalRulesRecord {
 export interface LocalThresholdsRecord {
   id: string
   name: string
-  source: 'health' | 'ideas' | 'words'
+  source: 'health' | 'ideas' | 'words' | 'leisure'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
+  leisurePeriod: 'This Week' | 'Last Week' | null
   aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays'
   days: number | null
   redThreshold: number

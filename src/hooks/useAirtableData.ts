@@ -199,6 +199,42 @@ export function useAllThresholdColors() {
             value = slice.reduce((sum, r) => sum + r.words, 0) / slice.length
           }
         }
+      } else if (t.source === 'leisure' && t.leisurePeriod) {
+        const week = t.leisurePeriod === 'This Week'
+          ? await db.weeks.filter(w => w.thisWeek).first()
+          : await db.weeks.filter(w => w.lastWeek).first()
+
+        if (week) {
+          const weekStartStr = week.weekCommencing
+          const weekEndStr = addDays(weekStartStr, 6)
+          const today = todayStr()
+
+          const items = await db.leisure
+            .filter(item =>
+              (item.status === 'Consumed' || item.status === 'Live') &&
+              item.dateStarted !== null &&
+              item.duration !== null &&
+              item.duration > 0
+            )
+            .toArray()
+
+          let totalSeconds = 0
+          for (const item of items) {
+            const itemStartStr = item.dateStarted!
+            const itemEndStr = item.status === 'Live' && !item.dateEnded
+              ? today
+              : item.dateEnded ?? itemStartStr
+            if (itemEndStr < weekStartStr || itemStartStr > weekEndStr) continue
+            const overlapStartStr = itemStartStr > weekStartStr ? itemStartStr : weekStartStr
+            const overlapEndStr = itemEndStr < weekEndStr ? itemEndStr : weekEndStr
+            const overlapDays = daysBetweenInclusive(overlapStartStr, overlapEndStr)
+            if (overlapDays <= 0) continue
+            const totalDays = Math.max(1, daysBetweenInclusive(itemStartStr, itemEndStr))
+            totalSeconds += (overlapDays / totalDays) * item.duration!
+          }
+
+          value = Math.round(totalSeconds / 3600) // hours
+        }
       }
 
       colors.set(t.id, getTrafficLightColor(value, t))
@@ -727,7 +763,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

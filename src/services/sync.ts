@@ -180,6 +180,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     healthType: record.fields['Health Type'] ?? null,
     ideaType: record.fields['Idea Type'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
+    leisurePeriod: record.fields['Leisure Period'] ?? null,
     aggregation: record.fields.Aggregation || 'lastValue',
     days: record.fields.Days ?? null,
     redThreshold: record.fields['Red Threshold'] ?? 0,
@@ -310,6 +311,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Health Type': record.healthType,
     'Idea Type': record.ideaType,
     'Words Project': record.wordsProject,
+    'Leisure Period': record.leisurePeriod,
     Aggregation: record.aggregation,
     Days: record.days,
     'Red Threshold': record.redThreshold,
@@ -1288,7 +1290,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1303,6 +1305,7 @@ class SyncService {
     if (updates.healthType !== undefined) updateData['Health Type'] = updates.healthType
     if (updates.ideaType !== undefined) updateData['Idea Type'] = updates.ideaType
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
+    if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
     if (updates.days !== undefined) updateData.Days = updates.days
     if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold

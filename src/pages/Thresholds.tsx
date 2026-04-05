@@ -16,19 +16,23 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   grey: 'bg-slate-300',
 }
 
+const LEISURE_PERIODS: ('This Week' | 'Last Week')[] = ['This Week', 'Last Week']
+
 const SOURCE_COLORS = {
   health: 'bg-purple-100 text-purple-700',
   ideas: 'bg-blue-100 text-blue-700',
   words: 'bg-orange-100 text-orange-700',
+  leisure: 'bg-green-100 text-green-700',
 }
 
 export function Thresholds() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newSource, setNewSource] = useState<'health' | 'ideas' | 'words'>('health')
+  const [newSource, setNewSource] = useState<'health' | 'ideas' | 'words' | 'leisure'>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
+  const [newLeisurePeriod, setNewLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
   const [newAggregation, setNewAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [newDays, setNewDays] = useState('7')
   const [newRedThreshold, setNewRedThreshold] = useState('')
@@ -37,10 +41,11 @@ export function Thresholds() {
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
-  const [editSource, setEditSource] = useState<'health' | 'ideas' | 'words'>('health')
+  const [editSource, setEditSource] = useState<'health' | 'ideas' | 'words' | 'leisure'>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
+  const [editLeisurePeriod, setEditLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
   const [editAggregation, setEditAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [editDays, setEditDays] = useState('7')
   const [editRedThreshold, setEditRedThreshold] = useState('')
@@ -62,11 +67,13 @@ export function Thresholds() {
     }
   }
 
-  const handleSourceChange = (source: 'health' | 'ideas' | 'words', setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
+  const handleSourceChange = (source: 'health' | 'ideas' | 'words' | 'leisure', setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
     if (source === 'health') {
       setAgg('lastValue')
     } else if (source === 'ideas') {
       setAgg('countLastNDays')
+    } else if (source === 'leisure') {
+      setAgg('lastValue')
     } else {
       setAgg('sumLast7Days')
     }
@@ -81,7 +88,8 @@ export function Thresholds() {
       healthType: newSource === 'health' ? newHealthType : null,
       ideaType: newSource === 'ideas' ? newIdeaType : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
-      aggregation: newSource === 'ideas' ? 'countLastNDays' : newAggregation,
+      leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
+      aggregation: newSource === 'ideas' ? 'countLastNDays' : newSource === 'leisure' ? 'lastValue' : newAggregation,
       days: newAggregation === 'countLastNDays' || newSource === 'ideas' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
@@ -94,6 +102,7 @@ export function Thresholds() {
     setNewHealthType('Tidy')
     setNewIdeaType('Revelation')
     setNewWordsProject('All')
+    setNewLeisurePeriod('This Week')
     setNewAggregation('lastValue')
     setNewDays('7')
     setNewRedThreshold('')
@@ -114,6 +123,7 @@ export function Thresholds() {
     setEditHealthType((t.healthType as LocalHealthRecord['type']) ?? 'Tidy')
     setEditIdeaType((t.ideaType as LocalIdeasRecord['type']) ?? 'Revelation')
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
+    setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
     setEditAggregation(t.aggregation)
     setEditDays(String(t.days ?? 7))
     setEditRedThreshold(String(t.redThreshold))
@@ -132,7 +142,8 @@ export function Thresholds() {
         healthType: editSource === 'health' ? editHealthType : null,
         ideaType: editSource === 'ideas' ? editIdeaType : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
-        aggregation: editSource === 'ideas' ? 'countLastNDays' : editAggregation,
+        leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
+        aggregation: editSource === 'ideas' ? 'countLastNDays' : editSource === 'leisure' ? 'lastValue' : editAggregation,
         days: editAggregation === 'countLastNDays' || editSource === 'ideas' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
@@ -199,6 +210,7 @@ export function Thresholds() {
             healthType={newHealthType} setHealthType={setNewHealthType}
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
+            leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
             aggregation={newAggregation} setAggregation={setNewAggregation}
             days={newDays} setDays={setNewDays}
             redThreshold={newRedThreshold} setRedThreshold={setNewRedThreshold}
@@ -234,6 +246,7 @@ export function Thresholds() {
                     healthType={editHealthType} setHealthType={setEditHealthType}
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
+                    leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
                     aggregation={editAggregation} setAggregation={setEditAggregation}
                     days={editDays} setDays={setEditDays}
                     redThreshold={editRedThreshold} setRedThreshold={setEditRedThreshold}
@@ -263,7 +276,7 @@ export function Thresholds() {
                         {t.source}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.wordsProject}
+                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.leisurePeriod}
                       </span>
                     </div>
                   </div>
@@ -296,6 +309,7 @@ function ThresholdForm({
   healthType, setHealthType,
   ideaType, setIdeaType,
   wordsProject, setWordsProject,
+  leisurePeriod, setLeisurePeriod,
   aggregation, setAggregation,
   days, setDays,
   redThreshold, setRedThreshold,
@@ -311,10 +325,11 @@ function ThresholdForm({
 }: {
   title: string
   name: string; setName: (v: string) => void
-  source: 'health' | 'ideas' | 'words'; setSource: (v: 'health' | 'ideas' | 'words') => void
+  source: 'health' | 'ideas' | 'words' | 'leisure'; setSource: (v: 'health' | 'ideas' | 'words' | 'leisure') => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
+  leisurePeriod: 'This Week' | 'Last Week'; setLeisurePeriod: (v: 'This Week' | 'Last Week') => void
   aggregation: LocalThresholdsRecord['aggregation']; setAggregation: (v: LocalThresholdsRecord['aggregation']) => void
   days: string; setDays: (v: string) => void
   redThreshold: string; setRedThreshold: (v: string) => void
@@ -352,6 +367,7 @@ function ThresholdForm({
             <option value="health">Health</option>
             <option value="ideas">Ideas</option>
             <option value="words">Words</option>
+            <option value="leisure">Leisure</option>
           </select>
         </div>
         {source === 'health' ? (
@@ -376,7 +392,7 @@ function ThresholdForm({
               {IDEA_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-        ) : (
+        ) : source === 'words' ? (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Words Project</label>
             <select
@@ -385,6 +401,17 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {WORDS_PROJECTS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Leisure Period</label>
+            <select
+              value={leisurePeriod}
+              onChange={(e) => setLeisurePeriod(e.target.value as 'This Week' | 'Last Week')}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {LEISURE_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
         )}
