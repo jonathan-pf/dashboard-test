@@ -19,6 +19,7 @@ import type {
   RulesRecord,
   EventsRecord,
   LeisureRecord,
+  ThresholdsRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
@@ -29,6 +30,7 @@ import type {
   LocalRulesRecord,
   LocalEventsRecord,
   LocalLeisureRecord,
+  LocalThresholdsRecord,
   PendingMutation,
   TableName,
   TABLES,
@@ -163,6 +165,24 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
     deadline: record.fields.Deadline ?? null,
     outputGoal: record.fields['Output Goal'] ?? null,
     week: record.fields.Week ?? null,
+    thresholdIds: record.fields.Thresholds ?? [],
+    createdTime: record.createdTime,
+  }
+}
+
+function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    source: record.fields.Source || 'health',
+    healthType: record.fields['Health Type'] ?? null,
+    ideaType: record.fields['Idea Type'] ?? null,
+    aggregation: record.fields.Aggregation || 'lastValue',
+    days: record.fields.Days ?? null,
+    redThreshold: record.fields['Red Threshold'] ?? 0,
+    greenThreshold: record.fields['Green Threshold'] ?? 0,
+    lowerIsBetter: record.fields['Lower Is Better'] ?? false,
+    ruleIds: record.fields.Rules ?? [],
     createdTime: record.createdTime,
   }
 }
@@ -235,6 +255,7 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
     'Current Confidence': record.currentConfidence,
     Deadline: record.deadline,
     'Output Goal': record.outputGoal,
+    Thresholds: record.thresholdIds.length > 0 ? record.thresholdIds : undefined,
   }
 }
 
@@ -274,6 +295,21 @@ function localLeisureToAirtable(record: LocalLeisureRecord): Record<string, unkn
     URL: record.url,
     Duration: record.duration,
     Rating: record.rating,
+  }
+}
+
+function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Source: record.source,
+    'Health Type': record.healthType,
+    'Idea Type': record.ideaType,
+    Aggregation: record.aggregation,
+    Days: record.days,
+    'Red Threshold': record.redThreshold,
+    'Green Threshold': record.greenThreshold,
+    'Lower Is Better': record.lowerIsBetter,
+    Rules: record.ruleIds.length > 0 ? record.ruleIds : undefined,
   }
 }
 
@@ -368,7 +404,7 @@ class SyncService {
     debugLog('Starting data pull from Airtable...')
 
     // Fetch all tables sequentially with individual logging
-    debugLog('Fetching all 10 tables sequentially...')
+    debugLog('Fetching all 11 tables sequentially...')
     const fetchStart = Date.now()
 
     let healthRecords: HealthRecord[] = []
@@ -381,6 +417,7 @@ class SyncService {
     let rulesRecords: RulesRecord[] = []
     let eventsRecords: EventsRecord[] = []
     let leisureRecords: LeisureRecord[] = []
+    let thresholdsRecords: ThresholdsRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -411,6 +448,7 @@ class SyncService {
       rulesRecords = await fetchTable<RulesRecord>('Rules')
       eventsRecords = await fetchTable<EventsRecord>('Events')
       leisureRecords = await fetchTable<LeisureRecord>('Leisure')
+      thresholdsRecords = await fetchTable<ThresholdsRecord>('Thresholds')
     } catch (error) {
       // Extract detailed error info from AirtableError
       if (error instanceof AirtableError) {
@@ -468,7 +506,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -481,6 +519,7 @@ class SyncService {
         await db.rules.clear()
         await db.events.clear()
         await db.leisure.clear()
+        await db.thresholds.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -494,6 +533,7 @@ class SyncService {
         await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
         await db.events.bulkPut(eventsRecords.map(transformEventsRecord))
         await db.leisure.bulkPut(leisureRecords.map(transformLeisureRecord))
+        await db.thresholds.bulkPut(thresholdsRecords.map(transformThresholdsRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -504,7 +544,7 @@ class SyncService {
     }
 
     debugLog(
-      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${eventsRecords.length} events, ${leisureRecords.length} leisure`
+      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${eventsRecords.length} events, ${leisureRecords.length} leisure, ${thresholdsRecords.length} thresholds`
     )
   }
 
@@ -1004,7 +1044,7 @@ class SyncService {
   // Update a rule record (handles offline)
   async updateRulesRecord(
     ruleId: string,
-    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal'>>
+    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'thresholdIds'>>
   ): Promise<void> {
     const rule = await db.rules.get(ruleId)
     if (!rule) throw new Error('Rule not found')
@@ -1023,6 +1063,7 @@ class SyncService {
     if (updates.currentConfidence !== undefined) updateData['Current Confidence'] = updates.currentConfidence
     if (updates.deadline !== undefined) updateData.Deadline = updates.deadline
     if (updates.outputGoal !== undefined) updateData['Output Goal'] = updates.outputGoal
+    if (updates.thresholdIds !== undefined) updateData.Thresholds = updates.thresholdIds.length > 0 ? updates.thresholdIds : []
 
     if (navigator.onLine) {
       try {
@@ -1198,6 +1239,100 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Leisure', 'delete', leisureId, {})
+    }
+  }
+
+  // Create a threshold record (handles offline)
+  async createThresholdsRecord(
+    data: Omit<LocalThresholdsRecord, 'id' | 'createdTime'>
+  ): Promise<LocalThresholdsRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalThresholdsRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.thresholds.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<ThresholdsRecord>(
+          'Thresholds',
+          localThresholdsToAirtable(record)
+        )
+        await db.thresholds.delete(localId)
+        const updatedRecord = transformThresholdsRecord(created)
+        await db.thresholds.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Thresholds', 'create', localId, localThresholdsToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Thresholds', 'create', localId, localThresholdsToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a threshold record (handles offline)
+  async updateThresholdsRecord(
+    thresholdId: string,
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+  ): Promise<void> {
+    const threshold = await db.thresholds.get(thresholdId)
+    if (!threshold) throw new Error('Threshold not found')
+
+    Object.assign(threshold, updates)
+    threshold._pendingSync = true
+    await db.thresholds.put(threshold)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.source !== undefined) updateData.Source = updates.source
+    if (updates.healthType !== undefined) updateData['Health Type'] = updates.healthType
+    if (updates.ideaType !== undefined) updateData['Idea Type'] = updates.ideaType
+    if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
+    if (updates.days !== undefined) updateData.Days = updates.days
+    if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold
+    if (updates.greenThreshold !== undefined) updateData['Green Threshold'] = updates.greenThreshold
+    if (updates.lowerIsBetter !== undefined) updateData['Lower Is Better'] = updates.lowerIsBetter
+    if (updates.ruleIds !== undefined) updateData.Rules = updates.ruleIds.length > 0 ? updates.ruleIds : []
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Thresholds', thresholdId, updateData)
+        threshold._pendingSync = false
+        await db.thresholds.put(threshold)
+      } catch {
+        await this.queueMutation('Thresholds', 'update', thresholdId, updateData)
+      }
+    } else {
+      await this.queueMutation('Thresholds', 'update', thresholdId, updateData)
+    }
+  }
+
+  // Delete a threshold record (handles offline)
+  async deleteThresholdsRecord(thresholdId: string): Promise<void> {
+    const threshold = await db.thresholds.get(thresholdId)
+    if (!threshold) throw new Error('Threshold not found')
+
+    await db.thresholds.delete(thresholdId)
+
+    if (thresholdId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Thresholds', thresholdId)
+      } catch {
+        await this.queueMutation('Thresholds', 'delete', thresholdId, {})
+      }
+    } else {
+      await this.queueMutation('Thresholds', 'delete', thresholdId, {})
     }
   }
 

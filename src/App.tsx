@@ -23,6 +23,7 @@ import { Events } from './pages/Events'
 import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
 import { Settings } from './pages/Settings'
+import { Thresholds } from './pages/Thresholds'
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
           <Route path="/ideas/agenda" element={<Agenda />} />
           <Route path="/events" element={<Events />} />
           <Route path="/leisure" element={<Leisure />} />
+          <Route path="/thresholds" element={<Thresholds />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>

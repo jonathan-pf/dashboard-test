@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useRules, useCreateRule, useUpdateRule } from '@/hooks/useAirtableData'
+import { useRules, useCreateRule, useUpdateRule, useAllThresholdColors, useThresholds } from '@/hooks/useAirtableData'
 import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
@@ -28,14 +28,24 @@ export function Rules() {
   const [editStatus, setEditStatus] = useState<LocalRulesRecord['status']>('Live')
   const [editConfidence, setEditConfidence] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
+  const [editThresholdIds, setEditThresholdIds] = useState<string[]>([])
 
   const rules = useRules()
   const createRule = useCreateRule()
   const updateRule = useUpdateRule()
+  const thresholdColors = useAllThresholdColors()
+  const thresholds = useThresholds()
 
-  const filteredRules = filterStatus === 'All'
+  const statusFilteredRules = filterStatus === 'All'
     ? rules
     : rules?.filter(rule => rule.status === filterStatus)
+
+  // A rule is visible if it has no linked thresholds, or at least one is red
+  const filteredRules = statusFilteredRules?.filter(rule => {
+    if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
+    if (!thresholdColors) return true // show all while loading
+    return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+  })
 
   const liveRules = rules?.filter(r => r.status === 'Live') ?? []
   const backlogRules = rules?.filter(r => r.status === 'Backlog') ?? []
@@ -66,6 +76,7 @@ export function Rules() {
       deadline: null,
       outputGoal: null,
       week: null,
+      thresholdIds: [],
     })
 
     setNewRuleName('')
@@ -88,6 +99,7 @@ export function Rules() {
     setEditStatus(rule.status)
     setEditConfidence(rule.currentConfidence !== null ? String(Math.round(rule.currentConfidence * 100)) : '')
     setEditDeadline(rule.deadline ?? '')
+    setEditThresholdIds(rule.thresholdIds ?? [])
   }
 
   const handleUpdateRule = async () => {
@@ -104,6 +116,7 @@ export function Rules() {
         status: editStatus,
         currentConfidence: confidenceValue,
         deadline: deadlineValue,
+        thresholdIds: editThresholdIds,
       },
     })
 
@@ -303,6 +316,32 @@ export function Rules() {
                       />
                     </div>
                   </div>
+                  {thresholds && thresholds.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Thresholds (show rule only when red)
+                      </label>
+                      <div className="space-y-1 max-h-32 overflow-y-auto border border-slate-300 rounded-lg p-2 bg-white">
+                        {thresholds.map((t) => (
+                          <label key={t.id} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={editThresholdIds.includes(t.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditThresholdIds([...editThresholdIds, t.id])
+                                } else {
+                                  setEditThresholdIds(editThresholdIds.filter(id => id !== t.id))
+                                }
+                              }}
+                              className="rounded border-slate-300"
+                            />
+                            {t.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex gap-3">
                     <button
                       onClick={handleCancelEdit}
@@ -336,6 +375,11 @@ export function Rules() {
                       {rule.name}
                     </p>
                     <div className="flex gap-1.5">
+                      {rule.thresholdIds?.length > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
+                          Catch-up
+                        </span>
+                      )}
                       <span className={`text-xs px-2 py-0.5 rounded-full ${SELECT_COLORS[rule.select]}`}>
                         {rule.select}
                       </span>

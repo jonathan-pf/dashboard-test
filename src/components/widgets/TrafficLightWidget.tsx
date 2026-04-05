@@ -1,12 +1,7 @@
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays } from '@/hooks/useAirtableData'
-import {
-  TRAFFIC_LIGHT_DEFINITIONS,
-  getTrafficLightColor,
-  type TrafficLightDefinition,
-  type TrafficLightColor,
-  type HealthTrafficLightDefinition,
-  type IdeasTrafficLightDefinition,
-} from '@/config/trafficLights'
+import { Link } from 'react-router-dom'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useIdeasCountLastDays, useThresholds } from '@/hooks/useAirtableData'
+import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
+import type { LocalHealthRecord, LocalIdeasRecord } from '@/types/airtable'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -15,10 +10,22 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   grey: 'bg-slate-300',
 }
 
-function HealthTrafficLightItem({ definition }: { definition: HealthTrafficLightDefinition }) {
-  const lastValue = useLastHealthValue(definition.healthType)
-  const sumValue = useHealthSumLastDays(definition.healthType, 7)
-  const avgLast3Value = useHealthAverageLast(definition.healthType, 3)
+interface ThresholdDef {
+  name: string
+  source: 'health' | 'ideas'
+  healthType?: string | null
+  ideaType?: string | null
+  aggregation: string
+  days?: number | null
+  redThreshold: number
+  greenThreshold: number
+  lowerIsBetter: boolean
+}
+
+function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const lastValue = useLastHealthValue(definition.healthType as LocalHealthRecord['type'])
+  const sumValue = useHealthSumLastDays(definition.healthType as LocalHealthRecord['type'], 7)
+  const avgLast3Value = useHealthAverageLast(definition.healthType as LocalHealthRecord['type'], 3)
 
   const value = definition.aggregation === 'averageLast3' ? avgLast3Value
     : definition.aggregation === 'lastValue' ? lastValue : sumValue
@@ -28,18 +35,20 @@ function HealthTrafficLightItem({ definition }: { definition: HealthTrafficLight
   const displayValue = value !== null && value !== undefined
     ? definition.aggregation === 'lastValue'
       ? Number.isInteger(value) ? value : value.toFixed(1)
-      : value
+      : definition.aggregation === 'averageLast3'
+        ? value.toFixed(1)
+        : value
     : '--'
 
   const thresholdHint = definition.lowerIsBetter
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.label} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
-function IdeasTrafficLightItem({ definition }: { definition: IdeasTrafficLightDefinition }) {
-  const count = useIdeasCountLastDays(definition.ideaType, definition.days)
+function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const count = useIdeasCountLastDays(definition.ideaType as LocalIdeasRecord['type'], definition.days ?? 7)
 
   const loading = count === undefined
   const color = getTrafficLightColor(count ?? null, definition)
@@ -49,7 +58,7 @@ function IdeasTrafficLightItem({ definition }: { definition: IdeasTrafficLightDe
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.label} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHint }: {
@@ -81,7 +90,7 @@ function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHin
   )
 }
 
-function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }) {
+function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   if (definition.source === 'ideas') {
     return <IdeasTrafficLightItem definition={definition} />
   }
@@ -89,12 +98,18 @@ function TrafficLightItem({ definition }: { definition: TrafficLightDefinition }
 }
 
 export function TrafficLightWidgets() {
+  const thresholds = useThresholds()
+
+  const definitions: ThresholdDef[] = thresholds && thresholds.length > 0
+    ? thresholds
+    : FALLBACK_DEFINITIONS
+
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-      <h3 className="font-semibold text-slate-900 mb-2 text-sm">Thresholds</h3>
+      <Link to="/thresholds" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Thresholds</Link>
       <div className="grid grid-cols-4 gap-2">
-        {TRAFFIC_LIGHT_DEFINITIONS.map((def) => (
-          <TrafficLightItem key={def.label} definition={def} />
+        {definitions.map((def) => (
+          <TrafficLightItem key={def.name} definition={def} />
         ))}
       </div>
     </div>

@@ -150,6 +150,23 @@ export interface RulesRecord extends AirtableRecord {
     Deadline: string | null // ISO date string
     'Output Goal': string | null // Optional goal description
     Week: number | null // Week number
+    Thresholds?: string[] // Linked record IDs (auto-created by Airtable)
+  }
+}
+
+// Thresholds table - traffic light definitions
+export interface ThresholdsRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Source: 'health' | 'ideas'
+    'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | null
+    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | null
+    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays'
+    Days?: number | null
+    'Red Threshold': number
+    'Green Threshold': number
+    'Lower Is Better'?: boolean
+    Rules?: string[] // Linked record IDs
   }
 }
 
@@ -284,6 +301,24 @@ export interface LocalRulesRecord {
   deadline: string | null
   outputGoal: string | null
   week: number | null
+  thresholdIds: string[]
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+export interface LocalThresholdsRecord {
+  id: string
+  name: string
+  source: 'health' | 'ideas'
+  healthType: LocalHealthRecord['type'] | null
+  ideaType: LocalIdeasRecord['type'] | null
+  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays'
+  days: number | null
+  redThreshold: number
+  greenThreshold: number
+  lowerIsBetter: boolean
+  ruleIds: string[]
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
@@ -432,6 +467,7 @@ export const TABLES = {
   RULES: 'Rules',
   EVENTS: 'Events',
   LEISURE: 'Leisure',
+  THRESHOLDS: 'Thresholds',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

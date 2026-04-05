@@ -23,6 +23,7 @@ import {
   useYearlyRepsPerWeek,
   useWeeklyLeisureDuration,
   useIdeasByStatus,
+  useAllThresholdColors,
 } from '@/hooks/useAirtableData'
 import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
@@ -34,7 +35,14 @@ export function Dashboard() {
   const weeks = useWeeks()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
-  const liveRules = useRulesByStatus('Live')
+  const allLiveRules = useRulesByStatus('Live')
+  const thresholdColors = useAllThresholdColors()
+
+  const liveRules = allLiveRules?.filter(rule => {
+    if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
+    if (!thresholdColors) return true
+    return rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+  })
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
   const events2026 = useYearlyEventsPerWeek(2026)

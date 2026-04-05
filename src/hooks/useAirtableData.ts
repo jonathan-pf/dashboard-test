@@ -10,7 +10,9 @@ import type {
   LocalRulesRecord,
   LocalEventsRecord,
   LocalLeisureRecord,
+  LocalThresholdsRecord,
 } from '@/types/airtable'
+import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
 
 // Query keys
 export const queryKeys = {
@@ -24,6 +26,7 @@ export const queryKeys = {
   rules: ['rules'] as const,
   events: ['events'] as const,
   leisure: ['leisure'] as const,
+  thresholds: ['thresholds'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -118,6 +121,55 @@ export function useEvents() {
 
 export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
+}
+
+export function useThresholds() {
+  return useLiveQuery(() => db.thresholds.toArray(), [])
+}
+
+export function useAllThresholdColors() {
+  return useLiveQuery(async () => {
+    const thresholds = await db.thresholds.toArray()
+    if (!thresholds || thresholds.length === 0) return new Map<string, TrafficLightColor>()
+
+    const colors = new Map<string, TrafficLightColor>()
+
+    for (const t of thresholds) {
+      let value: number | null = null
+
+      if (t.source === 'health' && t.healthType) {
+        if (t.aggregation === 'lastValue') {
+          const records = await db.health.where('type').equals(t.healthType).toArray()
+          const sorted = records.sort((a, b) => b.date.localeCompare(a.date))
+          value = sorted[0]?.value ?? null
+        } else if (t.aggregation === 'sumLast7Days') {
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() - 7)
+          const cutoffStr = cutoff.toISOString().split('T')[0]
+          const records = await db.health.where('type').equals(t.healthType).and(r => r.date >= cutoffStr).toArray()
+          value = records.reduce((sum, r) => sum + r.value, 0)
+        } else if (t.aggregation === 'averageLast3') {
+          const records = await db.health.where('type').equals(t.healthType).toArray()
+          const sorted = records.sort((a, b) => b.date.localeCompare(a.date))
+          if (sorted.length > 0) {
+            const slice = sorted.slice(0, 3)
+            value = slice.reduce((sum, r) => sum + r.value, 0) / slice.length
+          }
+        }
+      } else if (t.source === 'ideas' && t.ideaType) {
+        const days = t.days ?? 7
+        const cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - days)
+        const cutoffStr = cutoff.toISOString().split('T')[0]
+        const records = await db.ideas.where('type').equals(t.ideaType).and(r => r.when >= cutoffStr).toArray()
+        value = records.length
+      }
+
+      colors.set(t.id, getTrafficLightColor(value, t))
+    }
+
+    return colors
+  }, [])
 }
 
 export function useCurrentWeekIdeas() {
@@ -479,7 +531,7 @@ export function useUpdateRule() {
       updates,
     }: {
       ruleId: string
-      updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal'>>
+      updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'thresholdIds'>>
     }) => syncService.updateRulesRecord(ruleId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.rules })
@@ -557,6 +609,49 @@ export function useDeleteLeisure() {
     mutationFn: (leisureId: string) => syncService.deleteLeisureRecord(leisureId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.leisure })
+    },
+  })
+}
+
+// Create threshold record mutation
+export function useCreateThreshold() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalThresholdsRecord, 'id' | 'createdTime'>) =>
+      syncService.createThresholdsRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })
+    },
+  })
+}
+
+// Update threshold record mutation
+export function useUpdateThreshold() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      thresholdId,
+      updates,
+    }: {
+      thresholdId: string
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+    }) => syncService.updateThresholdsRecord(thresholdId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })
+    },
+  })
+}
+
+// Delete threshold record mutation
+export function useDeleteThreshold() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (thresholdId: string) => syncService.deleteThresholdsRecord(thresholdId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })
     },
   })
 }
