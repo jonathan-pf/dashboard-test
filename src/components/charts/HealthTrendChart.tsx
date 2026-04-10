@@ -64,6 +64,7 @@ export function HealthTrendChart({ data, type, loading }: HealthTrendChartProps)
           stroke="#94a3b8"
           tickLine={false}
           axisLine={false}
+          domain={type === 'Weight' ? [80, 'auto'] : [0, 'auto']}
         />
         <Tooltip
           contentStyle={{
