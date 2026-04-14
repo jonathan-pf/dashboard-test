@@ -49,6 +49,21 @@ export function HealthTrendChart({ data, type, loading }: HealthTrendChartProps)
     value: record.value,
   }))
 
+  // For Weight, centre Y-axis on last month's data with a max range of 4 kg.
+  // `data` already covers the last 30 days, so use its min/max midpoint as centre.
+  let yDomain: [number | string, number | string] = [0, 'auto']
+  if (type === 'Weight') {
+    if (data.length > 0) {
+      const values = data.map((r) => r.value)
+      const min = Math.min(...values)
+      const max = Math.max(...values)
+      const centre = (min + max) / 2
+      yDomain = [centre - 2, centre + 2]
+    } else {
+      yDomain = [80, 'auto']
+    }
+  }
+
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -64,7 +79,7 @@ export function HealthTrendChart({ data, type, loading }: HealthTrendChartProps)
           stroke="#94a3b8"
           tickLine={false}
           axisLine={false}
-          domain={type === 'Weight' ? [80, 'auto'] : [0, 'auto']}
+          domain={yDomain}
         />
         <Tooltip
           contentStyle={{
