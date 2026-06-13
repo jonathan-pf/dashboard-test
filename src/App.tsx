@@ -6,9 +6,11 @@ import { Health } from './pages/Health'
 import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
 import { MonthlyGoals } from './pages/MonthlyGoals'
+import { QuarterlyGoals } from './pages/QuarterlyGoals'
 import { AnnualGoals } from './pages/AnnualGoals'
 import { NextWeekGoals } from './pages/NextWeekGoals'
 import { NextMonthGoals } from './pages/NextMonthGoals'
+import { NextQuarterGoals } from './pages/NextQuarterGoals'
 import { Ideas } from './pages/Ideas'
 import { Revelations } from './pages/Revelations'
 import { Cruxes } from './pages/Cruxes'
@@ -36,9 +38,11 @@ function App() {
           <Route path="/words" element={<Words />} />
           <Route path="/goals" element={<Goals />} />
           <Route path="/goals/this-month" element={<MonthlyGoals />} />
+          <Route path="/goals/this-quarter" element={<QuarterlyGoals />} />
           <Route path="/goals/this-year" element={<AnnualGoals />} />
           <Route path="/goals/next-week" element={<NextWeekGoals />} />
           <Route path="/goals/next-month" element={<NextMonthGoals />} />
+          <Route path="/goals/next-quarter" element={<NextQuarterGoals />} />
           <Route path="/ideas" element={<Ideas />} />
           <Route path="/ideas/revelations" element={<Revelations />} />
           <Route path="/ideas/cruxes" element={<Cruxes />} />

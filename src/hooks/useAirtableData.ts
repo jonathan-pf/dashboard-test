@@ -358,6 +358,47 @@ export function useAnnualGoals() {
   )
 }
 
+// Helper: get the start/end YYYY-MM-DD of the quarter `offset` quarters from the
+// one containing `from` (offset 0 = current quarter, 1 = next quarter).
+function getQuarterRange(from: Date, offset: number): { start: string; end: string } {
+  const baseQuarter = Math.floor(from.getMonth() / 3)
+  const startMonth = baseQuarter * 3 + offset * 3
+  const start = new Date(from.getFullYear(), startMonth, 1)
+  const end = new Date(from.getFullYear(), startMonth + 3, 0)
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  }
+}
+
+export function useCurrentQuarterGoals() {
+  return useLiveQuery(async () => {
+    const { start, end } = getQuarterRange(new Date(), 0)
+    return db.goals
+      .filter((g) =>
+        g.type === 'Quarterly' &&
+        g.deadline !== null &&
+        g.deadline >= start &&
+        g.deadline <= end
+      )
+      .toArray()
+  }, [])
+}
+
+export function useNextQuarterGoals() {
+  return useLiveQuery(async () => {
+    const { start, end } = getQuarterRange(new Date(), 1)
+    return db.goals
+      .filter((g) =>
+        g.type === 'Quarterly' &&
+        g.deadline !== null &&
+        g.deadline >= start &&
+        g.deadline <= end
+      )
+      .toArray()
+  }, [])
+}
+
 // Helper: add N days to a YYYY-MM-DD string, returns YYYY-MM-DD
 function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T00:00:00Z')
