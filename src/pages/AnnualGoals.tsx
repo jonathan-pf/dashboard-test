@@ -10,6 +10,7 @@ import {
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
+import { groupGoalsByArea } from '@/utils/groupGoalsByArea'
 
 export function AnnualGoals() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -42,9 +43,8 @@ export function AnnualGoals() {
     return createdDate.getFullYear() === currentYear
   }) ?? []
 
-  const liveAnnual = annualGoals.filter((g) => g.status === 'Live')
   const completedAnnual = annualGoals.filter((g) => g.status === 'Success')
-  const failedAnnual = annualGoals.filter((g) => g.status === 'Fail')
+  const goalsByArea = groupGoalsByArea(annualGoals, areas)
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -265,26 +265,40 @@ export function AnnualGoals() {
           </span>
         </div>
 
-        {liveAnnual.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveAnnual.map((goal) => renderGoalItem(goal, 'live'))}
-          </div>
-        )}
+        {goalsByArea.map(({ name, goals }) => {
+          const live = goals.filter((g) => g.status === 'Live')
+          const completed = goals.filter((g) => g.status === 'Success')
+          const failed = goals.filter((g) => g.status === 'Fail')
 
-        {completedAnnual.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedAnnual.map((goal) => renderGoalItem(goal, 'completed'))}
-          </div>
-        )}
+          return (
+            <div key={name} className="mb-6 last:mb-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                {name}
+              </p>
 
-        {failedAnnual.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedAnnual.map((goal) => renderGoalItem(goal, 'failed'))}
-          </div>
-        )}
+              {live.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-slate-500">Active</p>
+                  {live.map((goal) => renderGoalItem(goal, 'live'))}
+                </div>
+              )}
+
+              {completed.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-green-600">Completed</p>
+                  {completed.map((goal) => renderGoalItem(goal, 'completed'))}
+                </div>
+              )}
+
+              {failed.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-600">Failed</p>
+                  {failed.map((goal) => renderGoalItem(goal, 'failed'))}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {annualGoals.length === 0 && (
           <div className="text-center py-4 text-slate-400">

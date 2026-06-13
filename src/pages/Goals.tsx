@@ -13,6 +13,7 @@ import {
   useWeeks,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
+import { groupGoalsByArea } from '@/utils/groupGoalsByArea'
 
 export function Goals() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -44,40 +45,7 @@ export function Goals() {
     goals.filter((g) => g.status === status)
 
   // Group goals by area
-  const goalsByArea = (() => {
-    const goals = currentWeekGoals ?? []
-    const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
-
-    // Build area groups in area order
-    if (areas) {
-      for (const area of areas) {
-        areaMap.set(area.id, { name: area.name, goals: [] })
-      }
-    }
-    // Null for ungrouped
-    areaMap.set(null, { name: 'No Area', goals: [] })
-
-    for (const goal of goals) {
-      const key = goal.areaId ?? null
-      const group = areaMap.get(key)
-      if (group) {
-        group.goals.push(goal)
-      } else {
-        // Area exists in goal but not in areas list — put in ungrouped
-        areaMap.get(null)!.goals.push(goal)
-      }
-    }
-
-    // Return only groups that have goals, with ungrouped last
-    return [...areaMap.entries()]
-      .filter(([, group]) => group.goals.length > 0)
-      .sort(([keyA], [keyB]) => {
-        if (keyA === null) return 1
-        if (keyB === null) return -1
-        return 0
-      })
-      .map(([, group]) => group)
-  })()
+  const goalsByArea = groupGoalsByArea(currentWeekGoals ?? [], areas)
 
   // Progress calculation
   const completedGoals = (currentWeekGoals ?? []).filter((g) => g.status === 'Success')
