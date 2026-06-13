@@ -13,6 +13,7 @@ import {
   useUpdateGoalDetails,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
+import { groupGoalsByArea } from '@/utils/groupGoalsByArea'
 
 function getNextMonthInfo() {
   const now = new Date()
@@ -62,9 +63,9 @@ export function NextMonthGoals() {
   const quarterLabel = `Q${Math.floor(nextMonthDate.getMonth() / 3) + 1} ${nextMonthDate.getFullYear()}`
   const liveQuarterGoals = quarterGoals?.filter((g) => g.status === 'Live') ?? []
 
-  const liveGoals = nextMonthGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = nextMonthGoals?.filter((g) => g.status === 'Success') ?? []
   const failedGoals = nextMonthGoals?.filter((g) => g.status === 'Fail') ?? []
+  const goalsByArea = groupGoalsByArea(nextMonthGoals ?? [], areas)
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -162,6 +163,73 @@ export function NextMonthGoals() {
 
   const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending || updateGoalDetails.isPending
 
+  const renderGoalButton = (goal: LocalGoalsRecord, status: 'live' | 'completed' | 'failed') => {
+    if (status === 'live') {
+      return (
+        <button
+          key={goal.id}
+          onClick={() => openActionSheet(goal)}
+          className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
+        >
+          <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+            {goal.currentConfidence !== null && (
+              <p className="text-xs text-slate-500">
+                Confidence: {Math.round(goal.currentConfidence * 100)}%
+              </p>
+            )}
+          </div>
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )
+    }
+
+    if (status === 'completed') {
+      return (
+        <button
+          key={goal.id}
+          onClick={() => openActionSheet(goal)}
+          className="w-full flex items-center gap-3 p-3 bg-green-50 rounded-lg text-left hover:bg-green-100 transition-colors"
+        >
+          <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
+            {goal.name}
+          </p>
+          <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      )
+    }
+
+    return (
+      <button
+        key={goal.id}
+        onClick={() => openActionSheet(goal)}
+        className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left hover:opacity-80 transition-opacity"
+      >
+        <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </span>
+        <p className="text-sm font-medium text-slate-900 line-through flex-1">
+          {goal.name}
+        </p>
+        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -195,81 +263,40 @@ export function NextMonthGoals() {
           />
         </div>
 
-        {liveGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
-              >
-                <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-                  {goal.currentConfidence !== null && (
-                    <p className="text-xs text-slate-500">
-                      Confidence: {Math.round(goal.currentConfidence * 100)}%
-                    </p>
-                  )}
+        {goalsByArea.map(({ name, goals }) => {
+          const live = goals.filter((g) => g.status === 'Live')
+          const completed = goals.filter((g) => g.status === 'Success')
+          const failed = goals.filter((g) => g.status === 'Fail')
+
+          return (
+            <div key={name} className="mb-6 last:mb-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                {name}
+              </p>
+
+              {live.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-slate-500">Active</p>
+                  {live.map((goal) => renderGoalButton(goal, 'live'))}
                 </div>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              )}
 
-        {completedGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-green-50 rounded-lg text-left hover:bg-green-100 transition-colors"
-              >
-                <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
-                  {goal.name}
-                </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              {completed.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-green-600">Completed</p>
+                  {completed.map((goal) => renderGoalButton(goal, 'completed'))}
+                </div>
+              )}
 
-        {failedGoals.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left hover:opacity-80 transition-opacity"
-              >
-                <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </span>
-                <p className="text-sm font-medium text-slate-900 line-through flex-1">
-                  {goal.name}
-                </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              {failed.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-600">Failed</p>
+                  {failed.map((goal) => renderGoalButton(goal, 'failed'))}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {(!nextMonthGoals || nextMonthGoals.length === 0) && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
