@@ -10,6 +10,7 @@ import {
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
+import { groupGoalsByArea } from '@/utils/groupGoalsByArea'
 
 export function MonthlyGoals() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -46,9 +47,8 @@ export function MonthlyGoals() {
   // Format month name for display
   const monthName = now.toLocaleString('default', { month: 'long' })
 
-  const liveMonthly = monthlyGoals.filter((g) => g.status === 'Live')
   const completedMonthly = monthlyGoals.filter((g) => g.status === 'Success')
-  const failedMonthly = monthlyGoals.filter((g) => g.status === 'Fail')
+  const goalsByArea = groupGoalsByArea(monthlyGoals, areas)
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -269,26 +269,40 @@ export function MonthlyGoals() {
           </span>
         </div>
 
-        {liveMonthly.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveMonthly.map((goal) => renderGoalItem(goal, 'live'))}
-          </div>
-        )}
+        {goalsByArea.map(({ name, goals }) => {
+          const live = goals.filter((g) => g.status === 'Live')
+          const completed = goals.filter((g) => g.status === 'Success')
+          const failed = goals.filter((g) => g.status === 'Fail')
 
-        {completedMonthly.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedMonthly.map((goal) => renderGoalItem(goal, 'completed'))}
-          </div>
-        )}
+          return (
+            <div key={name} className="mb-6 last:mb-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                {name}
+              </p>
 
-        {failedMonthly.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedMonthly.map((goal) => renderGoalItem(goal, 'failed'))}
-          </div>
-        )}
+              {live.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-slate-500">Active</p>
+                  {live.map((goal) => renderGoalItem(goal, 'live'))}
+                </div>
+              )}
+
+              {completed.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-green-600">Completed</p>
+                  {completed.map((goal) => renderGoalItem(goal, 'completed'))}
+                </div>
+              )}
+
+              {failed.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-600">Failed</p>
+                  {failed.map((goal) => renderGoalItem(goal, 'failed'))}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {monthlyGoals.length === 0 && (
           <div className="text-center py-4 text-slate-400">
