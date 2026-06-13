@@ -80,7 +80,7 @@ export interface GoalsRecord extends AirtableRecord {
     'This Week?': string[] // Lookup
     'Next Week?': string[] // Lookup
     Notes: string | null // Rich text
-    Type: 'Weekly' | 'Monthly' | 'Annual'
+    Type: 'Weekly' | 'Monthly' | 'Quarterly' | 'Annual'
     'Area Type': string // Formula
   }
 }
@@ -250,7 +250,7 @@ export interface LocalGoalsRecord {
   deadline: string | null
   status: 'Live' | 'Success' | 'Fail'
   weekId: string | null
-  type: 'Weekly' | 'Monthly' | 'Annual'
+  type: 'Weekly' | 'Monthly' | 'Quarterly' | 'Annual'
   notes: string | null
   createdTime: string
   _pendingSync?: boolean
