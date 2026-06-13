@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useNextMonthGoals,
+  useCurrentQuarterGoals,
+  useNextQuarterGoals,
   useAnnualGoals,
   useAreas,
   useCreateGoal,
@@ -38,6 +40,8 @@ export function NextMonthGoals() {
   const [editAreaId, setEditAreaId] = useState<string>('')
 
   const nextMonthGoals = useNextMonthGoals()
+  const currentQuarterGoals = useCurrentQuarterGoals()
+  const nextQuarterGoals = useNextQuarterGoals()
   const annualGoals = useAnnualGoals()
   const areas = useAreas()
   const createGoal = useCreateGoal()
@@ -46,6 +50,17 @@ export function NextMonthGoals() {
   const updateGoalDetails = useUpdateGoalDetails()
 
   const { monthName, defaultDeadline } = getNextMonthInfo()
+
+  // Determine which quarter next month falls in. Since next month is at most
+  // one month ahead, it's always either the current quarter or the next one.
+  const now = new Date()
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const nextMonthInCurrentQuarter =
+    nextMonthDate.getFullYear() === now.getFullYear() &&
+    Math.floor(nextMonthDate.getMonth() / 3) === Math.floor(now.getMonth() / 3)
+  const quarterGoals = nextMonthInCurrentQuarter ? currentQuarterGoals : nextQuarterGoals
+  const quarterLabel = `Q${Math.floor(nextMonthDate.getMonth() / 3) + 1} ${nextMonthDate.getFullYear()}`
+  const liveQuarterGoals = quarterGoals?.filter((g) => g.status === 'Live') ?? []
 
   const liveGoals = nextMonthGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = nextMonthGoals?.filter((g) => g.status === 'Success') ?? []
@@ -346,6 +361,31 @@ export function NextMonthGoals() {
           </button>
         )}
       </div>
+
+      {/* Quarter Goals Reference Section */}
+      {liveQuarterGoals.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-3">{quarterLabel} Goals (Reference)</h3>
+          <div className="space-y-2">
+            {liveQuarterGoals.map((goal) => (
+              <div
+                key={goal.id}
+                className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg"
+              >
+                <span className="w-6 h-6 rounded-full border-2 border-teal-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                  {goal.currentConfidence !== null && (
+                    <p className="text-xs text-slate-500">
+                      Confidence: {Math.round(goal.currentConfidence * 100)}%
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Annual Goals Reference Section */}
       {annualGoals && annualGoals.length > 0 && (
