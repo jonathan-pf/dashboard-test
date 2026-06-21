@@ -33,11 +33,15 @@ export function Health() {
   const repsData = useHealthByType('Reps')
   const tidyData = useHealthByType('Tidy')
   const weightData = useHealthByType('Weight')
+  const frogsData = useHealthByType('Frogs')
+  const treatsData = useHealthByType('Treats')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
   const repsTrends = useHealthTrends('Reps', 30)
   const tidyTrends = useHealthTrends('Tidy', 30)
   const weightTrends = useHealthTrends('Weight', 30)
+  const frogsTrends = useHealthTrends('Frogs', 30)
+  const treatsTrends = useHealthTrends('Treats', 30)
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
@@ -46,6 +50,8 @@ export function Health() {
     ...(repsData ?? []),
     ...(tidyData ?? []),
     ...(weightData ?? []),
+    ...(frogsData ?? []),
+    ...(treatsData ?? []),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
@@ -245,6 +251,18 @@ export function Health() {
             >
               + Log Weight
             </button>
+            <button
+              onClick={() => startEntry('Frogs')}
+              className="w-full py-3 bg-teal-50 text-teal-600 rounded-lg font-medium hover:bg-teal-100 transition-colors"
+            >
+              + Log Frogs
+            </button>
+            <button
+              onClick={() => startEntry('Treats')}
+              className="w-full py-3 bg-rose-50 text-rose-600 rounded-lg font-medium hover:bg-rose-100 transition-colors"
+            >
+              + Log Treats
+            </button>
           </div>
         )}
       </div>
@@ -305,6 +323,24 @@ export function Health() {
         />
       </div>
 
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Frogs Trend (30 days)</h3>
+        <HealthTrendChart
+          data={frogsTrends}
+          type="Frogs"
+          loading={!frogsTrends}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Treats Trend (30 days)</h3>
+        <HealthTrendChart
+          data={treatsTrends}
+          type="Treats"
+          loading={!treatsTrends}
+        />
+      </div>
+
       {/* Recent entries */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Recent Entries</h3>
@@ -328,6 +364,10 @@ export function Health() {
                         ? 'bg-pink-500'
                         : entry.type === 'Weight'
                         ? 'bg-indigo-500'
+                        : entry.type === 'Frogs'
+                        ? 'bg-teal-500'
+                        : entry.type === 'Treats'
+                        ? 'bg-rose-500'
                         : 'bg-purple-500'
                     }`}
                   />
