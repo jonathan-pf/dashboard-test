@@ -102,8 +102,11 @@ export function Health() {
   }
 
   const startEntry = (type: HealthType) => {
-    // Default to yesterday for Glucose and Units, today for others
-    const defaultDate = type === 'Glucose' || type === 'Units' ? getYesterday() : getToday()
+    // Default to yesterday for Glucose, Units, Frog and Treat, today for others
+    const defaultDate =
+      type === 'Glucose' || type === 'Units' || type === 'Frog' || type === 'Treat'
+        ? getYesterday()
+        : getToday()
     setEntryDate(defaultDate)
     setEntryUnitsType(null)
     setActiveEntry(type)
