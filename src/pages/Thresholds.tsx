@@ -4,7 +4,7 @@ import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThresho
 import type { LocalThresholdsRecord, LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
 
-const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frogs', 'Treats']
+const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
 const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella']
 const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays', 'sumLastNDays', 'averageLastNDays']
