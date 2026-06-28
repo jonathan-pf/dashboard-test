@@ -37,9 +37,48 @@ export function NextWeekGoals() {
   const updateGoalConfidence = useUpdateGoalConfidence()
   const updateGoalDetails = useUpdateGoalDetails()
 
-  const liveGoals = nextWeekGoals?.filter((g) => g.status === 'Live') ?? []
   const completedGoals = nextWeekGoals?.filter((g) => g.status === 'Success') ?? []
   const failedGoals = nextWeekGoals?.filter((g) => g.status === 'Fail') ?? []
+
+  // Helper to get goals by status within a group
+  const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
+    goals.filter((g) => g.status === status)
+
+  // Group goals by area
+  const goalsByArea = (() => {
+    const goals = nextWeekGoals ?? []
+    const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
+
+    // Build area groups in area order
+    if (areas) {
+      for (const area of areas) {
+        areaMap.set(area.id, { name: area.name, goals: [] })
+      }
+    }
+    // Null for ungrouped
+    areaMap.set(null, { name: 'No Area', goals: [] })
+
+    for (const goal of goals) {
+      const key = goal.areaId ?? null
+      const group = areaMap.get(key)
+      if (group) {
+        group.goals.push(goal)
+      } else {
+        // Area exists in goal but not in areas list — put in ungrouped
+        areaMap.get(null)!.goals.push(goal)
+      }
+    }
+
+    // Return only groups that have goals, with ungrouped last
+    return [...areaMap.entries()]
+      .filter(([, group]) => group.goals.length > 0)
+      .sort(([keyA], [keyB]) => {
+        if (keyA === null) return 1
+        if (keyB === null) return -1
+        return 0
+      })
+      .map(([, group]) => group)
+  })()
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -181,81 +220,96 @@ export function NextWeekGoals() {
           />
         </div>
 
-        {liveGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
-              >
-                <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-                  {goal.currentConfidence !== null && (
-                    <p className="text-xs text-slate-500">
-                      Confidence: {Math.round(goal.currentConfidence * 100)}%
-                    </p>
-                  )}
+        {/* Render goal sections grouped by area */}
+        {goalsByArea.map(({ name, goals }) => {
+          const live = getGoalsByStatus(goals, 'Live')
+          const completed = getGoalsByStatus(goals, 'Success')
+          const failed = getGoalsByStatus(goals, 'Fail')
+
+          return (
+            <div key={name} className="mb-6 last:mb-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                {name}
+              </p>
+
+              {live.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-slate-500">Active</p>
+                  {live.map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => openActionSheet(goal)}
+                      className="w-full flex items-center gap-3 p-3 bg-slate-50 rounded-lg text-left hover:bg-slate-100 transition-colors"
+                    >
+                      <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                        {goal.currentConfidence !== null && (
+                          <p className="text-xs text-slate-500">
+                            Confidence: {Math.round(goal.currentConfidence * 100)}%
+                          </p>
+                        )}
+                      </div>
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
                 </div>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              )}
 
-        {completedGoals.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-green-50 rounded-lg text-left hover:bg-green-100 transition-colors"
-              >
-                <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
-                  {goal.name}
-                </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              {completed.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-green-600">Completed</p>
+                  {completed.map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => openActionSheet(goal)}
+                      className="w-full flex items-center gap-3 p-3 bg-green-50 rounded-lg text-left hover:bg-green-100 transition-colors"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                      <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
+                        {goal.name}
+                      </p>
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              )}
 
-        {failedGoals.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedGoals.map((goal) => (
-              <button
-                key={goal.id}
-                onClick={() => openActionSheet(goal)}
-                className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left hover:opacity-80 transition-opacity"
-              >
-                <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </span>
-                <p className="text-sm font-medium text-slate-900 line-through flex-1">
-                  {goal.name}
-                </p>
-                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
+              {failed.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-600">Failed</p>
+                  {failed.map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => openActionSheet(goal)}
+                      className="w-full flex items-center gap-3 p-3 bg-red-50 rounded-lg opacity-60 text-left hover:opacity-80 transition-opacity"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </span>
+                      <p className="text-sm font-medium text-slate-900 line-through flex-1">
+                        {goal.name}
+                      </p>
+                      <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {(!nextWeekGoals || nextWeekGoals.length === 0) && !showAddForm && (
           <div className="text-center py-8 text-slate-400">
