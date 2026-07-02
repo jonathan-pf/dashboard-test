@@ -17,6 +17,22 @@ export interface HealthRecord extends AirtableRecord {
   }
 }
 
+// Sugar Summary table - auto-populated CGM data, 4 six-hour buckets per day (read-only)
+export type SugarPeriod = '01:00-07:00' | '07:00-13:00' | '13:00-19:00' | '19:00-01:00'
+export type SugarThresholdPeriod = SugarPeriod | 'All day'
+
+export interface SugarSummaryRecord extends AirtableRecord {
+  fields: {
+    'Summary key'?: string // e.g. "2026-07-02 01:00-07:00"
+    Date: string // ISO date string
+    Period?: SugarPeriod // Single select bucket
+    'Avg glucose'?: number
+    Readings?: number
+    Min?: number
+    Max?: number
+  }
+}
+
 // Words table - tracks writing by project
 export interface WordsRecord extends AirtableRecord {
   fields: {
@@ -160,11 +176,12 @@ export interface RulesRecord extends AirtableRecord {
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
-    Source: 'health' | 'ideas' | 'words' | 'leisure'
+    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | null
+    'Sugar Period'?: SugarThresholdPeriod | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'sumLastNDays' | 'averageLastNDays'
     Days?: number | null
     'Red Threshold': number
@@ -203,6 +220,19 @@ export interface LocalHealthRecord {
 
 export const UNITS_TYPES = ['Theory', 'Social'] as const
 export type UnitsType = LocalHealthRecord['unitsType']
+
+// Local cache format for Sugar Summary (read-only, externally populated)
+export interface LocalSugarSummaryRecord {
+  id: string
+  summaryKey: string
+  date: string
+  period: SugarPeriod | null
+  avgGlucose: number | null
+  readings: number | null
+  min: number | null
+  max: number | null
+  createdTime: string
+}
 
 export interface LocalWordsRecord {
   id: string
@@ -316,11 +346,12 @@ export interface LocalRulesRecord {
 export interface LocalThresholdsRecord {
   id: string
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | null
+  sugarPeriod: SugarThresholdPeriod | null
   aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'sumLastNDays' | 'averageLastNDays'
   days: number | null
   redThreshold: number
@@ -476,6 +507,7 @@ export const TABLES = {
   EVENTS: 'Events',
   LEISURE: 'Leisure',
   THRESHOLDS: 'Thresholds',
+  SUGAR_SUMMARY: 'Sugar Summary',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

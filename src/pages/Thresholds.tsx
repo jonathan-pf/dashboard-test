@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors } from '@/hooks/useAirtableData'
-import type { LocalThresholdsRecord, LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
+import type { LocalThresholdsRecord, LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
+
+type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
 const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella']
 const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays', 'sumLastNDays', 'averageLastNDays']
+// Blood-sugar thresholds check an average, so only these aggregations make sense.
+const SUGAR_AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'averageLast3', 'averageLastNDays']
+const SUGAR_PERIODS: SugarThresholdPeriod[] = ['01:00-07:00', '07:00-13:00', '13:00-19:00', '19:00-01:00', 'All day']
+
+// Aggregations that need a "Days" window
+const usesDays = (agg: LocalThresholdsRecord['aggregation']) =>
+  agg === 'countLastNDays' || agg === 'sumLastNDays' || agg === 'averageLastNDays'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -18,21 +27,23 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 const LEISURE_PERIODS: ('This Week' | 'Last Week')[] = ['This Week', 'Last Week']
 
-const SOURCE_COLORS = {
+const SOURCE_COLORS: Record<ThresholdSource, string> = {
   health: 'bg-purple-100 text-purple-700',
   ideas: 'bg-blue-100 text-blue-700',
   words: 'bg-orange-100 text-orange-700',
   leisure: 'bg-green-100 text-green-700',
+  sugar: 'bg-amber-100 text-amber-700',
 }
 
 export function Thresholds() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newSource, setNewSource] = useState<'health' | 'ideas' | 'words' | 'leisure'>('health')
+  const [newSource, setNewSource] = useState<ThresholdSource>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newLeisurePeriod, setNewLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
+  const [newSugarPeriod, setNewSugarPeriod] = useState<SugarThresholdPeriod>('All day')
   const [newAggregation, setNewAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [newDays, setNewDays] = useState('7')
   const [newRedThreshold, setNewRedThreshold] = useState('')
@@ -41,11 +52,12 @@ export function Thresholds() {
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
-  const [editSource, setEditSource] = useState<'health' | 'ideas' | 'words' | 'leisure'>('health')
+  const [editSource, setEditSource] = useState<ThresholdSource>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editLeisurePeriod, setEditLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
+  const [editSugarPeriod, setEditSugarPeriod] = useState<SugarThresholdPeriod>('All day')
   const [editAggregation, setEditAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [editDays, setEditDays] = useState('7')
   const [editRedThreshold, setEditRedThreshold] = useState('')
@@ -67,13 +79,15 @@ export function Thresholds() {
     }
   }
 
-  const handleSourceChange = (source: 'health' | 'ideas' | 'words' | 'leisure', setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
+  const handleSourceChange = (source: ThresholdSource, setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
     if (source === 'health') {
       setAgg('lastValue')
     } else if (source === 'ideas') {
       setAgg('countLastNDays')
     } else if (source === 'leisure') {
       setAgg('lastValue')
+    } else if (source === 'sugar') {
+      setAgg('averageLastNDays')
     } else {
       setAgg('sumLast7Days')
     }
@@ -89,8 +103,9 @@ export function Thresholds() {
       ideaType: newSource === 'ideas' ? newIdeaType : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
+      sugarPeriod: newSource === 'sugar' ? newSugarPeriod : null,
       aggregation: newSource === 'ideas' ? 'countLastNDays' : newSource === 'leisure' ? 'lastValue' : newAggregation,
-      days: newAggregation === 'countLastNDays' || newSource === 'ideas' ? Number(newDays) || 7 : null,
+      days: usesDays(newAggregation) || newSource === 'ideas' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
       lowerIsBetter: newLowerIsBetter,
@@ -103,6 +118,7 @@ export function Thresholds() {
     setNewIdeaType('Revelation')
     setNewWordsProject('All')
     setNewLeisurePeriod('This Week')
+    setNewSugarPeriod('All day')
     setNewAggregation('lastValue')
     setNewDays('7')
     setNewRedThreshold('')
@@ -124,6 +140,7 @@ export function Thresholds() {
     setEditIdeaType((t.ideaType as LocalIdeasRecord['type']) ?? 'Revelation')
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
+    setEditSugarPeriod(t.sugarPeriod ?? 'All day')
     setEditAggregation(t.aggregation)
     setEditDays(String(t.days ?? 7))
     setEditRedThreshold(String(t.redThreshold))
@@ -143,8 +160,9 @@ export function Thresholds() {
         ideaType: editSource === 'ideas' ? editIdeaType : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
+        sugarPeriod: editSource === 'sugar' ? editSugarPeriod : null,
         aggregation: editSource === 'ideas' ? 'countLastNDays' : editSource === 'leisure' ? 'lastValue' : editAggregation,
-        days: editAggregation === 'countLastNDays' || editSource === 'ideas' ? Number(editDays) || 7 : null,
+        days: usesDays(editAggregation) || editSource === 'ideas' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
         lowerIsBetter: editLowerIsBetter,
@@ -211,6 +229,7 @@ export function Thresholds() {
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
+            sugarPeriod={newSugarPeriod} setSugarPeriod={setNewSugarPeriod}
             aggregation={newAggregation} setAggregation={setNewAggregation}
             days={newDays} setDays={setNewDays}
             redThreshold={newRedThreshold} setRedThreshold={setNewRedThreshold}
@@ -247,6 +266,7 @@ export function Thresholds() {
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
+                    sugarPeriod={editSugarPeriod} setSugarPeriod={setEditSugarPeriod}
                     aggregation={editAggregation} setAggregation={setEditAggregation}
                     days={editDays} setDays={setEditDays}
                     redThreshold={editRedThreshold} setRedThreshold={setEditRedThreshold}
@@ -276,7 +296,7 @@ export function Thresholds() {
                         {t.source}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.leisurePeriod}
+                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : t.leisurePeriod}
                       </span>
                     </div>
                   </div>
@@ -310,6 +330,7 @@ function ThresholdForm({
   ideaType, setIdeaType,
   wordsProject, setWordsProject,
   leisurePeriod, setLeisurePeriod,
+  sugarPeriod, setSugarPeriod,
   aggregation, setAggregation,
   days, setDays,
   redThreshold, setRedThreshold,
@@ -325,11 +346,12 @@ function ThresholdForm({
 }: {
   title: string
   name: string; setName: (v: string) => void
-  source: 'health' | 'ideas' | 'words' | 'leisure'; setSource: (v: 'health' | 'ideas' | 'words' | 'leisure') => void
+  source: ThresholdSource; setSource: (v: ThresholdSource) => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   leisurePeriod: 'This Week' | 'Last Week'; setLeisurePeriod: (v: 'This Week' | 'Last Week') => void
+  sugarPeriod: SugarThresholdPeriod; setSugarPeriod: (v: SugarThresholdPeriod) => void
   aggregation: LocalThresholdsRecord['aggregation']; setAggregation: (v: LocalThresholdsRecord['aggregation']) => void
   days: string; setDays: (v: string) => void
   redThreshold: string; setRedThreshold: (v: string) => void
@@ -361,13 +383,14 @@ function ThresholdForm({
           <label className="block text-sm font-medium text-slate-700 mb-1">Source</label>
           <select
             value={source}
-            onChange={(e) => setSource(e.target.value as 'health' | 'ideas' | 'words')}
+            onChange={(e) => setSource(e.target.value as ThresholdSource)}
             className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           >
             <option value="health">Health</option>
             <option value="ideas">Ideas</option>
             <option value="words">Words</option>
             <option value="leisure">Leisure</option>
+            <option value="sugar">Blood Sugar</option>
           </select>
         </div>
         {source === 'health' ? (
@@ -403,7 +426,7 @@ function ThresholdForm({
               {WORDS_PROJECTS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-        ) : (
+        ) : source === 'leisure' ? (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Leisure Period</label>
             <select
@@ -414,10 +437,21 @@ function ThresholdForm({
               {LEISURE_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Sugar Period</label>
+            <select
+              value={sugarPeriod}
+              onChange={(e) => setSugarPeriod(e.target.value as SugarThresholdPeriod)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {SUGAR_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {(source === 'health' || source === 'words') && (
+        {(source === 'health' || source === 'words' || source === 'sugar') && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Aggregation</label>
             <select
@@ -425,7 +459,7 @@ function ThresholdForm({
               onChange={(e) => setAggregation(e.target.value as LocalThresholdsRecord['aggregation'])}
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
-              {AGGREGATIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+              {(source === 'sugar' ? SUGAR_AGGREGATIONS : AGGREGATIONS).map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
         )}

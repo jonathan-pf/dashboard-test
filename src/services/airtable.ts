@@ -186,7 +186,9 @@ export class AirtableService {
     const response = await fetch(this.buildUrl(tableName), {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({ fields }),
+      // typecast lets Airtable auto-create new single-select options (e.g. a new
+      // threshold Source or Sugar Period) from string values instead of erroring.
+      body: JSON.stringify({ fields, typecast: true }),
     })
 
     if (!response.ok) {
@@ -210,7 +212,8 @@ export class AirtableService {
     const response = await fetch(this.buildUrl(tableName, recordId), {
       method: 'PATCH',
       headers: this.headers,
-      body: JSON.stringify({ fields }),
+      // typecast lets Airtable auto-create new single-select options from strings.
+      body: JSON.stringify({ fields, typecast: true }),
     })
 
     if (!response.ok) {

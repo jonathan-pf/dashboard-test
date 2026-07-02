@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
-import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord } from '@/types/airtable'
+import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -12,11 +12,12 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
   healthType?: string | null
   ideaType?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
+  sugarPeriod?: string | null
   aggregation: string
   days?: number | null
   redThreshold: number
@@ -142,6 +143,21 @@ function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
+function SugarTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const period = (definition.sugarPeriod ?? 'All day') as SugarThresholdPeriod
+  const value = useSugarPeriodValue(period, definition.aggregation, definition.days ?? 7)
+
+  const loading = value === undefined
+  const color = getTrafficLightColor(value ?? null, definition)
+  const displayValue = value !== null && value !== undefined ? value.toFixed(1) : '--'
+
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}`
+    : `≥ ${definition.greenThreshold}`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
 function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   if (definition.source === 'ideas') {
     return <IdeasTrafficLightItem definition={definition} />
@@ -151,6 +167,9 @@ function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   }
   if (definition.source === 'leisure') {
     return <LeisureTrafficLightItem definition={definition} />
+  }
+  if (definition.source === 'sugar') {
+    return <SugarTrafficLightItem definition={definition} />
   }
   return <HealthTrafficLightItem definition={definition} />
 }

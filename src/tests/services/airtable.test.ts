@@ -83,7 +83,7 @@ describe('AirtableService', () => {
         expect.any(String),
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ fields: { Value: 5.5, Type: 'Glucose' } }),
+          body: JSON.stringify({ fields: { Value: 5.5, Type: 'Glucose' }, typecast: true }),
         })
       )
       expect(result.id).toBe('rec123')

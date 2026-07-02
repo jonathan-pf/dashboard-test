@@ -20,6 +20,7 @@ import type {
   EventsRecord,
   LeisureRecord,
   ThresholdsRecord,
+  SugarSummaryRecord,
   LocalHealthRecord,
   LocalWordsRecord,
   LocalWeeksRecord,
@@ -31,6 +32,9 @@ import type {
   LocalEventsRecord,
   LocalLeisureRecord,
   LocalThresholdsRecord,
+  LocalSugarSummaryRecord,
+  SugarPeriod,
+  SugarThresholdPeriod,
   PendingMutation,
   TableName,
   TABLES,
@@ -172,6 +176,29 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
   }
 }
 
+// Extract a single-select value, which Airtable may return as an object or a string
+function selectName<T extends string>(value: unknown): T | null {
+  if (value == null) return null
+  if (typeof value === 'object' && 'name' in (value as Record<string, unknown>)) {
+    return ((value as { name?: T }).name ?? null) as T | null
+  }
+  return value as T
+}
+
+function transformSugarSummaryRecord(record: SugarSummaryRecord): LocalSugarSummaryRecord {
+  return {
+    id: record.id,
+    summaryKey: record.fields['Summary key'] || '',
+    date: record.fields.Date,
+    period: selectName<SugarPeriod>(record.fields.Period),
+    avgGlucose: record.fields['Avg glucose'] ?? null,
+    readings: record.fields.Readings ?? null,
+    min: record.fields.Min ?? null,
+    max: record.fields.Max ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
 function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRecord {
   return {
     id: record.id,
@@ -181,6 +208,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     ideaType: record.fields['Idea Type'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
+    sugarPeriod: selectName<SugarThresholdPeriod>(record.fields['Sugar Period']),
     aggregation: record.fields.Aggregation || 'lastValue',
     days: record.fields.Days ?? null,
     redThreshold: record.fields['Red Threshold'] ?? 0,
@@ -313,6 +341,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Idea Type': record.ideaType,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
+    'Sugar Period': record.sugarPeriod,
     Aggregation: record.aggregation,
     Days: record.days,
     'Red Threshold': record.redThreshold,
@@ -413,7 +442,7 @@ class SyncService {
     debugLog('Starting data pull from Airtable...')
 
     // Fetch all tables sequentially with individual logging
-    debugLog('Fetching all 11 tables sequentially...')
+    debugLog('Fetching all 12 tables sequentially...')
     const fetchStart = Date.now()
 
     let healthRecords: HealthRecord[] = []
@@ -427,6 +456,7 @@ class SyncService {
     let eventsRecords: EventsRecord[] = []
     let leisureRecords: LeisureRecord[] = []
     let thresholdsRecords: ThresholdsRecord[] = []
+    let sugarSummaryRecords: SugarSummaryRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -458,6 +488,7 @@ class SyncService {
       eventsRecords = await fetchTable<EventsRecord>('Events')
       leisureRecords = await fetchTable<LeisureRecord>('Leisure')
       thresholdsRecords = await fetchTable<ThresholdsRecord>('Thresholds')
+      sugarSummaryRecords = await fetchTable<SugarSummaryRecord>('Sugar Summary')
     } catch (error) {
       // Extract detailed error info from AirtableError
       if (error instanceof AirtableError) {
@@ -515,7 +546,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -529,6 +560,7 @@ class SyncService {
         await db.events.clear()
         await db.leisure.clear()
         await db.thresholds.clear()
+        await db.sugarSummary.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -543,6 +575,7 @@ class SyncService {
         await db.events.bulkPut(eventsRecords.map(transformEventsRecord))
         await db.leisure.bulkPut(leisureRecords.map(transformLeisureRecord))
         await db.thresholds.bulkPut(thresholdsRecords.map(transformThresholdsRecord))
+        await db.sugarSummary.bulkPut(sugarSummaryRecords.map(transformSugarSummaryRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -553,7 +586,7 @@ class SyncService {
     }
 
     debugLog(
-      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${eventsRecords.length} events, ${leisureRecords.length} leisure, ${thresholdsRecords.length} thresholds`
+      `Summary: ${healthRecords.length} health, ${wordsRecords.length} words, ${weeksRecords.length} weeks, ${goalsRecords.length} goals, ${areasRecords.length} areas, ${ideasRecords.length} ideas, ${careerRecords.length} career, ${rulesRecords.length} rules, ${eventsRecords.length} events, ${leisureRecords.length} leisure, ${thresholdsRecords.length} thresholds, ${sugarSummaryRecords.length} sugarSummary`
     )
   }
 
@@ -1299,7 +1332,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1315,6 +1348,7 @@ class SyncService {
     if (updates.ideaType !== undefined) updateData['Idea Type'] = updates.ideaType
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
+    if (updates.sugarPeriod !== undefined) updateData['Sugar Period'] = updates.sugarPeriod
     if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
     if (updates.days !== undefined) updateData.Days = updates.days
     if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold

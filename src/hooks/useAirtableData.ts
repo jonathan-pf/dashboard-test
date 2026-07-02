@@ -12,7 +12,9 @@ import type {
   LocalLeisureRecord,
   LocalThresholdsRecord,
 } from '@/types/airtable'
+import type { SugarThresholdPeriod } from '@/types/airtable'
 import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
+import { periodDailySeries, aggregateSeries } from '@/utils/sugar'
 
 // Query keys
 export const queryKeys = {
@@ -125,6 +127,33 @@ export function useLeisure() {
 
 export function useThresholds() {
   return useLiveQuery(() => db.thresholds.toArray(), [])
+}
+
+// Sugar Summary (CGM) records within the last N days, sorted ascending by date
+export function useSugarSummary(days = 30) {
+  const start = new Date()
+  start.setDate(start.getDate() - days)
+  const startStr = start.toISOString().split('T')[0]
+  return useLiveQuery(
+    () => db.sugarSummary.where('date').aboveOrEqual(startStr).sortBy('date'),
+    [startStr]
+  )
+}
+
+// Aggregated glucose value for a bucket (or whole day), for a threshold definition
+export function useSugarPeriodValue(
+  period: SugarThresholdPeriod,
+  aggregation: string,
+  days: number | null
+) {
+  return useLiveQuery(
+    async () => {
+      const records = await db.sugarSummary.toArray()
+      const series = periodDailySeries(records, period)
+      return aggregateSeries(series, aggregation, days)
+    },
+    [period, aggregation, days]
+  )
 }
 
 export function useAllThresholdColors() {
@@ -258,6 +287,10 @@ export function useAllThresholdColors() {
 
           value = Math.round(totalSeconds / 3600) // hours
         }
+      } else if (t.source === 'sugar' && t.sugarPeriod) {
+        const records = await db.sugarSummary.toArray()
+        const series = periodDailySeries(records, t.sugarPeriod)
+        value = aggregateSeries(series, t.aggregation, t.days)
       }
 
       colors.set(t.id, getTrafficLightColor(value, t))
@@ -868,7 +901,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

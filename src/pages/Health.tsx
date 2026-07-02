@@ -1,13 +1,17 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { HealthTrendChart } from '@/components/charts/HealthTrendChart'
+import { GlucoseTrendChart } from '@/components/charts/GlucoseTrendChart'
+import { GlucoseTimeOfDayChart } from '@/components/charts/GlucoseTimeOfDayChart'
 import {
   useHealthByType,
   useHealthTrends,
   useCreateHealth,
   useUpdateHealth,
   useCurrentWeek,
+  useSugarSummary,
 } from '@/hooks/useAirtableData'
+import { dailySeries, headlineStats, timeOfDayAverages } from '@/utils/sugar'
 import type { LocalHealthRecord } from '@/types/airtable'
 
 type HealthType = LocalHealthRecord['type']
@@ -19,6 +23,9 @@ const getYesterday = () => {
   d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
 }
+
+const formatMmol = (value: number | null) =>
+  value == null ? '--' : `${value.toFixed(1)}`
 
 export function Health() {
   const [activeEntry, setActiveEntry] = useState<HealthType | null>(null)
@@ -42,6 +49,13 @@ export function Health() {
   const weightTrends = useHealthTrends('Weight', 30)
   const frogsTrends = useHealthTrends('Frog', 30)
   const treatsTrends = useHealthTrends('Treat', 30)
+
+  // Blood glucose (CGM) — auto-synced Sugar Summary table (read-only)
+  const sugarSummary = useSugarSummary(30)
+  const sugarLoading = sugarSummary === undefined
+  const sugarDaily = useMemo(() => dailySeries(sugarSummary ?? []), [sugarSummary])
+  const sugarHeadline = useMemo(() => headlineStats(sugarSummary ?? []), [sugarSummary])
+  const sugarTimeOfDay = useMemo(() => timeOfDayAverages(sugarSummary ?? []), [sugarSummary])
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
@@ -279,6 +293,43 @@ export function Health() {
           <p className="text-sm text-slate-500 mb-1">Social Units (2026)</p>
           <p className="text-2xl font-bold text-sky-600">{socialTotal.toFixed(1)}</p>
         </div>
+      </div>
+
+      {/* Blood Glucose (beta): auto-synced CGM data (Sugar Summary table).
+          Additive for now — the manual Glucose logging above and the "Sugar"
+          traffic-light tile are intentionally left in place. We may later
+          replace the manual metric with this feed. */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-baseline justify-between mb-1">
+          <h3 className="font-semibold text-slate-900">
+            Blood Glucose <span className="text-xs font-medium text-amber-600 align-middle">beta</span>
+          </h3>
+          <span className="text-xs text-slate-400">auto-synced from CGM</span>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">
+          Manual Glucose logging is kept for now; may be replaced by this feed later.
+        </p>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-amber-50 rounded-lg p-3">
+            <p className="text-xs text-amber-700 mb-1">Latest day</p>
+            <p className="text-xl font-bold text-amber-600">{formatMmol(sugarHeadline.latest)}</p>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-3">
+            <p className="text-xs text-amber-700 mb-1">7-day avg</p>
+            <p className="text-xl font-bold text-amber-600">{formatMmol(sugarHeadline.avg7)}</p>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-3">
+            <p className="text-xs text-amber-700 mb-1">30-day avg</p>
+            <p className="text-xl font-bold text-amber-600">{formatMmol(sugarHeadline.avg30)}</p>
+          </div>
+        </div>
+
+        <p className="text-xs font-medium text-slate-500 mb-2">Daily average &amp; range (30 days)</p>
+        <GlucoseTrendChart data={sugarDaily} loading={sugarLoading} />
+
+        <p className="text-xs font-medium text-slate-500 mt-4 mb-2">Average by time of day</p>
+        <GlucoseTimeOfDayChart data={sugarTimeOfDay} loading={sugarLoading} />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
