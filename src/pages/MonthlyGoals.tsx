@@ -46,9 +46,46 @@ export function MonthlyGoals() {
   // Format month name for display
   const monthName = now.toLocaleString('default', { month: 'long' })
 
-  const liveMonthly = monthlyGoals.filter((g) => g.status === 'Live')
   const completedMonthly = monthlyGoals.filter((g) => g.status === 'Success')
-  const failedMonthly = monthlyGoals.filter((g) => g.status === 'Fail')
+
+  // Helper to get goals by status within a group
+  const getGoalsByStatus = (goals: LocalGoalsRecord[], status: 'Live' | 'Success' | 'Fail') =>
+    goals.filter((g) => g.status === status)
+
+  // Group goals by area
+  const goalsByArea = (() => {
+    const areaMap = new Map<string | null, { name: string; goals: LocalGoalsRecord[] }>()
+
+    // Build area groups in area order
+    if (areas) {
+      for (const area of areas) {
+        areaMap.set(area.id, { name: area.name, goals: [] })
+      }
+    }
+    // Null for ungrouped
+    areaMap.set(null, { name: 'No Area', goals: [] })
+
+    for (const goal of monthlyGoals) {
+      const key = goal.areaId ?? null
+      const group = areaMap.get(key)
+      if (group) {
+        group.goals.push(goal)
+      } else {
+        // Area exists in goal but not in areas list — put in ungrouped
+        areaMap.get(null)!.goals.push(goal)
+      }
+    }
+
+    // Return only groups that have goals, with ungrouped last
+    return [...areaMap.entries()]
+      .filter(([, group]) => group.goals.length > 0)
+      .sort(([keyA], [keyB]) => {
+        if (keyA === null) return 1
+        if (keyB === null) return -1
+        return 0
+      })
+      .map(([, group]) => group)
+  })()
 
   const openActionSheet = (goal: LocalGoalsRecord) => {
     setSelectedGoal(goal)
@@ -149,14 +186,7 @@ export function MonthlyGoals() {
     setShowAddForm(false)
   }
 
-  const getAreaName = (areaId: string | null) => {
-    if (!areaId) return null
-    return areas?.find((a) => a.id === areaId)?.name ?? null
-  }
-
   const renderGoalItem = (goal: LocalGoalsRecord, status: 'live' | 'completed' | 'failed') => {
-    const areaName = getAreaName(goal.areaId)
-
     if (status === 'live') {
       return (
         <div key={goal.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -170,9 +200,6 @@ export function MonthlyGoals() {
             className="flex-1 min-w-0 text-left"
           >
             <p className="text-sm font-medium text-slate-900">{goal.name}</p>
-            {areaName && (
-              <span className="text-xs text-slate-500">{areaName}</span>
-            )}
           </button>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
@@ -269,26 +296,41 @@ export function MonthlyGoals() {
           </span>
         </div>
 
-        {liveMonthly.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-slate-500">Active</p>
-            {liveMonthly.map((goal) => renderGoalItem(goal, 'live'))}
-          </div>
-        )}
+        {/* Render goal sections grouped by area */}
+        {goalsByArea.map(({ name, goals }) => {
+          const live = getGoalsByStatus(goals, 'Live')
+          const completed = getGoalsByStatus(goals, 'Success')
+          const failed = getGoalsByStatus(goals, 'Fail')
 
-        {completedMonthly.length > 0 && (
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-green-600">Completed</p>
-            {completedMonthly.map((goal) => renderGoalItem(goal, 'completed'))}
-          </div>
-        )}
+          return (
+            <div key={name} className="mb-6 last:mb-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                {name}
+              </p>
 
-        {failedMonthly.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-red-600">Failed</p>
-            {failedMonthly.map((goal) => renderGoalItem(goal, 'failed'))}
-          </div>
-        )}
+              {live.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-slate-500">Active</p>
+                  {live.map((goal) => renderGoalItem(goal, 'live'))}
+                </div>
+              )}
+
+              {completed.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-sm font-medium text-green-600">Completed</p>
+                  {completed.map((goal) => renderGoalItem(goal, 'completed'))}
+                </div>
+              )}
+
+              {failed.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-red-600">Failed</p>
+                  {failed.map((goal) => renderGoalItem(goal, 'failed'))}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {monthlyGoals.length === 0 && (
           <div className="text-center py-4 text-slate-400">
