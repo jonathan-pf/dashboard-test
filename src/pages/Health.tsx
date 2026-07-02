@@ -55,12 +55,13 @@ export function Health() {
   const sugarLoading = sugarSummary === undefined
   const sugarDaily = useMemo(() => dailySeries(sugarSummary ?? []), [sugarSummary])
   const sugarHeadline = useMemo(() => headlineStats(sugarSummary ?? []), [sugarSummary])
-  // Time-of-day buckets averaged over the last 3 days with data
+  // Time-of-day buckets averaged over the last N days with data (toggleable)
+  const [sugarTodDays, setSugarTodDays] = useState<3 | 7 | 30>(3)
   const sugarTimeOfDay = useMemo(() => {
     const records = sugarSummary ?? []
-    const last3Dates = Array.from(new Set(records.map((r) => r.date))).sort().slice(-3)
-    return timeOfDayAverages(records.filter((r) => last3Dates.includes(r.date)))
-  }, [sugarSummary])
+    const lastNDates = new Set(Array.from(new Set(records.map((r) => r.date))).sort().slice(-sugarTodDays))
+    return timeOfDayAverages(records.filter((r) => lastNDates.has(r.date)))
+  }, [sugarSummary, sugarTodDays])
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
@@ -333,7 +334,24 @@ export function Health() {
         <p className="text-xs font-medium text-slate-500 mb-2">Daily average &amp; range (30 days)</p>
         <GlucoseTrendChart data={sugarDaily} loading={sugarLoading} />
 
-        <p className="text-xs font-medium text-slate-500 mt-4 mb-2">Average by time of day (last 3 days)</p>
+        <div className="flex items-center justify-between mt-4 mb-2">
+          <p className="text-xs font-medium text-slate-500">Average by time of day</p>
+          <div className="flex gap-1">
+            {([3, 7, 30] as const).map((d) => (
+              <button
+                key={d}
+                onClick={() => setSugarTodDays(d)}
+                className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                  sugarTodDays === d
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'text-slate-400 hover:bg-slate-100'
+                }`}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
+        </div>
         <GlucoseTimeOfDayChart data={sugarTimeOfDay} loading={sugarLoading} />
       </div>
 
