@@ -55,7 +55,12 @@ export function Health() {
   const sugarLoading = sugarSummary === undefined
   const sugarDaily = useMemo(() => dailySeries(sugarSummary ?? []), [sugarSummary])
   const sugarHeadline = useMemo(() => headlineStats(sugarSummary ?? []), [sugarSummary])
-  const sugarTimeOfDay = useMemo(() => timeOfDayAverages(sugarSummary ?? []), [sugarSummary])
+  // Time-of-day buckets averaged over the last 3 days with data
+  const sugarTimeOfDay = useMemo(() => {
+    const records = sugarSummary ?? []
+    const last3Dates = Array.from(new Set(records.map((r) => r.date))).sort().slice(-3)
+    return timeOfDayAverages(records.filter((r) => last3Dates.includes(r.date)))
+  }, [sugarSummary])
 
   // Combine all health entries and sort by date (most recent first)
   const recentEntries = [
@@ -328,7 +333,7 @@ export function Health() {
         <p className="text-xs font-medium text-slate-500 mb-2">Daily average &amp; range (30 days)</p>
         <GlucoseTrendChart data={sugarDaily} loading={sugarLoading} />
 
-        <p className="text-xs font-medium text-slate-500 mt-4 mb-2">Average by time of day</p>
+        <p className="text-xs font-medium text-slate-500 mt-4 mb-2">Average by time of day (last 3 days)</p>
         <GlucoseTimeOfDayChart data={sugarTimeOfDay} loading={sugarLoading} />
       </div>
 
