@@ -125,8 +125,17 @@ export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
 }
 
+// Thresholds sorted by their explicit display order (unordered ones last, by name).
+// The Dashboard traffic-light grid and the Thresholds page both use this.
 export function useThresholds() {
-  return useLiveQuery(() => db.thresholds.toArray(), [])
+  return useLiveQuery(async () => {
+    const all = await db.thresholds.toArray()
+    return all.sort(
+      (a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+        a.name.localeCompare(b.name)
+    )
+  }, [])
 }
 
 // Sugar Summary (CGM) records within the last N days, sorted ascending by date
@@ -901,7 +910,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

@@ -109,6 +109,7 @@ export function Thresholds() {
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
       lowerIsBetter: newLowerIsBetter,
+      order: thresholds?.length ?? 0, // append to the end of the display order
       ruleIds: [],
     })
 
@@ -187,6 +188,25 @@ export function Thresholds() {
     }
   }
 
+  // Move a threshold up/down in the display order. Normalises order values to
+  // the current display index (covers records with no Order yet), then swaps
+  // the moved row with its neighbour. Only changed records are written.
+  const moveThreshold = async (id: string, direction: -1 | 1) => {
+    if (!thresholds || updateThreshold.isPending) return
+    const idx = thresholds.findIndex((t) => t.id === id)
+    const target = idx + direction
+    if (idx < 0 || target < 0 || target >= thresholds.length) return
+
+    const updates: Array<{ id: string; order: number }> = []
+    thresholds.forEach((t, i) => {
+      const newOrder = i === idx ? target : i === target ? idx : i
+      if (t.order !== newOrder) updates.push({ id: t.id, order: newOrder })
+    })
+    for (const u of updates) {
+      await updateThreshold.mutateAsync({ thresholdId: u.id, updates: { order: u.order } })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -254,7 +274,7 @@ export function Thresholds() {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">All Thresholds</h3>
         <div className="space-y-3">
-          {thresholds?.map((t) => (
+          {thresholds?.map((t, i) => (
             <div key={t.id}>
               {editingThreshold?.id === t.id ? (
                 <div className="space-y-4">
@@ -282,31 +302,55 @@ export function Thresholds() {
                   />
                 </div>
               ) : (
-                <button
-                  onClick={() => startEditing(t)}
-                  className="w-full text-left p-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full shrink-0 ${COLOR_CLASSES[thresholdColors?.get(t.id) ?? 'grey']}`} />
-                      <p className="text-sm font-medium text-slate-900">{t.name}</p>
+                <div className="flex items-stretch gap-2">
+                  <div
+                    onClick={() => startEditing(t)}
+                    className="flex-1 min-w-0 text-left p-4 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full shrink-0 ${COLOR_CLASSES[thresholdColors?.get(t.id) ?? 'grey']}`} />
+                        <p className="text-sm font-medium text-slate-900">{t.name}</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${SOURCE_COLORS[t.source]}`}>
+                          {t.source}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : t.leisurePeriod}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${SOURCE_COLORS[t.source]}`}>
-                        {t.source}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : t.leisurePeriod}
-                      </span>
+                    <div className="flex items-center gap-4 text-xs text-slate-500 ml-5">
+                      <span>Red: {t.lowerIsBetter ? '≥' : '≤'} {t.redThreshold}</span>
+                      <span>Green: {t.lowerIsBetter ? '≤' : '≥'} {t.greenThreshold}</span>
+                      {t.aggregation !== 'lastValue' && <span>{t.aggregation}</span>}
+                      {t.days && <span>{t.days}d</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-500 ml-5">
-                    <span>Red: {t.lowerIsBetter ? '≥' : '≤'} {t.redThreshold}</span>
-                    <span>Green: {t.lowerIsBetter ? '≤' : '≥'} {t.greenThreshold}</span>
-                    {t.aggregation !== 'lastValue' && <span>{t.aggregation}</span>}
-                    {t.days && <span>{t.days}d</span>}
+                  <div className="flex flex-col gap-1 justify-center shrink-0">
+                    <button
+                      onClick={() => moveThreshold(t.id, -1)}
+                      disabled={i === 0 || updateThreshold.isPending}
+                      aria-label={`Move ${t.name} up`}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => moveThreshold(t.id, 1)}
+                      disabled={i === (thresholds?.length ?? 0) - 1 || updateThreshold.isPending}
+                      aria-label={`Move ${t.name} down`}
+                      className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
-                </button>
+                </div>
               )}
             </div>
           ))}

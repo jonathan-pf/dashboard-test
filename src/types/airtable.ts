@@ -187,6 +187,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Red Threshold': number
     'Green Threshold': number
     'Lower Is Better'?: boolean
+    Order?: number | null // Display order in the dashboard grid (0 = first)
     Rules?: string[] // Linked record IDs
   }
 }
@@ -357,6 +358,7 @@ export interface LocalThresholdsRecord {
   redThreshold: number
   greenThreshold: number
   lowerIsBetter: boolean
+  order: number | null
   ruleIds: string[]
   createdTime: string
   _pendingSync?: boolean

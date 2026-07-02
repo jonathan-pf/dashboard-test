@@ -214,6 +214,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     redThreshold: record.fields['Red Threshold'] ?? 0,
     greenThreshold: record.fields['Green Threshold'] ?? 0,
     lowerIsBetter: record.fields['Lower Is Better'] ?? false,
+    order: record.fields.Order ?? null,
     ruleIds: record.fields.Rules ?? [],
     createdTime: record.createdTime,
   }
@@ -347,6 +348,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Red Threshold': record.redThreshold,
     'Green Threshold': record.greenThreshold,
     'Lower Is Better': record.lowerIsBetter,
+    Order: record.order ?? undefined,
     Rules: record.ruleIds.length > 0 ? record.ruleIds : undefined,
   }
 }
@@ -1332,7 +1334,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1354,6 +1356,7 @@ class SyncService {
     if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold
     if (updates.greenThreshold !== undefined) updateData['Green Threshold'] = updates.greenThreshold
     if (updates.lowerIsBetter !== undefined) updateData['Lower Is Better'] = updates.lowerIsBetter
+    if (updates.order !== undefined) updateData.Order = updates.order
     if (updates.ruleIds !== undefined) updateData.Rules = updates.ruleIds.length > 0 ? updates.ruleIds : []
 
     if (navigator.onLine) {
