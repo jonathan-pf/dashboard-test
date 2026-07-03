@@ -85,7 +85,7 @@ export function GlucoseTimeOfDayChart({ data, loading }: GlucoseTimeOfDayChartPr
           formatter={(value) => [typeof value === 'number' ? value : '--', 'Avg']}
         />
         <ReferenceLine y={TARGET} stroke="#94a3b8" strokeDasharray="4 4" />
-        <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="avg" radius={[4, 4, 0, 0]} isAnimationActive={false}>
           <LabelList dataKey="avg" content={DeltaLabel} />
           {chartData.map((_, i) => (
             <Cell key={i} fill={BAR_COLOR} />

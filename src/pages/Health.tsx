@@ -56,7 +56,7 @@ export function Health() {
   const sugarDaily = useMemo(() => dailySeries(sugarSummary ?? []), [sugarSummary])
   const sugarHeadline = useMemo(() => headlineStats(sugarSummary ?? []), [sugarSummary])
   // Time-of-day buckets averaged over the last N days with data (toggleable)
-  const [sugarTodDays, setSugarTodDays] = useState<3 | 7 | 30>(3)
+  const [sugarTodDays, setSugarTodDays] = useState<1 | 3 | 7 | 30>(3)
   const sugarTimeOfDay = useMemo(() => {
     const records = sugarSummary ?? []
     const lastNDates = new Set(Array.from(new Set(records.map((r) => r.date))).sort().slice(-sugarTodDays))
@@ -337,7 +337,7 @@ export function Health() {
         <div className="flex items-center justify-between mt-4 mb-2">
           <p className="text-xs font-medium text-slate-500">Average by time of day</p>
           <div className="flex gap-1">
-            {([3, 7, 30] as const).map((d) => (
+            {([1, 3, 7, 30] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => setSugarTodDays(d)}
