@@ -34,8 +34,13 @@ export function WordsBarChart({ weeks, scopingByWeek, loading }: WordsBarChartPr
     )
   }
 
-  // Take last 8 weeks
-  const recentWeeks = weeks.slice(0, 8).reverse()
+  // Take the last 8 weeks that have started, so pre-created future weeks
+  // don't push the window past the current week
+  const today = new Date().toISOString().split('T')[0]
+  const recentWeeks = weeks
+    .filter((week) => week.weekCommencing <= today)
+    .slice(0, 8)
+    .reverse()
 
   // Check if there's a year rollover in the data
   const years = recentWeeks.map((week) => new Date(week.weekCommencing).getFullYear())
