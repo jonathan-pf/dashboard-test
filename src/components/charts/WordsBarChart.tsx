@@ -12,10 +12,12 @@ import type { LocalWeeksRecord } from '@/types/airtable'
 
 interface WordsBarChartProps {
   weeks: LocalWeeksRecord[] | undefined
+  // Scoping totals keyed by week ID, computed locally (no Airtable rollup exists)
+  scopingByWeek?: Record<string, number>
   loading?: boolean
 }
 
-export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
+export function WordsBarChart({ weeks, scopingByWeek, loading }: WordsBarChartProps) {
   if (loading || !weeks) {
     return (
       <div className="h-48 flex items-center justify-center">
@@ -53,6 +55,7 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
       Blog: week.totalBlog ?? 0,
       Notes: week.totalNotes ?? 0,
       Novella: week.totalNovella ?? 0,
+      Scoping: scopingByWeek?.[week.id] ?? 0,
     }
   })
 
@@ -84,7 +87,8 @@ export function WordsBarChart({ weeks, loading }: WordsBarChartProps) {
         <Bar dataKey="Arcadia" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Blog" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Notes" stackId="a" fill="#8b5cf6" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="Novella" stackId="a" fill="#f97316" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Novella" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
+        <Bar dataKey="Scoping" stackId="a" fill="#ec4899" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

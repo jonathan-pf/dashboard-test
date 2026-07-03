@@ -38,7 +38,7 @@ export interface WordsRecord extends AirtableRecord {
   fields: {
     Name: string
     Words: number
-    Project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella'
+    Project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping'
     When: string // ISO date string
     'Weekly Name': string // Formula field
     'Weekly Link': string[] // Record IDs linking to Weeks table
@@ -179,7 +179,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | null
-    'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | null
+    'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | null
     'Sugar Period'?: SugarThresholdPeriod | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'sumLastNDays' | 'averageLastNDays'
@@ -239,7 +239,7 @@ export interface LocalWordsRecord {
   id: string
   name: string
   words: number
-  project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella'
+  project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping'
   when: string
   weekId: string | null
   createdTime: string

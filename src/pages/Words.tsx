@@ -6,10 +6,24 @@ import {
   useCurrentWeek,
   useCreateWords,
   useWords,
+  useScopingWordsByWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalWordsRecord } from '@/types/airtable'
 
 type ProjectType = LocalWordsRecord['project']
+
+const PROJECTS: {
+  name: ProjectType
+  statText: string
+  buttonActive: string
+  badge: string
+}[] = [
+  { name: 'Arcadia', statText: 'text-blue-600', buttonActive: 'bg-blue-600 text-white', badge: 'bg-blue-100 text-blue-700' },
+  { name: 'Blog', statText: 'text-green-600', buttonActive: 'bg-green-600 text-white', badge: 'bg-green-100 text-green-700' },
+  { name: 'Notes', statText: 'text-purple-600', buttonActive: 'bg-purple-600 text-white', badge: 'bg-purple-100 text-purple-700' },
+  { name: 'Novella', statText: 'text-orange-600', buttonActive: 'bg-orange-600 text-white', badge: 'bg-orange-100 text-orange-700' },
+  { name: 'Scoping', statText: 'text-pink-600', buttonActive: 'bg-pink-600 text-white', badge: 'bg-pink-100 text-pink-700' },
+]
 
 export function Words() {
   const [showEntry, setShowEntry] = useState(false)
@@ -33,6 +47,7 @@ export function Words() {
   const currentWeek = useCurrentWeek()
   const wordsByProject = useCurrentWeekWordsByProject()
   const words = useWords()
+  const scopingByWeek = useScopingWordsByWeek()
   const createWords = useCreateWords()
 
   const today = new Date().toISOString().split('T')[0]
@@ -64,36 +79,20 @@ export function Words() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900">Words</h2>
 
-      <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-          <p className="text-xs text-slate-500">Arcadia</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {wordsByProject.Arcadia.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-          <p className="text-xs text-slate-500">Blog</p>
-          <p className="text-2xl font-bold text-green-600">
-            {wordsByProject.Blog.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-          <p className="text-xs text-slate-500">Notes</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {wordsByProject.Notes.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-          <p className="text-xs text-slate-500">Novella</p>
-          <p className="text-2xl font-bold text-orange-600">
-            {wordsByProject.Novella.toLocaleString()}
-          </p>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {PROJECTS.map((project) => (
+          <div key={project.name} className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
+            <p className="text-xs text-slate-500">{project.name}</p>
+            <p className={`text-2xl font-bold ${project.statText}`}>
+              {wordsByProject[project.name].toLocaleString()}
+            </p>
+          </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Words by Week</h3>
-        <WordsBarChart weeks={weeks} loading={!weeks} />
+        <WordsBarChart weeks={weeks} scopingByWeek={scopingByWeek} loading={!weeks} />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
@@ -132,24 +131,18 @@ export function Words() {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Project
               </label>
-              <div className="flex gap-2">
-                {(['Arcadia', 'Blog', 'Notes', 'Novella'] as const).map((project) => (
+              <div className="grid grid-cols-3 gap-2">
+                {PROJECTS.map((project) => (
                   <button
-                    key={project}
-                    onClick={() => setEntryProject(project)}
-                    className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                      entryProject === project
-                        ? project === 'Arcadia'
-                          ? 'bg-blue-600 text-white'
-                          : project === 'Blog'
-                          ? 'bg-green-600 text-white'
-                          : project === 'Notes'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-orange-600 text-white'
+                    key={project.name}
+                    onClick={() => setEntryProject(project.name)}
+                    className={`py-2 rounded-lg font-medium transition-colors ${
+                      entryProject === project.name
+                        ? project.buttonActive
                         : 'bg-slate-100 text-slate-600'
                     }`}
                   >
-                    {project}
+                    {project.name}
                   </button>
                 ))}
               </div>
@@ -204,13 +197,8 @@ export function Words() {
               <div className="flex items-center gap-2">
                 <span
                   className={`text-xs px-2 py-0.5 rounded-full ${
-                    entry.project === 'Arcadia'
-                      ? 'bg-blue-100 text-blue-700'
-                      : entry.project === 'Blog'
-                      ? 'bg-green-100 text-green-700'
-                      : entry.project === 'Notes'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-orange-100 text-orange-700'
+                    PROJECTS.find((p) => p.name === entry.project)?.badge ??
+                    'bg-slate-100 text-slate-700'
                   }`}
                 >
                   {entry.project}

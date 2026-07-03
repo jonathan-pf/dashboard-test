@@ -1054,6 +1054,7 @@ export function useCurrentWeekWordsByProject() {
     Blog: 0,
     Notes: 0,
     Novella: 0,
+    Scoping: 0,
   }
 
   if (words) {
@@ -1063,6 +1064,19 @@ export function useCurrentWeekWordsByProject() {
   }
 
   return byProject
+}
+
+// Scoping words summed per week from local records
+// (the Weeks table has no Total Scoping rollup, unlike the other projects)
+export function useScopingWordsByWeek() {
+  return useLiveQuery(async () => {
+    const records = await db.words.where('project').equals('Scoping').toArray()
+    const byWeek: Record<string, number> = {}
+    records.forEach((r) => {
+      if (r.weekId) byWeek[r.weekId] = (byWeek[r.weekId] ?? 0) + r.words
+    })
+    return byWeek
+  })
 }
 
 // Units per week average for a given year

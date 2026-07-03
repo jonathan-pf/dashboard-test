@@ -24,6 +24,7 @@ import {
   useWeeklyLeisureDuration,
   useIdeasByStatus,
   useAllThresholdColors,
+  useScopingWordsByWeek,
 } from '@/hooks/useAirtableData'
 import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
@@ -33,6 +34,7 @@ export function Dashboard() {
   const { stats } = useWeeklyStats(currentWeek?.id ?? null)
   const glucoseTrends = useHealthTrends('Glucose', 14)
   const weeks = useWeeks()
+  const scopingByWeek = useScopingWordsByWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
   const allLiveRules = useRulesByStatus('Live')
@@ -246,7 +248,7 @@ export function Dashboard() {
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Words by Week</h3>
-        <WordsBarChart weeks={weeks} loading={!weeks} />
+        <WordsBarChart weeks={weeks} scopingByWeek={scopingByWeek} loading={!weeks} />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
