@@ -5,6 +5,7 @@ import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
   Live: 'bg-green-100 text-green-700',
+  Testing: 'bg-purple-100 text-purple-700',
   Backlog: 'bg-amber-100 text-amber-700',
   Archive: 'bg-slate-100 text-slate-500',
 }
@@ -195,6 +196,7 @@ export function Rules() {
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 >
                   <option value="Live">Live</option>
+                  <option value="Testing">Testing</option>
                   <option value="Backlog">Backlog</option>
                   <option value="Archive">Archive</option>
                 </select>
@@ -237,6 +239,7 @@ export function Rules() {
           >
             <option value="All">All Status</option>
             <option value="Live">Live</option>
+            <option value="Testing">Testing</option>
             <option value="Backlog">Backlog</option>
             <option value="Archive">Archive</option>
           </select>
@@ -284,6 +287,7 @@ export function Rules() {
                         className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                       >
                         <option value="Live">Live</option>
+                        <option value="Testing">Testing</option>
                         <option value="Backlog">Backlog</option>
                         <option value="Archive">Archive</option>
                       </select>

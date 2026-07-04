@@ -38,6 +38,7 @@ export function Dashboard() {
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
   const allLiveRules = useRulesByStatus('Live')
+  const testingRules = useRulesByStatus('Testing')
   const thresholdColors = useAllThresholdColors()
 
   const liveRules = allLiveRules?.filter(rule => {
@@ -51,6 +52,8 @@ export function Dashboard() {
       return c === 'red' || c === 'amber'
     })
   })
+  // Testing rules always show, pinned above the live rules
+  const homeRules = [...(testingRules ?? []), ...(liveRules ?? [])]
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
   const events2026 = useYearlyEventsPerWeek(2026)
@@ -300,10 +303,11 @@ export function Dashboard() {
             View all
           </Link>
         </div>
-        {liveRules && liveRules.length > 0 ? (
+        {homeRules.length > 0 ? (
           <div className="space-y-2">
-            {liveRules.slice(0, 5).map((rule) => {
-              const isTriggered = rule.thresholdIds && rule.thresholdIds.length > 0
+            {homeRules.slice(0, 5).map((rule) => {
+              const isTesting = rule.status === 'Testing'
+              const isTriggered = !isTesting && rule.thresholdIds && rule.thresholdIds.length > 0
               let triggerColor: 'red' | 'amber' | null = null
               if (isTriggered && thresholdColors) {
                 const hasRed = rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
@@ -322,6 +326,7 @@ export function Dashboard() {
                   <div className="flex items-center gap-2">
                     <span
                       className={`w-2 h-2 rounded-full ${
+                        isTesting ? 'bg-purple-500' :
                         triggerColor === 'red' ? 'bg-red-500' :
                         triggerColor === 'amber' ? 'bg-amber-400' :
                         rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
@@ -331,7 +336,11 @@ export function Dashboard() {
                       triggerColor ? 'font-medium text-slate-900' : 'text-slate-700'
                     }`}>{rule.name}</span>
                   </div>
-                  {triggerColor ? (
+                  {isTesting ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      Testing
+                    </span>
+                  ) : triggerColor ? (
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       triggerColor === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                     }`}>
@@ -353,9 +362,9 @@ export function Dashboard() {
                 </div>
               )
             })}
-            {liveRules.length > 5 && (
+            {homeRules.length > 5 && (
               <p className="text-xs text-slate-400 pt-1">
-                +{liveRules.length - 5} more
+                +{homeRules.length - 5} more
               </p>
             )}
           </div>
