@@ -6,7 +6,7 @@ import {
   useCurrentWeek,
   useCreateWords,
   useWords,
-  useScopingWordsByWeek,
+  useLocalWordsByWeek,
 } from '@/hooks/useAirtableData'
 import type { LocalWordsRecord } from '@/types/airtable'
 
@@ -23,6 +23,7 @@ const PROJECTS: {
   { name: 'Notes', statText: 'text-purple-600', buttonActive: 'bg-purple-600 text-white', badge: 'bg-purple-100 text-purple-700' },
   { name: 'Novella', statText: 'text-orange-600', buttonActive: 'bg-orange-600 text-white', badge: 'bg-orange-100 text-orange-700' },
   { name: 'Scoping', statText: 'text-pink-600', buttonActive: 'bg-pink-600 text-white', badge: 'bg-pink-100 text-pink-700' },
+  { name: 'Cruxes', statText: 'text-teal-600', buttonActive: 'bg-teal-600 text-white', badge: 'bg-teal-100 text-teal-700' },
 ]
 
 export function Words() {
@@ -47,7 +48,7 @@ export function Words() {
   const currentWeek = useCurrentWeek()
   const wordsByProject = useCurrentWeekWordsByProject()
   const words = useWords()
-  const scopingByWeek = useScopingWordsByWeek()
+  const localWordsByWeek = useLocalWordsByWeek()
   const createWords = useCreateWords()
 
   const today = new Date().toISOString().split('T')[0]
@@ -92,7 +93,7 @@ export function Words() {
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Words by Week</h3>
-        <WordsBarChart weeks={weeks} scopingByWeek={scopingByWeek} loading={!weeks} />
+        <WordsBarChart weeks={weeks} localWordsByWeek={localWordsByWeek} loading={!weeks} />
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">

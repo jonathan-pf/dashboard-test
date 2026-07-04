@@ -1055,6 +1055,7 @@ export function useCurrentWeekWordsByProject() {
     Notes: 0,
     Novella: 0,
     Scoping: 0,
+    Cruxes: 0,
   }
 
   if (words) {
@@ -1066,14 +1067,20 @@ export function useCurrentWeekWordsByProject() {
   return byProject
 }
 
-// Scoping words summed per week from local records
-// (the Weeks table has no Total Scoping rollup, unlike the other projects)
-export function useScopingWordsByWeek() {
+// Projects whose weekly totals are summed from local records
+// (the Weeks table has no rollup for them, unlike the original four projects)
+export const LOCAL_TOTAL_PROJECTS = ['Scoping', 'Cruxes'] as const
+export type LocalTotalProject = (typeof LOCAL_TOTAL_PROJECTS)[number]
+
+export function useLocalWordsByWeek() {
   return useLiveQuery(async () => {
-    const records = await db.words.where('project').equals('Scoping').toArray()
-    const byWeek: Record<string, number> = {}
+    const records = await db.words.where('project').anyOf([...LOCAL_TOTAL_PROJECTS]).toArray()
+    const byWeek: Record<string, Partial<Record<LocalTotalProject, number>>> = {}
     records.forEach((r) => {
-      if (r.weekId) byWeek[r.weekId] = (byWeek[r.weekId] ?? 0) + r.words
+      if (!r.weekId) return
+      const week = (byWeek[r.weekId] ??= {})
+      const project = r.project as LocalTotalProject
+      week[project] = (week[project] ?? 0) + r.words
     })
     return byWeek
   })
