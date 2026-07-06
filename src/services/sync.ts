@@ -1058,6 +1058,30 @@ class SyncService {
     }
   }
 
+  // Delete a goal record (handles offline)
+  async deleteGoalRecord(goalId: string): Promise<void> {
+    const goal = await db.goals.get(goalId)
+    if (!goal) throw new Error('Goal not found')
+
+    // Delete from local DB immediately
+    await db.goals.delete(goalId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (goalId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Goals', goalId)
+      } catch {
+        await this.queueMutation('Goals', 'delete', goalId, {})
+      }
+    } else {
+      await this.queueMutation('Goals', 'delete', goalId, {})
+    }
+  }
+
   // Create a rule record (handles offline)
   async createRulesRecord(
     data: Omit<LocalRulesRecord, 'id' | 'createdTime'>

@@ -643,6 +643,18 @@ export function useUpdateGoalDetails() {
   })
 }
 
+// Delete goal record mutation
+export function useDeleteGoal() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (goalId: string) => syncService.deleteGoalRecord(goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals })
+    },
+  })
+}
+
 // Create idea record mutation
 export function useCreateIdea() {
   const queryClient = useQueryClient()
