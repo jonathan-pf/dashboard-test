@@ -10,6 +10,7 @@ import {
   useUpdateGoalStatus,
   useUpdateGoalConfidence,
   useUpdateGoalDetails,
+  useDeleteGoal,
 } from '@/hooks/useAirtableData'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
@@ -27,6 +28,7 @@ export function NextWeekGoals() {
   const [editingDetails, setEditingDetails] = useState(false)
   const [editName, setEditName] = useState<string>('')
   const [editAreaId, setEditAreaId] = useState<string>('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const nextWeek = useNextWeek()
   const nextWeekGoals = useNextWeekGoals()
@@ -36,6 +38,7 @@ export function NextWeekGoals() {
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalConfidence = useUpdateGoalConfidence()
   const updateGoalDetails = useUpdateGoalDetails()
+  const deleteGoal = useDeleteGoal()
 
   const completedGoals = nextWeekGoals?.filter((g) => g.status === 'Success') ?? []
   const failedGoals = nextWeekGoals?.filter((g) => g.status === 'Fail') ?? []
@@ -91,12 +94,14 @@ export function NextWeekGoals() {
     setEditAreaId(goal.areaId ?? '')
     setEditingConfidence(false)
     setEditingDetails(false)
+    setConfirmingDelete(false)
   }
 
   const closeActionSheet = () => {
     setSelectedGoal(null)
     setEditingConfidence(false)
     setEditingDetails(false)
+    setConfirmingDelete(false)
     setNewConfidence('')
     setEditName('')
     setEditAreaId('')
@@ -181,6 +186,12 @@ export function NextWeekGoals() {
     setGoalAreaId('')
     setGoalConfidence('')
     setShowAddForm(false)
+  }
+
+  const handleDeleteGoal = async () => {
+    if (!selectedGoal) return
+    await deleteGoal.mutateAsync(selectedGoal.id)
+    closeActionSheet()
   }
 
   const isPending = updateGoalStatus.isPending || updateGoalConfidence.isPending || updateGoalDetails.isPending
@@ -451,7 +462,28 @@ export function NextWeekGoals() {
                 : 'No confidence set'}
             </p>
 
-            {editingConfidence ? (
+            {confirmingDelete ? (
+              <div className="space-y-4 mb-4">
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to delete this goal? This cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteGoal}
+                    disabled={deleteGoal.isPending}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {deleteGoal.isPending ? 'Deleting...' : 'Delete Goal'}
+                  </button>
+                </div>
+              </div>
+            ) : editingConfidence ? (
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -571,6 +603,12 @@ export function NextWeekGoals() {
                   className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
                 >
                   Edit Goal
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="w-full py-3 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-colors"
+                >
+                  Delete Goal
                 </button>
                 <button
                   onClick={closeActionSheet}

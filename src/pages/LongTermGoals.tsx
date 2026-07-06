@@ -6,6 +6,7 @@ import {
   useCreateGoal,
   useUpdateGoalStatus,
   useUpdateGoalDetails,
+  useDeleteGoal,
   useUpdateGoalConfidence,
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
@@ -23,6 +24,7 @@ export function LongTermGoals() {
   const [editingDetails, setEditingDetails] = useState(false)
   const [editName, setEditName] = useState<string>('')
   const [editAreaId, setEditAreaId] = useState<string>('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const allGoals = useGoals()
   const areas = useAreas()
@@ -30,6 +32,7 @@ export function LongTermGoals() {
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalDetails = useUpdateGoalDetails()
+  const deleteGoal = useDeleteGoal()
   const updateGoalConfidence = useUpdateGoalConfidence()
 
   // Get current month and year for filtering
@@ -67,11 +70,13 @@ export function LongTermGoals() {
     setEditName(goal.name)
     setEditAreaId(goal.areaId ?? '')
     setEditingDetails(false)
+    setConfirmingDelete(false)
   }
 
   const closeActionSheet = () => {
     setSelectedGoal(null)
     setEditingDetails(false)
+    setConfirmingDelete(false)
     setEditName('')
     setEditAreaId('')
   }
@@ -127,6 +132,12 @@ export function LongTermGoals() {
       goalId: goal.id,
       confidence: newConfidence,
     })
+  }
+
+  const handleDeleteGoal = async () => {
+    if (!selectedGoal) return
+    await deleteGoal.mutateAsync(selectedGoal.id)
+    closeActionSheet()
   }
 
   const isPending = updateGoalStatus.isPending || updateGoalDetails.isPending || updateGoalConfidence.isPending
@@ -460,7 +471,28 @@ export function LongTermGoals() {
               )}
             </p>
 
-            {editingDetails ? (
+            {confirmingDelete ? (
+              <div className="space-y-4 mb-4">
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to delete this goal? This cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteGoal}
+                    disabled={deleteGoal.isPending}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {deleteGoal.isPending ? 'Deleting...' : 'Delete Goal'}
+                  </button>
+                </div>
+              </div>
+            ) : editingDetails ? (
               <div className="space-y-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -541,6 +573,12 @@ export function LongTermGoals() {
                   className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
                 >
                   Edit Goal
+                </button>
+                <button
+                  onClick={() => setConfirmingDelete(true)}
+                  className="w-full py-3 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-colors"
+                >
+                  Delete Goal
                 </button>
                 <button
                   onClick={closeActionSheet}
