@@ -10,6 +10,7 @@ import {
   useUpdateGoalConfidence,
   useCurrentWeek,
 } from '@/hooks/useAirtableData'
+import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
 export function MonthlyGoals() {
@@ -214,7 +215,10 @@ export function MonthlyGoals() {
             onClick={() => openActionSheet(goal)}
             className="flex-1 min-w-0 text-left"
           >
-            <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+            <p className="text-sm font-medium text-slate-900">
+              {goal.name}
+              <NoteIndicator notes={goal.notes} />
+            </p>
           </button>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
@@ -266,7 +270,10 @@ export function MonthlyGoals() {
             onClick={() => openActionSheet(goal)}
             className="flex-1 text-left"
           >
-            <p className="text-sm font-medium text-slate-900 line-through opacity-60">{goal.name}</p>
+            <p className="text-sm font-medium text-slate-900 line-through opacity-60">
+              {goal.name}
+              <NoteIndicator notes={goal.notes} />
+            </p>
           </button>
         </div>
       )
@@ -283,7 +290,10 @@ export function MonthlyGoals() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </span>
-        <p className="text-sm font-medium text-slate-900 line-through">{goal.name}</p>
+        <p className="text-sm font-medium text-slate-900 line-through">
+          {goal.name}
+          <NoteIndicator notes={goal.notes} />
+        </p>
       </button>
     )
   }
