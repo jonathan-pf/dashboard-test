@@ -625,7 +625,7 @@ export function useUpdateGoalConfidence() {
   })
 }
 
-// Update goal details (name and area) mutation
+// Update goal details (name, area and notes) mutation
 export function useUpdateGoalDetails() {
   const queryClient = useQueryClient()
 
@@ -635,7 +635,7 @@ export function useUpdateGoalDetails() {
       updates,
     }: {
       goalId: string
-      updates: { name?: string; areaId?: string | null }
+      updates: { name?: string; areaId?: string | null; notes?: string | null }
     }) => syncService.updateGoalDetails(goalId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.goals })

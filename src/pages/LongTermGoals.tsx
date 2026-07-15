@@ -24,6 +24,7 @@ export function LongTermGoals() {
   const [editingDetails, setEditingDetails] = useState(false)
   const [editName, setEditName] = useState<string>('')
   const [editAreaId, setEditAreaId] = useState<string>('')
+  const [editNotes, setEditNotes] = useState<string>('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const allGoals = useGoals()
@@ -69,6 +70,7 @@ export function LongTermGoals() {
     setSelectedGoal(goal)
     setEditName(goal.name)
     setEditAreaId(goal.areaId ?? '')
+    setEditNotes(goal.notes ?? '')
     setEditingDetails(false)
     setConfirmingDelete(false)
   }
@@ -79,6 +81,7 @@ export function LongTermGoals() {
     setConfirmingDelete(false)
     setEditName('')
     setEditAreaId('')
+    setEditNotes('')
   }
 
   const handleToggleGoal = async (goal: LocalGoalsRecord) => {
@@ -115,6 +118,7 @@ export function LongTermGoals() {
       updates: {
         name: editName.trim(),
         areaId: editAreaId || null,
+        notes: editNotes.trim() || null,
       },
     })
     closeActionSheet()
@@ -471,6 +475,15 @@ export function LongTermGoals() {
               )}
             </p>
 
+            {selectedGoal.notes && !editingDetails && !confirmingDelete && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                  Notes
+                </p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedGoal.notes}</p>
+              </div>
+            )}
+
             {confirmingDelete ? (
               <div className="space-y-4 mb-4">
                 <p className="text-sm text-slate-600">
@@ -522,6 +535,18 @@ export function LongTermGoals() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Add any notes about this goal"
+                    rows={4}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  />
                 </div>
                 <div className="flex gap-3">
                   <button

@@ -1028,22 +1028,24 @@ class SyncService {
     }
   }
 
-  // Update goal details (name and area)
+  // Update goal details (name, area and notes)
   async updateGoalDetails(
     goalId: string,
-    updates: { name?: string; areaId?: string | null }
+    updates: { name?: string; areaId?: string | null; notes?: string | null }
   ): Promise<void> {
     const goal = await db.goals.get(goalId)
     if (!goal) throw new Error('Goal not found')
 
     if (updates.name !== undefined) goal.name = updates.name
     if (updates.areaId !== undefined) goal.areaId = updates.areaId
+    if (updates.notes !== undefined) goal.notes = updates.notes
     goal._pendingSync = true
     await db.goals.put(goal)
 
     const updateData: Record<string, unknown> = {}
     if (updates.name !== undefined) updateData['Name'] = updates.name
     if (updates.areaId !== undefined) updateData['Area'] = updates.areaId ? [updates.areaId] : []
+    if (updates.notes !== undefined) updateData['Notes'] = updates.notes
 
     if (navigator.onLine) {
       try {
