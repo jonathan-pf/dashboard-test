@@ -11,6 +11,7 @@ import {
   useUpdateGoalDetails,
   useDeleteGoal,
 } from '@/hooks/useAirtableData'
+import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 import type { LocalGoalsRecord } from '@/types/airtable'
 
 function getCurrentQuarterInfo() {
@@ -206,7 +207,10 @@ export function QuarterlyGoals() {
               >
                 <span className="w-6 h-6 rounded-full border-2 border-blue-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {goal.name}
+                    <NoteIndicator notes={goal.notes} />
+                  </p>
                   {goal.currentConfidence !== null && (
                     <p className="text-xs text-slate-500">
                       Confidence: {Math.round(goal.currentConfidence * 100)}%
@@ -237,6 +241,7 @@ export function QuarterlyGoals() {
                 </span>
                 <p className="text-sm font-medium text-slate-900 line-through opacity-60 flex-1">
                   {goal.name}
+                  <NoteIndicator notes={goal.notes} />
                 </p>
                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -262,6 +267,7 @@ export function QuarterlyGoals() {
                 </span>
                 <p className="text-sm font-medium text-slate-900 line-through flex-1">
                   {goal.name}
+                  <NoteIndicator notes={goal.notes} />
                 </p>
                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -374,7 +380,10 @@ export function QuarterlyGoals() {
               >
                 <span className="w-6 h-6 rounded-full border-2 border-purple-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{goal.name}</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {goal.name}
+                    <NoteIndicator notes={goal.notes} />
+                  </p>
                   {goal.currentConfidence !== null && (
                     <p className="text-xs text-slate-500">
                       Confidence: {Math.round(goal.currentConfidence * 100)}%
