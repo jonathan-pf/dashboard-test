@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRules, useCreateRule, useUpdateRule, useThresholds } from '@/hooks/useAirtableData'
+import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 import type { LocalRulesRecord } from '@/types/airtable'
 
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
@@ -33,6 +34,7 @@ export function Rules() {
   const [newRuleName, setNewRuleName] = useState('')
   const [newRuleSelect, setNewRuleSelect] = useState<LocalRulesRecord['select']>('Goal')
   const [newRuleStatus, setNewRuleStatus] = useState<LocalRulesRecord['status']>('Backlog')
+  const [newRuleNotes, setNewRuleNotes] = useState('')
 
   // Edit state
   const [editingRule, setEditingRule] = useState<LocalRulesRecord | null>(null)
@@ -42,6 +44,7 @@ export function Rules() {
   const [editConfidence, setEditConfidence] = useState('')
   const [editDeadline, setEditDeadline] = useState('')
   const [editExceptions, setEditExceptions] = useState('')
+  const [editNotes, setEditNotes] = useState('')
   const [editThresholdTrigger, setEditThresholdTrigger] = useState<'red' | 'amber' | 'amberOnly'>('red')
   const [editThresholdIds, setEditThresholdIds] = useState<string[]>([])
 
@@ -120,6 +123,7 @@ export function Rules() {
       deadline: null,
       outputGoal: null,
       exceptions: null,
+      notes: newRuleNotes.trim() || null,
       thresholdTrigger: 'red' as const,
       week: null,
       thresholdIds: [],
@@ -129,6 +133,7 @@ export function Rules() {
     setNewRuleName('')
     setNewRuleSelect('Goal')
     setNewRuleStatus('Backlog')
+    setNewRuleNotes('')
     setShowCreateForm(false)
   }
 
@@ -136,6 +141,7 @@ export function Rules() {
     setNewRuleName('')
     setNewRuleSelect('Goal')
     setNewRuleStatus('Backlog')
+    setNewRuleNotes('')
     setShowCreateForm(false)
   }
 
@@ -147,6 +153,7 @@ export function Rules() {
     setEditConfidence(rule.currentConfidence !== null ? String(Math.round(rule.currentConfidence * 100)) : '')
     setEditDeadline(rule.deadline ?? '')
     setEditExceptions(rule.exceptions ?? '')
+    setEditNotes(rule.notes ?? '')
     setEditThresholdTrigger(rule.thresholdTrigger ?? 'red')
     setEditThresholdIds(rule.thresholdIds ?? [])
   }
@@ -166,6 +173,7 @@ export function Rules() {
         currentConfidence: confidenceValue,
         deadline: deadlineValue,
         exceptions: editExceptions.trim() || null,
+        notes: editNotes.trim() || null,
         thresholdTrigger: editThresholdTrigger,
         thresholdIds: editThresholdIds,
       },
@@ -272,6 +280,18 @@ export function Rules() {
                   <option value="Archive">Archive</option>
                 </select>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Notes (optional)
+              </label>
+              <textarea
+                value={newRuleNotes}
+                onChange={(e) => setNewRuleNotes(e.target.value)}
+                placeholder="Add any notes about this rule"
+                rows={3}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+              />
             </div>
             <div className="flex gap-3">
               <button
@@ -427,6 +447,18 @@ export function Rules() {
                           className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white resize-none"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Notes
+                        </label>
+                        <textarea
+                          value={editNotes}
+                          onChange={(e) => setEditNotes(e.target.value)}
+                          placeholder="Add any notes about this rule"
+                          rows={3}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white resize-none"
+                        />
+                      </div>
                       {thresholds && thresholds.length > 0 && (
                         <div>
                           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -499,6 +531,7 @@ export function Rules() {
                           rule.status === 'Archive' ? 'text-slate-400' : 'text-slate-900'
                         }`}>
                           {rule.name}
+                          <NoteIndicator notes={rule.notes} />
                         </p>
                         <div className="flex gap-1.5">
                           {rule.thresholdIds?.length > 0 && (
