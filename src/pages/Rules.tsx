@@ -51,8 +51,13 @@ export function Rules() {
   const thresholds = useThresholds()
 
   const sortRules = (list: LocalRulesRecord[]) => {
-    if (sortBy === 'default') return list
     const sorted = [...list]
+    if (sortBy === 'default') {
+      // Manual order (nulls last, keeping their existing relative order)
+      return sorted.sort(
+        (a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER)
+      )
+    }
     if (sortBy === 'name') {
       sorted.sort((a, b) => a.name.localeCompare(b.name))
     } else if (sortBy === 'confidence') {
@@ -118,6 +123,7 @@ export function Rules() {
       thresholdTrigger: 'red' as const,
       week: null,
       thresholdIds: [],
+      order: null,
     })
 
     setNewRuleName('')
@@ -170,6 +176,27 @@ export function Rules() {
 
   const handleCancelEdit = () => {
     setEditingRule(null)
+  }
+
+  // Move a rule up/down within its status group. Normalises order values to
+  // the current display index (covers records with no Order yet), then swaps
+  // the moved row with its neighbour. Only changed records are written.
+  const moveRule = async (rule: LocalRulesRecord, direction: -1 | 1) => {
+    if (updateRule.isPending) return
+    const group = groupedRules.find(g => g.status === rule.status)
+    if (!group) return
+    const idx = group.rules.findIndex(r => r.id === rule.id)
+    const target = idx + direction
+    if (idx < 0 || target < 0 || target >= group.rules.length) return
+
+    const updates: Array<{ id: string; order: number }> = []
+    group.rules.forEach((r, i) => {
+      const newOrder = i === idx ? target : i === target ? idx : i
+      if (r.order !== newOrder) updates.push({ id: r.id, order: newOrder })
+    })
+    for (const u of updates) {
+      await updateRule.mutateAsync({ ruleId: u.id, updates: { order: u.order } })
+    }
   }
 
   return (
@@ -314,7 +341,7 @@ export function Rules() {
                 </h4>
               )}
               <div className="space-y-3">
-                {group.rules.map((rule) => (
+                {group.rules.map((rule, ruleIndex) => (
                 <div key={rule.id}>
                   {editingRule?.id === rule.id ? (
                     // Edit form
@@ -458,9 +485,10 @@ export function Rules() {
                     </div>
                   ) : (
                     // Display view
-                    <button
+                    <div className="flex items-stretch gap-2">
+                    <div
                       onClick={() => startEditing(rule)}
-                      className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                      className={`flex-1 min-w-0 text-left p-4 rounded-lg border transition-colors cursor-pointer ${
                         rule.status === 'Archive'
                           ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                           : 'bg-white border-slate-200 hover:bg-slate-50'
@@ -526,7 +554,32 @@ export function Rules() {
                           {rule.exceptions}
                         </p>
                       )}
-                    </button>
+                    </div>
+                    {sortBy === 'default' && (
+                      <div className="flex flex-col gap-1 justify-center shrink-0">
+                        <button
+                          onClick={() => moveRule(rule, -1)}
+                          disabled={ruleIndex === 0 || updateRule.isPending}
+                          aria-label={`Move ${rule.name} up`}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => moveRule(rule, 1)}
+                          disabled={ruleIndex === group.rules.length - 1 || updateRule.isPending}
+                          aria-label={`Move ${rule.name} down`}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                    </div>
                   )}
                 </div>
                 ))}
