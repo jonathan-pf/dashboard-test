@@ -166,6 +166,7 @@ export interface RulesRecord extends AirtableRecord {
     Deadline: string | null // ISO date string
     'Output Goal': string | null // Optional goal description
     Exceptions: string | null // Long text
+    Notes?: string | null // Long text
     'Threshold Trigger'?: 'red' | 'amber' | 'amberOnly' | null
     Week: number | null // Week number
     Thresholds?: string[] // Linked record IDs (auto-created by Airtable)
@@ -337,6 +338,7 @@ export interface LocalRulesRecord {
   deadline: string | null
   outputGoal: string | null
   exceptions: string | null
+  notes: string | null
   thresholdTrigger: 'red' | 'amber' | 'amberOnly'
   week: number | null
   thresholdIds: string[]

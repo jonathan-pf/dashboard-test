@@ -169,6 +169,7 @@ function transformRulesRecord(record: RulesRecord): LocalRulesRecord {
     deadline: record.fields.Deadline ?? null,
     outputGoal: record.fields['Output Goal'] ?? null,
     exceptions: record.fields.Exceptions ?? null,
+    notes: record.fields.Notes ?? null,
     thresholdTrigger: record.fields['Threshold Trigger'] ?? 'red',
     week: record.fields.Week ?? null,
     thresholdIds: record.fields.Thresholds ?? [],
@@ -291,6 +292,7 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
     'Output Goal': record.outputGoal,
   }
   if (record.exceptions) data.Exceptions = record.exceptions
+  if (record.notes) data.Notes = record.notes
   if (record.thresholdTrigger && record.thresholdTrigger !== 'red') data['Threshold Trigger'] = record.thresholdTrigger
   if (record.thresholdIds.length > 0) data.Thresholds = record.thresholdIds
   if (record.order !== null) data.Order = record.order
@@ -1124,7 +1126,7 @@ class SyncService {
   // Update a rule record (handles offline)
   async updateRulesRecord(
     ruleId: string,
-    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'thresholdTrigger' | 'thresholdIds' | 'order'>>
+    updates: Partial<Pick<LocalRulesRecord, 'name' | 'select' | 'status' | 'confidence' | 'currentConfidence' | 'deadline' | 'outputGoal' | 'exceptions' | 'notes' | 'thresholdTrigger' | 'thresholdIds' | 'order'>>
   ): Promise<void> {
     const rule = await db.rules.get(ruleId)
     if (!rule) throw new Error('Rule not found')
@@ -1144,6 +1146,7 @@ class SyncService {
     if (updates.deadline !== undefined) updateData.Deadline = updates.deadline
     if (updates.outputGoal !== undefined) updateData['Output Goal'] = updates.outputGoal
     if (updates.exceptions !== undefined) updateData.Exceptions = updates.exceptions
+    if (updates.notes !== undefined) updateData.Notes = updates.notes
     if (updates.thresholdTrigger !== undefined) updateData['Threshold Trigger'] = updates.thresholdTrigger
     if (updates.thresholdIds !== undefined) updateData.Thresholds = updates.thresholdIds.length > 0 ? updates.thresholdIds : []
     if (updates.order !== undefined) updateData.Order = updates.order
