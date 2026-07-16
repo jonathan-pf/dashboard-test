@@ -7,6 +7,7 @@ import type { LocalRulesRecord } from '@/types/airtable'
 const STATUS_COLORS: Record<LocalRulesRecord['status'], string> = {
   Live: 'bg-green-100 text-green-700',
   Testing: 'bg-purple-100 text-purple-700',
+  Bonus: 'bg-cyan-100 text-cyan-700',
   Backlog: 'bg-amber-100 text-amber-700',
   Archive: 'bg-slate-100 text-slate-500',
 }
@@ -16,11 +17,12 @@ const SELECT_COLORS: Record<LocalRulesRecord['select'], string> = {
   Limit: 'bg-red-100 text-red-700',
 }
 
-const STATUS_GROUP_ORDER: LocalRulesRecord['status'][] = ['Live', 'Testing', 'Backlog', 'Archive']
+const STATUS_GROUP_ORDER: LocalRulesRecord['status'][] = ['Live', 'Testing', 'Bonus', 'Backlog', 'Archive']
 
 const STATUS_HEADER_COLORS: Record<LocalRulesRecord['status'], string> = {
   Live: 'text-green-700',
   Testing: 'text-purple-700',
+  Bonus: 'text-cyan-700',
   Backlog: 'text-amber-700',
   Archive: 'text-slate-500',
 }
@@ -276,6 +278,7 @@ export function Rules() {
                 >
                   <option value="Live">Live</option>
                   <option value="Testing">Testing</option>
+                  <option value="Bonus">Bonus</option>
                   <option value="Backlog">Backlog</option>
                   <option value="Archive">Archive</option>
                 </select>
@@ -342,6 +345,7 @@ export function Rules() {
               <option value="All">All Status</option>
               <option value="Live">Live</option>
               <option value="Testing">Testing</option>
+              <option value="Bonus">Bonus</option>
               <option value="Backlog">Backlog</option>
               <option value="Archive">Archive</option>
             </select>
@@ -403,6 +407,7 @@ export function Rules() {
                           >
                             <option value="Live">Live</option>
                             <option value="Testing">Testing</option>
+                            <option value="Bonus">Bonus</option>
                             <option value="Backlog">Backlog</option>
                             <option value="Archive">Archive</option>
                           </select>
