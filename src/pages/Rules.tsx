@@ -15,8 +15,20 @@ const SELECT_COLORS: Record<LocalRulesRecord['select'], string> = {
   Limit: 'bg-red-100 text-red-700',
 }
 
+const STATUS_GROUP_ORDER: LocalRulesRecord['status'][] = ['Live', 'Testing', 'Backlog', 'Archive']
+
+const STATUS_HEADER_COLORS: Record<LocalRulesRecord['status'], string> = {
+  Live: 'text-green-700',
+  Testing: 'text-purple-700',
+  Backlog: 'text-amber-700',
+  Archive: 'text-slate-500',
+}
+
+type SortOption = 'default' | 'name' | 'confidence' | 'deadline'
+
 export function Rules() {
-  const [filterStatus, setFilterStatus] = useState<LocalRulesRecord['status'] | 'All'>('Live')
+  const [filterStatus, setFilterStatus] = useState<LocalRulesRecord['status'] | 'All'>('All')
+  const [sortBy, setSortBy] = useState<SortOption>('default')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newRuleName, setNewRuleName] = useState('')
   const [newRuleSelect, setNewRuleSelect] = useState<LocalRulesRecord['select']>('Goal')
@@ -38,9 +50,41 @@ export function Rules() {
   const updateRule = useUpdateRule()
   const thresholds = useThresholds()
 
+  const sortRules = (list: LocalRulesRecord[]) => {
+    if (sortBy === 'default') return list
+    const sorted = [...list]
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === 'confidence') {
+      // Highest confidence first, rules without a confidence at the end
+      sorted.sort((a, b) => {
+        if (a.currentConfidence === null && b.currentConfidence === null) return 0
+        if (a.currentConfidence === null) return 1
+        if (b.currentConfidence === null) return -1
+        return b.currentConfidence - a.currentConfidence
+      })
+    } else if (sortBy === 'deadline') {
+      // Soonest deadline first, rules without a deadline at the end
+      sorted.sort((a, b) => {
+        if (!a.deadline && !b.deadline) return 0
+        if (!a.deadline) return 1
+        if (!b.deadline) return -1
+        return a.deadline.localeCompare(b.deadline)
+      })
+    }
+    return sorted
+  }
+
+  const groupedRules = STATUS_GROUP_ORDER
+    .map(status => ({
+      status,
+      rules: sortRules(rules?.filter(rule => rule.status === status) ?? []),
+    }))
+    .filter(group => group.rules.length > 0)
+
   const filteredRules = filterStatus === 'All'
-    ? rules
-    : rules?.filter(rule => rule.status === filterStatus)
+    ? undefined
+    : sortRules(rules?.filter(rule => rule.status === filterStatus) ?? [])
 
   const liveRules = rules?.filter(r => r.status === 'Live') ?? []
   const backlogRules = rules?.filter(r => r.status === 'Backlog') ?? []
@@ -230,240 +274,269 @@ export function Rules() {
 
       {/* Rules List */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <h3 className="font-semibold text-slate-900">All Rules</h3>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as LocalRulesRecord['status'] | 'All')}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
-          >
-            <option value="All">All Status</option>
-            <option value="Live">Live</option>
-            <option value="Testing">Testing</option>
-            <option value="Backlog">Backlog</option>
-            <option value="Archive">Archive</option>
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
+            >
+              <option value="default">Sort: Default</option>
+              <option value="name">Sort: Name</option>
+              <option value="confidence">Sort: Confidence</option>
+              <option value="deadline">Sort: Deadline</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as LocalRulesRecord['status'] | 'All')}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm bg-white"
+            >
+              <option value="All">All Status</option>
+              <option value="Live">Live</option>
+              <option value="Testing">Testing</option>
+              <option value="Backlog">Backlog</option>
+              <option value="Archive">Archive</option>
+            </select>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          {filteredRules?.map((rule) => (
-            <div key={rule.id}>
-              {editingRule?.id === rule.id ? (
-                // Edit form
-                <div className="p-4 rounded-lg border border-blue-300 bg-blue-50 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Type
-                      </label>
-                      <select
-                        value={editSelect}
-                        onChange={(e) => setEditSelect(e.target.value as LocalRulesRecord['select'])}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      >
-                        <option value="Goal">Goal</option>
-                        <option value="Limit">Limit</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Status
-                      </label>
-                      <select
-                        value={editStatus}
-                        onChange={(e) => setEditStatus(e.target.value as LocalRulesRecord['status'])}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      >
-                        <option value="Live">Live</option>
-                        <option value="Testing">Testing</option>
-                        <option value="Backlog">Backlog</option>
-                        <option value="Archive">Archive</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Confidence %
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={editConfidence}
-                        onChange={(e) => setEditConfidence(e.target.value)}
-                        placeholder="0-100"
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Deadline
-                      </label>
-                      <input
-                        type="date"
-                        value={editDeadline}
-                        onChange={(e) => setEditDeadline(e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Exceptions
-                    </label>
-                    <textarea
-                      value={editExceptions}
-                      onChange={(e) => setEditExceptions(e.target.value)}
-                      placeholder="Any exceptions to this rule..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white resize-none"
-                    />
-                  </div>
-                  {thresholds && thresholds.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Thresholds
-                      </label>
-                      <div className="space-y-1 max-h-32 overflow-y-auto border border-slate-300 rounded-lg p-2 bg-white">
-                        {thresholds.map((t) => (
-                          <label key={t.id} className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={editThresholdIds.includes(t.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEditThresholdIds([...editThresholdIds, t.id])
-                                } else {
-                                  setEditThresholdIds(editThresholdIds.filter(id => id !== t.id))
-                                }
-                              }}
-                              className="rounded border-slate-300"
-                            />
-                            {t.name}
-                          </label>
-                        ))}
+        <div className="space-y-5">
+          {(filterStatus === 'All'
+            ? groupedRules
+            : [{ status: filterStatus, rules: filteredRules ?? [] }]
+          ).map((group) => (
+            <div key={group.status}>
+              {filterStatus === 'All' && (
+                <h4 className={`text-xs font-semibold uppercase tracking-wide mb-2 ${STATUS_HEADER_COLORS[group.status]}`}>
+                  {group.status}
+                  <span className="ml-1.5 text-slate-400 font-normal normal-case">({group.rules.length})</span>
+                </h4>
+              )}
+              <div className="space-y-3">
+                {group.rules.map((rule) => (
+                <div key={rule.id}>
+                  {editingRule?.id === rule.id ? (
+                    // Edit form
+                    <div className="p-4 rounded-lg border border-blue-300 bg-blue-50 space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                          autoFocus
+                        />
                       </div>
-                      {editThresholdIds.length > 0 && (
-                        <div className="mt-2">
-                          <label className="block text-xs text-slate-500 mb-1">Show rule when threshold is</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Type
+                          </label>
                           <select
-                            value={editThresholdTrigger}
-                            onChange={(e) => setEditThresholdTrigger(e.target.value as 'red' | 'amber' | 'amberOnly')}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
+                            value={editSelect}
+                            onChange={(e) => setEditSelect(e.target.value as LocalRulesRecord['select'])}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                           >
-                            <option value="red">Red only</option>
-                            <option value="amber">Red or Amber</option>
-                            <option value="amberOnly">Amber only</option>
+                            <option value="Goal">Goal</option>
+                            <option value="Limit">Limit</option>
                           </select>
                         </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Status
+                          </label>
+                          <select
+                            value={editStatus}
+                            onChange={(e) => setEditStatus(e.target.value as LocalRulesRecord['status'])}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          >
+                            <option value="Live">Live</option>
+                            <option value="Testing">Testing</option>
+                            <option value="Backlog">Backlog</option>
+                            <option value="Archive">Archive</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Confidence %
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={editConfidence}
+                            onChange={(e) => setEditConfidence(e.target.value)}
+                            placeholder="0-100"
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Deadline
+                          </label>
+                          <input
+                            type="date"
+                            value={editDeadline}
+                            onChange={(e) => setEditDeadline(e.target.value)}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                          Exceptions
+                        </label>
+                        <textarea
+                          value={editExceptions}
+                          onChange={(e) => setEditExceptions(e.target.value)}
+                          placeholder="Any exceptions to this rule..."
+                          rows={3}
+                          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white resize-none"
+                        />
+                      </div>
+                      {thresholds && thresholds.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Thresholds
+                          </label>
+                          <div className="space-y-1 max-h-32 overflow-y-auto border border-slate-300 rounded-lg p-2 bg-white">
+                            {thresholds.map((t) => (
+                              <label key={t.id} className="flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={editThresholdIds.includes(t.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setEditThresholdIds([...editThresholdIds, t.id])
+                                    } else {
+                                      setEditThresholdIds(editThresholdIds.filter(id => id !== t.id))
+                                    }
+                                  }}
+                                  className="rounded border-slate-300"
+                                />
+                                {t.name}
+                              </label>
+                            ))}
+                          </div>
+                          {editThresholdIds.length > 0 && (
+                            <div className="mt-2">
+                              <label className="block text-xs text-slate-500 mb-1">Show rule when threshold is</label>
+                              <select
+                                value={editThresholdTrigger}
+                                onChange={(e) => setEditThresholdTrigger(e.target.value as 'red' | 'amber' | 'amberOnly')}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-sm"
+                              >
+                                <option value="red">Red only</option>
+                                <option value="amber">Red or Amber</option>
+                                <option value="amberOnly">Amber only</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
                       )}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUpdateRule}
+                          disabled={!editName.trim() || updateRule.isPending}
+                          className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                        >
+                          {updateRule.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex gap-3">
+                  ) : (
+                    // Display view
                     <button
-                      onClick={handleCancelEdit}
-                      className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+                      onClick={() => startEditing(rule)}
+                      className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                        rule.status === 'Archive'
+                          ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                          : 'bg-white border-slate-200 hover:bg-slate-50'
+                      }`}
                     >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleUpdateRule}
-                      disabled={!editName.trim() || updateRule.isPending}
-                      className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
-                    >
-                      {updateRule.isPending ? 'Saving...' : 'Save'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // Display view
-                <button
-                  onClick={() => startEditing(rule)}
-                  className={`w-full text-left p-4 rounded-lg border transition-colors ${
-                    rule.status === 'Archive'
-                      ? 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className={`text-sm font-medium flex-1 ${
-                      rule.status === 'Archive' ? 'text-slate-400' : 'text-slate-900'
-                    }`}>
-                      {rule.name}
-                    </p>
-                    <div className="flex gap-1.5">
-                      {rule.thresholdIds?.length > 0 && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          rule.thresholdTrigger === 'red' ? 'bg-red-50 text-red-600' :
-                          rule.thresholdTrigger === 'amberOnly' ? 'bg-amber-50 text-amber-600' :
-                          'bg-orange-50 text-orange-600'
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <p className={`text-sm font-medium flex-1 ${
+                          rule.status === 'Archive' ? 'text-slate-400' : 'text-slate-900'
                         }`}>
-                          Catch-up
-                        </span>
-                      )}
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${SELECT_COLORS[rule.select]}`}>
-                        {rule.select}
-                      </span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[rule.status]}`}>
-                        {rule.status}
-                      </span>
-                    </div>
-                  </div>
+                          {rule.name}
+                        </p>
+                        <div className="flex gap-1.5">
+                          {rule.thresholdIds?.length > 0 && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              rule.thresholdTrigger === 'red' ? 'bg-red-50 text-red-600' :
+                              rule.thresholdTrigger === 'amberOnly' ? 'bg-amber-50 text-amber-600' :
+                              'bg-orange-50 text-orange-600'
+                            }`}>
+                              Catch-up
+                            </span>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${SELECT_COLORS[rule.select]}`}>
+                            {rule.select}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[rule.status]}`}>
+                            {rule.status}
+                          </span>
+                        </div>
+                      </div>
 
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    {rule.currentConfidence !== null && (
-                      <div className="flex items-center gap-1">
-                        <span>Confidence:</span>
-                        <span className={`font-medium ${
-                          rule.currentConfidence >= 0.7 ? 'text-green-600' :
-                          rule.currentConfidence >= 0.4 ? 'text-amber-600' :
-                          'text-red-600'
-                        }`}>
-                          {formatConfidence(rule.currentConfidence)}
-                        </span>
+                      <div className="flex items-center gap-4 text-xs text-slate-500">
+                        {rule.currentConfidence !== null && (
+                          <div className="flex items-center gap-1">
+                            <span>Confidence:</span>
+                            <span className={`font-medium ${
+                              rule.currentConfidence >= 0.7 ? 'text-green-600' :
+                              rule.currentConfidence >= 0.4 ? 'text-amber-600' :
+                              'text-red-600'
+                            }`}>
+                              {formatConfidence(rule.currentConfidence)}
+                            </span>
+                          </div>
+                        )}
+                        {rule.deadline && (
+                          <div className="flex items-center gap-1">
+                            <span>Deadline:</span>
+                            <span className="font-medium text-slate-700">
+                              {formatDeadline(rule.deadline)}
+                            </span>
+                          </div>
+                        )}
+                        {rule.outputGoal && (
+                          <div className="flex items-center gap-1">
+                            <span>Target:</span>
+                            <span className="font-medium text-slate-700">
+                              {rule.outputGoal}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {rule.deadline && (
-                      <div className="flex items-center gap-1">
-                        <span>Deadline:</span>
-                        <span className="font-medium text-slate-700">
-                          {formatDeadline(rule.deadline)}
-                        </span>
-                      </div>
-                    )}
-                    {rule.outputGoal && (
-                      <div className="flex items-center gap-1">
-                        <span>Target:</span>
-                        <span className="font-medium text-slate-700">
-                          {rule.outputGoal}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {rule.exceptions && (
-                    <p className="text-xs text-slate-400 mt-1 ml-0 whitespace-pre-line">
-                      {rule.exceptions}
-                    </p>
+                      {rule.exceptions && (
+                        <p className="text-xs text-slate-400 mt-1 ml-0 whitespace-pre-line">
+                          {rule.exceptions}
+                        </p>
+                      )}
+                    </button>
                   )}
-                </button>
-              )}
+                </div>
+                ))}
+              </div>
             </div>
           ))}
 
-          {(!filteredRules || filteredRules.length === 0) && (
+          {(filterStatus === 'All'
+            ? groupedRules.length === 0
+            : !filteredRules || filteredRules.length === 0) && (
             <div className="text-center py-8 text-slate-400">
               No rules found
             </div>
