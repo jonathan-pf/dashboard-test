@@ -160,7 +160,7 @@ export interface RulesRecord extends AirtableRecord {
   fields: {
     Name: string
     Select: 'Goal' | 'Limit'
-    Status: 'Live' | 'Testing' | 'Backlog' | 'Archive'
+    Status: 'Live' | 'Testing' | 'Bonus' | 'Backlog' | 'Archive'
     Confidence: number | null // Initial confidence 0-1
     'Current Confidence': number | null // Current confidence 0-1
     Deadline: string | null // ISO date string
@@ -332,7 +332,7 @@ export interface LocalRulesRecord {
   id: string
   name: string
   select: 'Goal' | 'Limit'
-  status: 'Live' | 'Testing' | 'Backlog' | 'Archive'
+  status: 'Live' | 'Testing' | 'Bonus' | 'Backlog' | 'Archive'
   confidence: number | null
   currentConfidence: number | null
   deadline: string | null
