@@ -169,6 +169,7 @@ export interface RulesRecord extends AirtableRecord {
     'Threshold Trigger'?: 'red' | 'amber' | 'amberOnly' | null
     Week: number | null // Week number
     Thresholds?: string[] // Linked record IDs (auto-created by Airtable)
+    Order?: number | null // Manual display order within status group
   }
 }
 
@@ -339,6 +340,7 @@ export interface LocalRulesRecord {
   thresholdTrigger: 'red' | 'amber' | 'amberOnly'
   week: number | null
   thresholdIds: string[]
+  order: number | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
