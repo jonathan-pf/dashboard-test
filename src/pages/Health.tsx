@@ -42,6 +42,7 @@ export function Health() {
   const weightData = useHealthByType('Weight')
   const frogsData = useHealthByType('Frog')
   const treatsData = useHealthByType('Treat')
+  const consumptionData = useHealthByType('Consumption')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
   const repsTrends = useHealthTrends('Reps', 30)
@@ -49,6 +50,7 @@ export function Health() {
   const weightTrends = useHealthTrends('Weight', 30)
   const frogsTrends = useHealthTrends('Frog', 30)
   const treatsTrends = useHealthTrends('Treat', 30)
+  const consumptionTrends = useHealthTrends('Consumption', 30)
 
   // Blood glucose (CGM) — auto-synced Sugar Summary table (read-only)
   const sugarSummary = useSugarSummary(30)
@@ -72,6 +74,7 @@ export function Health() {
     ...(weightData ?? []),
     ...(frogsData ?? []),
     ...(treatsData ?? []),
+    ...(consumptionData ?? []),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
@@ -122,9 +125,9 @@ export function Health() {
   }
 
   const startEntry = (type: HealthType) => {
-    // Default to yesterday for Glucose, Units, Frog and Treat, today for others
+    // Default to yesterday for Glucose, Units, Frog, Treat and Consumption, today for others
     const defaultDate =
-      type === 'Glucose' || type === 'Units' || type === 'Frog' || type === 'Treat'
+      type === 'Glucose' || type === 'Units' || type === 'Frog' || type === 'Treat' || type === 'Consumption'
         ? getYesterday()
         : getToday()
     setEntryDate(defaultDate)
@@ -286,6 +289,12 @@ export function Health() {
             >
               + Log Treat
             </button>
+            <button
+              onClick={() => startEntry('Consumption')}
+              className="w-full py-3 bg-sky-50 text-sky-600 rounded-lg font-medium hover:bg-sky-100 transition-colors"
+            >
+              + Log Consumption
+            </button>
           </div>
         )}
       </div>
@@ -418,6 +427,15 @@ export function Health() {
         />
       </div>
 
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Consumption Trend (30 days)</h3>
+        <HealthTrendChart
+          data={consumptionTrends}
+          type="Consumption"
+          loading={!consumptionTrends}
+        />
+      </div>
+
       {/* Recent entries */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Recent Entries</h3>
@@ -445,6 +463,8 @@ export function Health() {
                         ? 'bg-teal-500'
                         : entry.type === 'Treat'
                         ? 'bg-rose-500'
+                        : entry.type === 'Consumption'
+                        ? 'bg-sky-500'
                         : 'bg-purple-500'
                     }`}
                   />

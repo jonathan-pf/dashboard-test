@@ -24,6 +24,7 @@ const typeColors: Record<LocalHealthRecord['type'], string> = {
   Weight: '#6366f1',
   Frog: '#14b8a6',
   Treat: '#f43f5e',
+  Consumption: '#0ea5e9',
 }
 
 export function HealthTrendChart({ data, type, loading }: HealthTrendChartProps) {
