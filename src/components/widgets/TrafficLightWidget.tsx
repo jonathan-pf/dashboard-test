@@ -15,6 +15,7 @@ interface ThresholdDef {
   source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
   healthType?: string | null
   ideaType?: string | null
+  ideaStatus?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
   sugarPeriod?: string | null
@@ -56,7 +57,7 @@ function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
 }
 
 function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
-  const count = useIdeasCountLastDays(definition.ideaType as LocalIdeasRecord['type'], definition.days ?? 7)
+  const count = useIdeasCountLastDays(definition.ideaType as LocalIdeasRecord['type'], definition.days ?? 7, definition.ideaStatus as LocalIdeasRecord['status'] ?? null)
 
   const loading = count === undefined
   const color = getTrafficLightColor(count ?? null, definition)

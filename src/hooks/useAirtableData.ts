@@ -211,7 +211,10 @@ export function useAllThresholdColors() {
         const cutoff = new Date()
         cutoff.setDate(cutoff.getDate() - days)
         const cutoffStr = cutoff.toISOString().split('T')[0]
-        const records = await db.ideas.where('type').equals(t.ideaType).and(r => r.when >= cutoffStr).toArray()
+        const records = await db.ideas
+          .where('type').equals(t.ideaType)
+          .and(r => r.when >= cutoffStr && (!t.ideaStatus || r.status === t.ideaStatus))
+          .toArray()
         if (t.aggregation === 'sumLastNDays') {
           value = records.length // for ideas, sum = count
         } else if (t.aggregation === 'averageLastNDays') {
@@ -922,7 +925,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })
@@ -1037,8 +1040,8 @@ export function useHealthSumLastDays(type: LocalHealthRecord['type'], days: numb
   )
 }
 
-// Count of ideas of a given type over last N days
-export function useIdeasCountLastDays(type: LocalIdeasRecord['type'], days: number) {
+// Count of ideas of a given type over last N days, optionally filtered by status
+export function useIdeasCountLastDays(type: LocalIdeasRecord['type'], days: number, status?: LocalIdeasRecord['status']) {
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
   const startDateStr = startDate.toISOString().split('T')[0]
@@ -1048,11 +1051,11 @@ export function useIdeasCountLastDays(type: LocalIdeasRecord['type'], days: numb
       const records = await db.ideas
         .where('type')
         .equals(type)
-        .and((r) => r.when >= startDateStr)
+        .and((r) => r.when >= startDateStr && (!status || r.status === status))
         .toArray()
       return records.length
     },
-    [type, startDateStr]
+    [type, startDateStr, status]
   )
 }
 

@@ -7,7 +7,10 @@ import type { TrafficLightColor } from '@/config/trafficLights'
 type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat']
-const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
+const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda', 'Adventure']
+// 'Any' means the threshold counts ideas of every status
+type IdeaStatusFilter = NonNullable<LocalThresholdsRecord['ideaStatus']> | 'Any'
+const IDEA_STATUS_FILTERS: IdeaStatusFilter[] = ['Any', 'Planned', 'Researched', 'Shipped', 'Active']
 const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella', 'Scoping', 'Cruxes']
 const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays', 'sumLastNDays', 'averageLastNDays']
 // Blood-sugar thresholds check an average, so only these aggregations make sense.
@@ -41,6 +44,7 @@ export function Thresholds() {
   const [newSource, setNewSource] = useState<ThresholdSource>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
+  const [newIdeaStatus, setNewIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newLeisurePeriod, setNewLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
   const [newSugarPeriod, setNewSugarPeriod] = useState<SugarThresholdPeriod>('All day')
@@ -55,6 +59,7 @@ export function Thresholds() {
   const [editSource, setEditSource] = useState<ThresholdSource>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
+  const [editIdeaStatus, setEditIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editLeisurePeriod, setEditLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
   const [editSugarPeriod, setEditSugarPeriod] = useState<SugarThresholdPeriod>('All day')
@@ -101,6 +106,7 @@ export function Thresholds() {
       source: newSource,
       healthType: newSource === 'health' ? newHealthType : null,
       ideaType: newSource === 'ideas' ? newIdeaType : null,
+      ideaStatus: newSource === 'ideas' && newIdeaStatus !== 'Any' ? newIdeaStatus : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
       sugarPeriod: newSource === 'sugar' ? newSugarPeriod : null,
@@ -117,6 +123,7 @@ export function Thresholds() {
     setNewSource('health')
     setNewHealthType('Tidy')
     setNewIdeaType('Revelation')
+    setNewIdeaStatus('Any')
     setNewWordsProject('All')
     setNewLeisurePeriod('This Week')
     setNewSugarPeriod('All day')
@@ -139,6 +146,7 @@ export function Thresholds() {
     setEditSource(t.source)
     setEditHealthType((t.healthType as LocalHealthRecord['type']) ?? 'Tidy')
     setEditIdeaType((t.ideaType as LocalIdeasRecord['type']) ?? 'Revelation')
+    setEditIdeaStatus(t.ideaStatus ?? 'Any')
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
     setEditSugarPeriod(t.sugarPeriod ?? 'All day')
@@ -159,6 +167,7 @@ export function Thresholds() {
         source: editSource,
         healthType: editSource === 'health' ? editHealthType : null,
         ideaType: editSource === 'ideas' ? editIdeaType : null,
+        ideaStatus: editSource === 'ideas' && editIdeaStatus !== 'Any' ? editIdeaStatus : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
         sugarPeriod: editSource === 'sugar' ? editSugarPeriod : null,
@@ -247,6 +256,7 @@ export function Thresholds() {
             source={newSource} setSource={(s) => { setNewSource(s); handleSourceChange(s, setNewAggregation) }}
             healthType={newHealthType} setHealthType={setNewHealthType}
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
+            ideaStatus={newIdeaStatus} setIdeaStatus={setNewIdeaStatus}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
             sugarPeriod={newSugarPeriod} setSugarPeriod={setNewSugarPeriod}
@@ -284,6 +294,7 @@ export function Thresholds() {
                     source={editSource} setSource={(s) => { setEditSource(s); handleSourceChange(s, setEditAggregation) }}
                     healthType={editHealthType} setHealthType={setEditHealthType}
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
+                    ideaStatus={editIdeaStatus} setIdeaStatus={setEditIdeaStatus}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
                     sugarPeriod={editSugarPeriod} setSugarPeriod={setEditSugarPeriod}
@@ -317,7 +328,7 @@ export function Thresholds() {
                           {t.source}
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? t.ideaType : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : t.leisurePeriod}
+                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : t.leisurePeriod}
                         </span>
                       </div>
                     </div>
@@ -372,6 +383,7 @@ function ThresholdForm({
   source, setSource,
   healthType, setHealthType,
   ideaType, setIdeaType,
+  ideaStatus, setIdeaStatus,
   wordsProject, setWordsProject,
   leisurePeriod, setLeisurePeriod,
   sugarPeriod, setSugarPeriod,
@@ -393,6 +405,7 @@ function ThresholdForm({
   source: ThresholdSource; setSource: (v: ThresholdSource) => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
+  ideaStatus: IdeaStatusFilter; setIdeaStatus: (v: IdeaStatusFilter) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   leisurePeriod: 'This Week' | 'Last Week'; setLeisurePeriod: (v: 'This Week' | 'Last Week') => void
   sugarPeriod: SugarThresholdPeriod; setSugarPeriod: (v: SugarThresholdPeriod) => void
@@ -495,6 +508,18 @@ function ThresholdForm({
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
+        {source === 'ideas' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Idea Status</label>
+            <select
+              value={ideaStatus}
+              onChange={(e) => setIdeaStatus(e.target.value as IdeaStatusFilter)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {IDEA_STATUS_FILTERS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
         {(source === 'health' || source === 'words' || source === 'sugar') && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Aggregation</label>

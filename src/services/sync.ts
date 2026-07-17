@@ -208,6 +208,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     source: record.fields.Source || 'health',
     healthType: record.fields['Health Type'] ?? null,
     ideaType: record.fields['Idea Type'] ?? null,
+    ideaStatus: record.fields['Idea Status'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     sugarPeriod: selectName<SugarThresholdPeriod>(record.fields['Sugar Period']),
@@ -344,6 +345,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     Source: record.source,
     'Health Type': record.healthType,
     'Idea Type': record.ideaType,
+    'Idea Status': record.ideaStatus,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
     'Sugar Period': record.sugarPeriod,
@@ -1366,7 +1368,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1380,6 +1382,7 @@ class SyncService {
     if (updates.source !== undefined) updateData.Source = updates.source
     if (updates.healthType !== undefined) updateData['Health Type'] = updates.healthType
     if (updates.ideaType !== undefined) updateData['Idea Type'] = updates.ideaType
+    if (updates.ideaStatus !== undefined) updateData['Idea Status'] = updates.ideaStatus
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.sugarPeriod !== undefined) updateData['Sugar Period'] = updates.sugarPeriod
