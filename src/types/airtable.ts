@@ -180,7 +180,8 @@ export interface ThresholdsRecord extends AirtableRecord {
     Name: string
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | null
-    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | null
+    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Adventure' | null
+    'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | null
     'Sugar Period'?: SugarThresholdPeriod | null
@@ -354,6 +355,7 @@ export interface LocalThresholdsRecord {
   source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
+  ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | null
   sugarPeriod: SugarThresholdPeriod | null
