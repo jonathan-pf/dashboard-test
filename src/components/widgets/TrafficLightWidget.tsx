@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureCount, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
-import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
+import type { LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -18,6 +18,7 @@ interface ThresholdDef {
   ideaStatus?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
+  leisureType?: string | null
   sugarPeriod?: string | null
   aggregation: string
   days?: number | null
@@ -135,8 +136,9 @@ function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   const weekCommencing = definition.leisurePeriod === 'Last Week'
     ? lastWeek?.weekCommencing ?? null
     : currentWeek?.weekCommencing ?? null
-  const leisure = useWeeklyLeisureDuration(weekCommencing)
-  const plannedCount = usePlannedLeisureCount()
+  const leisureType = (definition.leisureType ?? null) as LocalLeisureRecord['type'] | null
+  const leisure = useWeeklyLeisureDuration(weekCommencing, leisureType)
+  const plannedCount = usePlannedLeisureCount(leisureType)
 
   const isQueue = definition.leisurePeriod === 'Planned Queue'
   const hours = leisure.totalSeconds / 3600

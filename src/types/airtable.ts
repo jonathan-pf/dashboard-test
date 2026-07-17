@@ -184,6 +184,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | null
+    'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
     Days?: number | null
@@ -358,6 +359,7 @@ export interface LocalThresholdsRecord {
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | null
+  leisureType: LocalLeisureRecord['type'] | null
   sugarPeriod: SugarThresholdPeriod | null
   aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
   days: number | null

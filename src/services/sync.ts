@@ -211,6 +211,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     ideaStatus: record.fields['Idea Status'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
+    leisureType: record.fields['Leisure Type'] ?? null,
     sugarPeriod: selectName<SugarThresholdPeriod>(record.fields['Sugar Period']),
     aggregation: record.fields.Aggregation || 'lastValue',
     days: record.fields.Days ?? null,
@@ -348,6 +349,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Idea Status': record.ideaStatus,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
+    'Leisure Type': record.leisureType,
     'Sugar Period': record.sugarPeriod,
     Aggregation: record.aggregation,
     Days: record.days,
@@ -1368,7 +1370,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1385,6 +1387,7 @@ class SyncService {
     if (updates.ideaStatus !== undefined) updateData['Idea Status'] = updates.ideaStatus
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
+    if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType
     if (updates.sugarPeriod !== undefined) updateData['Sugar Period'] = updates.sugarPeriod
     if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
     if (updates.days !== undefined) updateData.Days = updates.days

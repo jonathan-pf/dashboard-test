@@ -125,9 +125,12 @@ export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
 }
 
-// Size of the leisure backlog: items still waiting to be started
-export function usePlannedLeisureCount() {
-  return useLiveQuery(() => db.leisure.filter(item => item.status === 'Planned').count(), [])
+// Size of the leisure backlog: items still waiting to be started, optionally of one type
+export function usePlannedLeisureCount(type: LocalLeisureRecord['type'] | null = null) {
+  return useLiveQuery(
+    () => db.leisure.filter(item => item.status === 'Planned' && (!type || item.type === type)).count(),
+    [type]
+  )
 }
 
 // Thresholds sorted by their explicit display order (unordered ones last, by name).
@@ -276,7 +279,9 @@ export function useAllThresholdColors() {
         }
       } else if (t.source === 'leisure' && t.leisurePeriod === 'Planned Queue') {
         // Size of the leisure backlog: items still waiting to be started
-        value = await db.leisure.filter(item => item.status === 'Planned').count()
+        value = await db.leisure
+          .filter(item => item.status === 'Planned' && (!t.leisureType || item.type === t.leisureType))
+          .count()
       } else if (t.source === 'leisure' && t.leisurePeriod) {
         const week = t.leisurePeriod === 'This Week'
           ? await db.weeks.filter(w => w.thisWeek).first()
@@ -290,6 +295,7 @@ export function useAllThresholdColors() {
           const items = await db.leisure
             .filter(item =>
               (item.status === 'Consumed' || item.status === 'Live') &&
+              (!t.leisureType || item.type === t.leisureType) &&
               item.dateStarted !== null &&
               item.duration !== null &&
               item.duration > 0
@@ -478,8 +484,8 @@ function todayStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
-// Weekly leisure duration with pro-rated attribution
-export function useWeeklyLeisureDuration(weekCommencing: string | null) {
+// Weekly leisure duration with pro-rated attribution, optionally for one leisure type
+export function useWeeklyLeisureDuration(weekCommencing: string | null, type: LocalLeisureRecord['type'] | null = null) {
   const result = useLiveQuery(
     async () => {
       if (!weekCommencing) return 0
@@ -492,6 +498,7 @@ export function useWeeklyLeisureDuration(weekCommencing: string | null) {
         .filter(
           (item) =>
             (item.status === 'Consumed' || item.status === 'Live') &&
+            (!type || item.type === type) &&
             item.dateStarted !== null &&
             item.duration !== null &&
             item.duration > 0
@@ -521,7 +528,7 @@ export function useWeeklyLeisureDuration(weekCommencing: string | null) {
 
       return totalSeconds
     },
-    [weekCommencing]
+    [weekCommencing, type]
   )
 
   return {
@@ -939,7 +946,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })
