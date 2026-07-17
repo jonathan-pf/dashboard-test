@@ -36,8 +36,9 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 }
 
 type LeisurePeriod = NonNullable<LocalThresholdsRecord['leisurePeriod']>
-// 'Planned Queue' tracks the size of the leisure backlog rather than weekly hours
-const LEISURE_PERIODS: LeisurePeriod[] = ['This Week', 'Last Week', 'Planned Queue']
+// 'Planned Queue' tracks the size of the leisure backlog (item count) rather than
+// weekly hours; 'Planned Queue Hours' sums the backlog's durations instead
+const LEISURE_PERIODS: LeisurePeriod[] = ['This Week', 'Last Week', 'Planned Queue', 'Planned Queue Hours']
 // 'All' means the threshold covers every leisure type
 type LeisureTypeFilter = LocalLeisureRecord['type'] | 'All'
 const LEISURE_TYPE_FILTERS: LeisureTypeFilter[] = ['All', 'Article', 'Book', 'Film', 'TV Show', 'Game', 'Play', 'Cinema', 'Immersive', 'Museum']

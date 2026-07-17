@@ -125,10 +125,19 @@ export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
 }
 
-// Size of the leisure backlog: items still waiting to be started, optionally of one type
-export function usePlannedLeisureCount(type: LocalLeisureRecord['type'] | null = null) {
+// Leisure backlog: items still waiting to be started, optionally of one type,
+// as both an item count and total queued seconds
+export function usePlannedLeisureQueue(type: LocalLeisureRecord['type'] | null = null) {
   return useLiveQuery(
-    () => db.leisure.filter(item => item.status === 'Planned' && (!type || item.type === type)).count(),
+    async () => {
+      const queued = await db.leisure
+        .filter(item => item.status === 'Planned' && (!type || item.type === type))
+        .toArray()
+      return {
+        count: queued.length,
+        totalSeconds: queued.reduce((sum, item) => sum + (item.duration ?? 0), 0),
+      }
+    },
     [type]
   )
 }
@@ -277,11 +286,14 @@ export function useAllThresholdColors() {
             value = slice.reduce((sum, r) => sum + r.words, 0) / slice.length
           }
         }
-      } else if (t.source === 'leisure' && t.leisurePeriod === 'Planned Queue') {
-        // Size of the leisure backlog: items still waiting to be started
-        value = await db.leisure
+      } else if (t.source === 'leisure' && (t.leisurePeriod === 'Planned Queue' || t.leisurePeriod === 'Planned Queue Hours')) {
+        // Leisure backlog: items still waiting to be started, as a count or total hours
+        const queued = await db.leisure
           .filter(item => item.status === 'Planned' && (!t.leisureType || item.type === t.leisureType))
-          .count()
+          .toArray()
+        value = t.leisurePeriod === 'Planned Queue Hours'
+          ? queued.reduce((sum, item) => sum + (item.duration ?? 0), 0) / 3600
+          : queued.length
       } else if (t.source === 'leisure' && t.leisurePeriod) {
         const week = t.leisurePeriod === 'This Week'
           ? await db.weeks.filter(w => w.thisWeek).first()

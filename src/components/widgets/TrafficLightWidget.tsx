@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureCount, useSugarPeriodValue } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
@@ -138,16 +138,19 @@ function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     : currentWeek?.weekCommencing ?? null
   const leisureType = (definition.leisureType ?? null) as LocalLeisureRecord['type'] | null
   const leisure = useWeeklyLeisureDuration(weekCommencing, leisureType)
-  const plannedCount = usePlannedLeisureCount(leisureType)
+  const queue = usePlannedLeisureQueue(leisureType)
 
-  const isQueue = definition.leisurePeriod === 'Planned Queue'
+  const isQueueCount = definition.leisurePeriod === 'Planned Queue'
+  const isQueueHours = definition.leisurePeriod === 'Planned Queue Hours'
+  const isQueue = isQueueCount || isQueueHours
   const hours = leisure.totalSeconds / 3600
-  const loading = isQueue ? plannedCount === undefined : leisure.loading
-  const value = isQueue ? plannedCount ?? null : loading ? null : hours
+  const queueHours = (queue?.totalSeconds ?? 0) / 3600
+  const loading = isQueue ? queue === undefined : leisure.loading
+  const value = loading ? null : isQueueCount ? queue!.count : isQueueHours ? queueHours : hours
   const color = getTrafficLightColor(value, definition)
-  const displayValue = loading ? '--' : isQueue ? plannedCount! : hours.toFixed(1)
+  const displayValue = loading ? '--' : isQueueCount ? queue!.count : (isQueueHours ? queueHours : hours).toFixed(1)
 
-  const unit = isQueue ? '' : 'h'
+  const unit = isQueueCount ? '' : 'h'
   const thresholdHint = definition.lowerIsBetter
     ? `≤ ${definition.greenThreshold}${unit}`
     : `≥ ${definition.greenThreshold}${unit}`
