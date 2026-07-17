@@ -209,6 +209,8 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     healthType: record.fields['Health Type'] ?? null,
     ideaType: record.fields['Idea Type'] ?? null,
     ideaStatus: record.fields['Idea Status'] ?? null,
+    eventType: record.fields['Event Type'] ?? null,
+    eventStatus: record.fields['Event Status'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     leisureType: record.fields['Leisure Type'] ?? null,
@@ -347,6 +349,8 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Health Type': record.healthType,
     'Idea Type': record.ideaType,
     'Idea Status': record.ideaStatus,
+    'Event Type': record.eventType,
+    'Event Status': record.eventStatus,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
     'Leisure Type': record.leisureType,
@@ -1370,7 +1374,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1385,6 +1389,8 @@ class SyncService {
     if (updates.healthType !== undefined) updateData['Health Type'] = updates.healthType
     if (updates.ideaType !== undefined) updateData['Idea Type'] = updates.ideaType
     if (updates.ideaStatus !== undefined) updateData['Idea Status'] = updates.ideaStatus
+    if (updates.eventType !== undefined) updateData['Event Type'] = updates.eventType
+    if (updates.eventStatus !== undefined) updateData['Event Status'] = updates.eventStatus
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType

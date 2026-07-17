@@ -113,7 +113,7 @@ export interface AreasRecord extends AirtableRecord {
 export interface IdeasRecord extends AirtableRecord {
   fields: {
     Name: string
-    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda' | 'Adventure'
+    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda'
     'When?': string // Created time
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
@@ -178,10 +178,12 @@ export interface RulesRecord extends AirtableRecord {
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
-    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
+    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | null
-    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Adventure' | null
+    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
+    'Event Type'?: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure' | null
+    'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
@@ -302,7 +304,7 @@ export interface LocalAreasRecord {
 export interface LocalIdeasRecord {
   id: string
   name: string
-  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Adventure'
+  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda'
   when: string
   weekId: string | null
   notes: string | null
@@ -353,10 +355,12 @@ export interface LocalRulesRecord {
 export interface LocalThresholdsRecord {
   id: string
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
+  eventType: LocalEventsRecord['type'] | null
+  eventStatus: LocalEventsRecord['status'] | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
