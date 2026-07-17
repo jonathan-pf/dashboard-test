@@ -331,6 +331,24 @@ export function useAllThresholdColors() {
 
           value = Math.round(totalSeconds / 3600) // hours
         }
+      } else if (t.source === 'events') {
+        const days = t.days ?? 7
+        const boundary = new Date()
+        boundary.setDate(boundary.getDate() + (t.aggregation === 'countNextNDays' ? days : -days))
+        const boundaryStr = boundary.toISOString().split('T')[0]
+        const todayStr2 = new Date().toISOString().split('T')[0]
+        // Events count by when they happen(ed): Date held, falling back to Date organised
+        const inWindow = (event: { date: string; dateHeld: string | null }) => {
+          const d = (event.dateHeld ?? event.date).slice(0, 10)
+          return t.aggregation === 'countNextNDays' ? d >= todayStr2 && d <= boundaryStr : d >= boundaryStr
+        }
+        value = await db.events
+          .filter(e =>
+            inWindow(e) &&
+            (!t.eventType || e.type === t.eventType) &&
+            (!t.eventStatus || e.status === t.eventStatus)
+          )
+          .count()
       } else if (t.source === 'sugar' && t.sugarPeriod) {
         const records = await db.sugarSummary.toArray()
         const series = periodDailySeries(records, t.sugarPeriod)
@@ -494,6 +512,38 @@ function daysBetweenInclusive(a: string, b: string): number {
 function todayStr(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+// Count of events over the last N days ('past') or next N days ('future'),
+// optionally filtered by type and status. Events count by when they happen(ed):
+// Date held, falling back to Date organised.
+export function useEventsCountDays(
+  days: number,
+  type: LocalEventsRecord['type'] | null = null,
+  status: LocalEventsRecord['status'] | null = null,
+  direction: 'past' | 'future' = 'past'
+) {
+  const boundary = new Date()
+  boundary.setDate(boundary.getDate() + (direction === 'future' ? days : -days))
+  const boundaryStr = boundary.toISOString().split('T')[0]
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      const inWindow = (event: { date: string; dateHeld: string | null }) => {
+        const d = (event.dateHeld ?? event.date).slice(0, 10)
+        return direction === 'future' ? d >= todayStr && d <= boundaryStr : d >= boundaryStr
+      }
+      return db.events
+        .filter(e =>
+          inWindow(e) &&
+          (!type || e.type === type) &&
+          (!status || e.status === status)
+        )
+        .count()
+    },
+    [boundaryStr, todayStr, type, status, direction]
+  )
 }
 
 // Weekly leisure duration with pro-rated attribution, optionally for one leisure type
@@ -958,7 +1008,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

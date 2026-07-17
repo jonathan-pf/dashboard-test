@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
-import type { LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
+import type { LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -12,10 +12,12 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
   healthType?: string | null
   ideaType?: string | null
   ideaStatus?: string | null
+  eventType?: string | null
+  eventStatus?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
   leisureType?: string | null
@@ -62,6 +64,25 @@ function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     definition.ideaType as LocalIdeasRecord['type'],
     definition.days ?? 7,
     definition.ideaStatus as LocalIdeasRecord['status'] ?? null,
+    definition.aggregation === 'countNextNDays' ? 'future' : 'past'
+  )
+
+  const loading = count === undefined
+  const color = getTrafficLightColor(count ?? null, definition)
+  const displayValue = count ?? '--'
+
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}`
+    : `≥ ${definition.greenThreshold}`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
+function EventsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const count = useEventsCountDays(
+    definition.days ?? 7,
+    (definition.eventType ?? null) as LocalEventsRecord['type'] | null,
+    (definition.eventStatus ?? null) as LocalEventsRecord['status'] | null,
     definition.aggregation === 'countNextNDays' ? 'future' : 'past'
   )
 
@@ -176,6 +197,9 @@ function SugarTrafficLightItem({ definition }: { definition: ThresholdDef }) {
 function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   if (definition.source === 'ideas') {
     return <IdeasTrafficLightItem definition={definition} />
+  }
+  if (definition.source === 'events') {
+    return <EventsTrafficLightItem definition={definition} />
   }
   if (definition.source === 'words') {
     return <WordsTrafficLightItem definition={definition} />
