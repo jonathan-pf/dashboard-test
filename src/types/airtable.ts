@@ -185,7 +185,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | null
     'Sugar Period'?: SugarThresholdPeriod | null
-    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'sumLastNDays' | 'averageLastNDays'
+    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
     Days?: number | null
     'Red Threshold': number
     'Green Threshold': number
@@ -359,7 +359,7 @@ export interface LocalThresholdsRecord {
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | null
   sugarPeriod: SugarThresholdPeriod | null
-  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'sumLastNDays' | 'averageLastNDays'
+  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
   days: number | null
   redThreshold: number
   greenThreshold: number

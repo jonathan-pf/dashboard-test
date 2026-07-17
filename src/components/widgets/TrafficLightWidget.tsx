@@ -57,7 +57,12 @@ function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
 }
 
 function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
-  const count = useIdeasCountLastDays(definition.ideaType as LocalIdeasRecord['type'], definition.days ?? 7, definition.ideaStatus as LocalIdeasRecord['status'] ?? null)
+  const count = useIdeasCountLastDays(
+    definition.ideaType as LocalIdeasRecord['type'],
+    definition.days ?? 7,
+    definition.ideaStatus as LocalIdeasRecord['status'] ?? null,
+    definition.aggregation === 'countNextNDays' ? 'future' : 'past'
+  )
 
   const loading = count === undefined
   const color = getTrafficLightColor(count ?? null, definition)
