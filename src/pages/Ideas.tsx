@@ -25,6 +25,7 @@ const IDEA_TYPES: LocalIdeasRecord['type'][] = [
   'Gen',
   'Model',
   'Agenda',
+  'Adventure',
 ]
 
 // Types shown in the summary grid (hide unused types)
@@ -40,6 +41,7 @@ const SUMMARY_TYPES: LocalIdeasRecord['type'][] = [
   'Gen',
   'Model',
   'Agenda',
+  'Adventure',
 ]
 
 const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
@@ -58,6 +60,7 @@ const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
   Gen: 'bg-lime-100 text-lime-700',
   Model: 'bg-emerald-100 text-emerald-700',
   Agenda: 'bg-violet-100 text-violet-700',
+  Adventure: 'bg-sky-100 text-sky-700',
 }
 
 export function Ideas() {
@@ -258,6 +261,15 @@ export function Ideas() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
           Agenda
+        </Link>
+        <Link
+          to="/ideas/adventure"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-100 text-sky-700 rounded-full text-sm font-medium hover:bg-sky-200 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          Adventure
         </Link>
       </div>
 
