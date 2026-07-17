@@ -208,12 +208,18 @@ export function useAllThresholdColors() {
         }
       } else if (t.source === 'ideas' && t.ideaType) {
         const days = t.days ?? 7
-        const cutoff = new Date()
-        cutoff.setDate(cutoff.getDate() - days)
-        const cutoffStr = cutoff.toISOString().split('T')[0]
+        const boundary = new Date()
+        boundary.setDate(boundary.getDate() + (t.aggregation === 'countNextNDays' ? days : -days))
+        const boundaryStr = boundary.toISOString().split('T')[0]
+        const todayStr = new Date().toISOString().split('T')[0]
+        // countNextNDays looks forward (today..today+N); everything else looks back (today-N onwards)
+        const inWindow = (when: string) => {
+          const d = when.slice(0, 10)
+          return t.aggregation === 'countNextNDays' ? d >= todayStr && d <= boundaryStr : d >= boundaryStr
+        }
         const records = await db.ideas
           .where('type').equals(t.ideaType)
-          .and(r => r.when >= cutoffStr && (!t.ideaStatus || r.status === t.ideaStatus))
+          .and(r => inWindow(r.when) && (!t.ideaStatus || r.status === t.ideaStatus))
           .toArray()
         if (t.aggregation === 'sumLastNDays') {
           value = records.length // for ideas, sum = count
@@ -1040,22 +1046,33 @@ export function useHealthSumLastDays(type: LocalHealthRecord['type'], days: numb
   )
 }
 
-// Count of ideas of a given type over last N days, optionally filtered by status
-export function useIdeasCountLastDays(type: LocalIdeasRecord['type'], days: number, status?: LocalIdeasRecord['status']) {
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - days)
-  const startDateStr = startDate.toISOString().split('T')[0]
+// Count of ideas of a given type over last N days ('past') or next N days ('future'),
+// optionally filtered by status
+export function useIdeasCountLastDays(
+  type: LocalIdeasRecord['type'],
+  days: number,
+  status?: LocalIdeasRecord['status'],
+  direction: 'past' | 'future' = 'past'
+) {
+  const boundary = new Date()
+  boundary.setDate(boundary.getDate() + (direction === 'future' ? days : -days))
+  const boundaryStr = boundary.toISOString().split('T')[0]
+  const todayStr = new Date().toISOString().split('T')[0]
 
   return useLiveQuery(
     async () => {
+      const inWindow = (when: string) => {
+        const d = when.slice(0, 10)
+        return direction === 'future' ? d >= todayStr && d <= boundaryStr : d >= boundaryStr
+      }
       const records = await db.ideas
         .where('type')
         .equals(type)
-        .and((r) => r.when >= startDateStr && (!status || r.status === status))
+        .and((r) => inWindow(r.when) && (!status || r.status === status))
         .toArray()
       return records.length
     },
-    [type, startDateStr, status]
+    [type, boundaryStr, todayStr, status, direction]
   )
 }
 

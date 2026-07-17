@@ -16,10 +16,17 @@ const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumL
 // Blood-sugar thresholds check an average, so only these aggregations make sense.
 const SUGAR_AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'averageLast3', 'averageLastNDays']
 const SUGAR_PERIODS: SugarThresholdPeriod[] = ['01:00-07:00', '07:00-13:00', '13:00-19:00', '19:00-01:00', 'All day']
+// Ideas thresholds count over a window looking back or forward from today.
+const IDEAS_AGGREGATIONS: { value: LocalThresholdsRecord['aggregation']; label: string }[] = [
+  { value: 'countLastNDays', label: 'Last N days' },
+  { value: 'countNextNDays', label: 'Next N days' },
+]
+const ideasAggregation = (agg: LocalThresholdsRecord['aggregation']): LocalThresholdsRecord['aggregation'] =>
+  agg === 'countNextNDays' ? 'countNextNDays' : 'countLastNDays'
 
 // Aggregations that need a "Days" window
 const usesDays = (agg: LocalThresholdsRecord['aggregation']) =>
-  agg === 'countLastNDays' || agg === 'sumLastNDays' || agg === 'averageLastNDays'
+  agg === 'countLastNDays' || agg === 'countNextNDays' || agg === 'sumLastNDays' || agg === 'averageLastNDays'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -110,7 +117,7 @@ export function Thresholds() {
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
       sugarPeriod: newSource === 'sugar' ? newSugarPeriod : null,
-      aggregation: newSource === 'ideas' ? 'countLastNDays' : newSource === 'leisure' ? 'lastValue' : newAggregation,
+      aggregation: newSource === 'ideas' ? ideasAggregation(newAggregation) : newSource === 'leisure' ? 'lastValue' : newAggregation,
       days: usesDays(newAggregation) || newSource === 'ideas' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
@@ -171,7 +178,7 @@ export function Thresholds() {
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
         sugarPeriod: editSource === 'sugar' ? editSugarPeriod : null,
-        aggregation: editSource === 'ideas' ? 'countLastNDays' : editSource === 'leisure' ? 'lastValue' : editAggregation,
+        aggregation: editSource === 'ideas' ? ideasAggregation(editAggregation) : editSource === 'leisure' ? 'lastValue' : editAggregation,
         days: usesDays(editAggregation) || editSource === 'ideas' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
@@ -336,7 +343,7 @@ export function Thresholds() {
                       <span>Red: {t.lowerIsBetter ? '≥' : '≤'} {t.redThreshold}</span>
                       <span>Green: {t.lowerIsBetter ? '≤' : '≥'} {t.greenThreshold}</span>
                       {t.aggregation !== 'lastValue' && <span>{t.aggregation}</span>}
-                      {t.days && <span>{t.days}d</span>}
+                      {t.days && <span>{t.aggregation === 'countNextNDays' ? `next ${t.days}d` : `${t.days}d`}</span>}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 justify-center shrink-0">
@@ -517,6 +524,18 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {IDEA_STATUS_FILTERS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
+        {source === 'ideas' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Period</label>
+            <select
+              value={ideasAggregation(aggregation)}
+              onChange={(e) => setAggregation(e.target.value as LocalThresholdsRecord['aggregation'])}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {IDEAS_AGGREGATIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
         )}
