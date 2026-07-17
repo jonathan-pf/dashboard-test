@@ -9,7 +9,7 @@ export interface HealthRecord extends AirtableRecord {
   fields: {
     Name: string // Formula field (Date - Type)
     Value: number
-    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat'
+    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption'
     Date: string // ISO date string
     'Week Number Name': string // Formula field
     'Week Link': string[] // Record IDs linking to Weeks table
@@ -179,7 +179,7 @@ export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar'
-    'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | null
+    'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Adventure' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
@@ -214,7 +214,7 @@ export interface LocalHealthRecord {
   id: string
   name: string
   value: number
-  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat'
+  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption'
   date: string
   weekId: string | null
   unitsType: 'Theory' | 'Social' | null
