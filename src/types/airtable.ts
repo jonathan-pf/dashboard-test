@@ -183,7 +183,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Adventure' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
-    'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | null
+    'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
@@ -358,7 +358,7 @@ export interface LocalThresholdsRecord {
   ideaType: LocalIdeasRecord['type'] | null
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
-  leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | null
+  leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
   sugarPeriod: SugarThresholdPeriod | null
   aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
