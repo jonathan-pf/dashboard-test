@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, useSugarPeriodValue } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureCount, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { LocalHealthRecord, LocalIdeasRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
@@ -136,15 +136,19 @@ function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? lastWeek?.weekCommencing ?? null
     : currentWeek?.weekCommencing ?? null
   const leisure = useWeeklyLeisureDuration(weekCommencing)
+  const plannedCount = usePlannedLeisureCount()
 
+  const isQueue = definition.leisurePeriod === 'Planned Queue'
   const hours = leisure.totalSeconds / 3600
-  const loading = leisure.loading
-  const color = getTrafficLightColor(loading ? null : hours, definition)
-  const displayValue = loading ? '--' : hours.toFixed(1)
+  const loading = isQueue ? plannedCount === undefined : leisure.loading
+  const value = isQueue ? plannedCount ?? null : loading ? null : hours
+  const color = getTrafficLightColor(value, definition)
+  const displayValue = loading ? '--' : isQueue ? plannedCount! : hours.toFixed(1)
 
+  const unit = isQueue ? '' : 'h'
   const thresholdHint = definition.lowerIsBetter
-    ? `≤ ${definition.greenThreshold}h`
-    : `≥ ${definition.greenThreshold}h`
+    ? `≤ ${definition.greenThreshold}${unit}`
+    : `≥ ${definition.greenThreshold}${unit}`
 
   return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }

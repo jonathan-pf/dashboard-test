@@ -125,6 +125,11 @@ export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
 }
 
+// Size of the leisure backlog: items still waiting to be started
+export function usePlannedLeisureCount() {
+  return useLiveQuery(() => db.leisure.filter(item => item.status === 'Planned').count(), [])
+}
+
 // Thresholds sorted by their explicit display order (unordered ones last, by name).
 // The Dashboard traffic-light grid and the Thresholds page both use this.
 export function useThresholds() {
@@ -269,6 +274,9 @@ export function useAllThresholdColors() {
             value = slice.reduce((sum, r) => sum + r.words, 0) / slice.length
           }
         }
+      } else if (t.source === 'leisure' && t.leisurePeriod === 'Planned Queue') {
+        // Size of the leisure backlog: items still waiting to be started
+        value = await db.leisure.filter(item => item.status === 'Planned').count()
       } else if (t.source === 'leisure' && t.leisurePeriod) {
         const week = t.leisurePeriod === 'This Week'
           ? await db.weeks.filter(w => w.thisWeek).first()

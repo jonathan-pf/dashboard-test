@@ -35,7 +35,9 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   grey: 'bg-slate-300',
 }
 
-const LEISURE_PERIODS: ('This Week' | 'Last Week')[] = ['This Week', 'Last Week']
+type LeisurePeriod = NonNullable<LocalThresholdsRecord['leisurePeriod']>
+// 'Planned Queue' tracks the size of the leisure backlog rather than weekly hours
+const LEISURE_PERIODS: LeisurePeriod[] = ['This Week', 'Last Week', 'Planned Queue']
 
 const SOURCE_COLORS: Record<ThresholdSource, string> = {
   health: 'bg-purple-100 text-purple-700',
@@ -53,7 +55,7 @@ export function Thresholds() {
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [newIdeaStatus, setNewIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
-  const [newLeisurePeriod, setNewLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
+  const [newLeisurePeriod, setNewLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [newSugarPeriod, setNewSugarPeriod] = useState<SugarThresholdPeriod>('All day')
   const [newAggregation, setNewAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [newDays, setNewDays] = useState('7')
@@ -68,7 +70,7 @@ export function Thresholds() {
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
   const [editIdeaStatus, setEditIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
-  const [editLeisurePeriod, setEditLeisurePeriod] = useState<'This Week' | 'Last Week'>('This Week')
+  const [editLeisurePeriod, setEditLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [editSugarPeriod, setEditSugarPeriod] = useState<SugarThresholdPeriod>('All day')
   const [editAggregation, setEditAggregation] = useState<LocalThresholdsRecord['aggregation']>('lastValue')
   const [editDays, setEditDays] = useState('7')
@@ -414,7 +416,7 @@ function ThresholdForm({
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
   ideaStatus: IdeaStatusFilter; setIdeaStatus: (v: IdeaStatusFilter) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
-  leisurePeriod: 'This Week' | 'Last Week'; setLeisurePeriod: (v: 'This Week' | 'Last Week') => void
+  leisurePeriod: LeisurePeriod; setLeisurePeriod: (v: LeisurePeriod) => void
   sugarPeriod: SugarThresholdPeriod; setSugarPeriod: (v: SugarThresholdPeriod) => void
   aggregation: LocalThresholdsRecord['aggregation']; setAggregation: (v: LocalThresholdsRecord['aggregation']) => void
   days: string; setDays: (v: string) => void
@@ -495,7 +497,7 @@ function ThresholdForm({
             <label className="block text-sm font-medium text-slate-700 mb-1">Leisure Period</label>
             <select
               value={leisurePeriod}
-              onChange={(e) => setLeisurePeriod(e.target.value as 'This Week' | 'Last Week')}
+              onChange={(e) => setLeisurePeriod(e.target.value as LeisurePeriod)}
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {LEISURE_PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
