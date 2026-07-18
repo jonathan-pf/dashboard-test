@@ -5,6 +5,8 @@ import {
   useCurrentWeekWordsByProject,
   useCurrentWeek,
   useCreateWords,
+  useUpdateWords,
+  useDeleteWords,
   useWords,
   useLocalWordsByWeek,
 } from '@/hooks/useAirtableData'
@@ -31,6 +33,9 @@ export function Words() {
   const [entryName, setEntryName] = useState('')
   const [entryWords, setEntryWords] = useState('')
   const [entryProject, setEntryProject] = useState<ProjectType>('Arcadia')
+  const [entryWhen, setEntryWhen] = useState('')
+  const [editingEntry, setEditingEntry] = useState<LocalWordsRecord | null>(null)
+  const [deleteConfirming, setDeleteConfirming] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
 
   // Focus input without scrolling to prevent iPad keyboard jump bug
@@ -50,30 +55,69 @@ export function Words() {
   const words = useWords()
   const localWordsByWeek = useLocalWordsByWeek()
   const createWords = useCreateWords()
+  const updateWords = useUpdateWords()
+  const deleteWords = useDeleteWords()
 
   const today = new Date().toISOString().split('T')[0]
+
+  const resetForm = () => {
+    setEntryName('')
+    setEntryWords('')
+    setEntryWhen('')
+    setEditingEntry(null)
+    setDeleteConfirming(false)
+    setShowEntry(false)
+  }
 
   const handleSubmit = async () => {
     const wordCount = parseInt(entryWords)
     if (!entryName || isNaN(wordCount)) return
 
-    await createWords.mutateAsync({
-      name: entryName,
-      words: wordCount,
-      project: entryProject,
-      when: today,
-      weekId: currentWeek?.id ?? null,
-    })
+    if (editingEntry) {
+      await updateWords.mutateAsync({
+        wordsId: editingEntry.id,
+        updates: {
+          name: entryName,
+          words: wordCount,
+          project: entryProject,
+          when: entryWhen || editingEntry.when,
+        },
+      })
+    } else {
+      await createWords.mutateAsync({
+        name: entryName,
+        words: wordCount,
+        project: entryProject,
+        when: today,
+        weekId: currentWeek?.id ?? null,
+      })
+    }
 
-    setEntryName('')
-    setEntryWords('')
-    setShowEntry(false)
+    resetForm()
   }
 
   const handleCancel = () => {
-    setEntryName('')
-    setEntryWords('')
-    setShowEntry(false)
+    resetForm()
+  }
+
+  const startEdit = (entry: LocalWordsRecord) => {
+    setEditingEntry(entry)
+    setEntryName(entry.name)
+    setEntryWords(String(entry.words))
+    setEntryProject(entry.project)
+    setEntryWhen(entry.when.slice(0, 10))
+    setDeleteConfirming(false)
+    setShowEntry(true)
+  }
+
+  const handleDelete = async () => {
+    if (!editingEntry) return
+    if (!deleteConfirming) {
+      setDeleteConfirming(true)
+      return
+    }
+    await deleteWords.mutateAsync(editingEntry.id)
+    resetForm()
   }
 
   return (
@@ -97,7 +141,9 @@ export function Words() {
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">Quick Entry</h3>
+        <h3 className="font-semibold text-slate-900 mb-4">
+          {editingEntry ? 'Edit Entry' : 'Quick Entry'}
+        </h3>
 
         {showEntry ? (
           <div className="space-y-4">
@@ -128,6 +174,21 @@ export function Words() {
               />
             </div>
 
+            {editingEntry && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={entryWhen}
+                  onChange={(e) => setEntryWhen(e.target.value)}
+                  max={today}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Project
@@ -156,12 +217,25 @@ export function Words() {
               >
                 Cancel
               </button>
+              {editingEntry && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteWords.isPending}
+                  className={`py-3 px-4 rounded-lg font-medium ${
+                    deleteConfirming
+                      ? 'bg-red-600 text-white'
+                      : 'bg-red-50 text-red-600'
+                  }`}
+                >
+                  {deleteWords.isPending ? '...' : deleteConfirming ? 'Confirm' : 'Delete'}
+                </button>
+              )}
               <button
                 onClick={handleSubmit}
-                disabled={!entryName || !entryWords || createWords.isPending}
+                disabled={!entryName || !entryWords || createWords.isPending || updateWords.isPending}
                 className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
               >
-                {createWords.isPending ? 'Saving...' : 'Save'}
+                {createWords.isPending || updateWords.isPending ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -182,7 +256,8 @@ export function Words() {
           {(words?.slice(0, 10) ?? []).map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
+              onClick={() => startEdit(entry)}
+              className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 rounded transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-slate-900 truncate">

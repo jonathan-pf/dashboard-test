@@ -666,6 +666,34 @@ export function useCreateWords() {
   })
 }
 
+export function useUpdateWords() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      wordsId,
+      updates,
+    }: {
+      wordsId: string
+      updates: Partial<Pick<LocalWordsRecord, 'name' | 'words' | 'project' | 'when'>>
+    }) => syncService.updateWordsRecord(wordsId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
+export function useDeleteWords() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (wordsId: string) => syncService.deleteWordsRecord(wordsId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
 // Create goal record mutation
 export function useCreateGoal() {
   const queryClient = useQueryClient()
