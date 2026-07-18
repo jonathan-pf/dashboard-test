@@ -4,8 +4,8 @@ import {
   useCreateEvent,
   useUpdateEvent,
 } from '@/hooks/useAirtableData'
-import { EVENT_TYPES, EVENT_TYPE_COLORS, EVENT_STATUSES, EVENT_STATUS_COLORS } from '@/types/airtable'
-import type { LocalEventsRecord } from '@/types/airtable'
+import { EVENT_TYPES, EVENT_TYPE_COLORS, EVENT_STATUSES, EVENT_STATUS_COLORS, EVENT_TAGS, EVENT_TAG_COLORS } from '@/types/airtable'
+import type { EventTag, LocalEventsRecord } from '@/types/airtable'
 
 export function Events() {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -15,6 +15,7 @@ export function Events() {
   const [eventDate, setEventDate] = useState('')
   const [eventDateHeld, setEventDateHeld] = useState('')
   const [eventStatus, setEventStatus] = useState<LocalEventsRecord['status']>('Planned')
+  const [eventTags, setEventTags] = useState<EventTag[]>([])
   const [eventNotes, setEventNotes] = useState('')
 
   const events = useEvents()
@@ -32,6 +33,7 @@ export function Events() {
       date: eventDate,
       dateHeld: eventDateHeld || null,
       status: eventStatus,
+      tags: eventTags,
       notes: eventNotes.trim() || null,
     })
 
@@ -50,6 +52,7 @@ export function Events() {
         date: eventDate,
         dateHeld: eventDateHeld || null,
         status: eventStatus,
+        tags: eventTags,
         notes: eventNotes.trim() || null,
       },
     })
@@ -65,8 +68,15 @@ export function Events() {
     setEventDate(event.date)
     setEventDateHeld(event.dateHeld || '')
     setEventStatus(event.status)
+    setEventTags(event.tags)
     setEventNotes(event.notes || '')
     setShowAddForm(false)
+  }
+
+  const toggleTag = (tag: EventTag) => {
+    setEventTags((tags) =>
+      tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]
+    )
   }
 
   const resetForm = () => {
@@ -75,6 +85,7 @@ export function Events() {
     setEventDate('')
     setEventDateHeld('')
     setEventStatus('Planned')
+    setEventTags([])
     setEventNotes('')
   }
 
@@ -185,6 +196,27 @@ export function Events() {
               </div>
             </div>
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Tags
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {EVENT_TAGS.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      eventTags.includes(tag)
+                        ? EVENT_TAG_COLORS[tag]
+                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Notes (optional)
               </label>
@@ -256,6 +288,14 @@ export function Events() {
                 >
                   {event.type}
                 </span>
+                {event.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${EVENT_TAG_COLORS[tag]}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
                 <span className="text-xs text-slate-400">
                   {formatDate(event.date)}
                 </span>

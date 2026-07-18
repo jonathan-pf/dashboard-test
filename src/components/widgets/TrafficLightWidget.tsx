@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
-import type { LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
+import type { EventTag, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
 const COLOR_CLASSES: Record<TrafficLightColor, string> = {
   green: 'bg-green-500',
@@ -18,6 +18,7 @@ interface ThresholdDef {
   ideaStatus?: string | null
   eventType?: string | null
   eventStatus?: string | null
+  eventTag?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
   leisureType?: string | null
@@ -83,7 +84,8 @@ function EventsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     definition.days ?? 7,
     (definition.eventType ?? null) as LocalEventsRecord['type'] | null,
     (definition.eventStatus ?? null) as LocalEventsRecord['status'] | null,
-    definition.aggregation === 'countNextNDays' ? 'future' : 'past'
+    definition.aggregation === 'countNextNDays' ? 'future' : 'past',
+    (definition.eventTag ?? null) as EventTag | null
   )
 
   const loading = count === undefined

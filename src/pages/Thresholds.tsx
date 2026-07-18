@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors } from '@/hooks/useAirtableData'
-import type { LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
+import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
 
 type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
@@ -13,6 +13,8 @@ type EventTypeFilter = LocalEventsRecord['type'] | 'All'
 const EVENT_TYPE_FILTERS: EventTypeFilter[] = ['All', 'Meal', 'Party', 'Cinema', 'Theatre', 'Holiday', 'Event', 'Work Trip', 'Hobby', 'Adventure']
 type EventStatusFilter = LocalEventsRecord['status'] | 'Any'
 const EVENT_STATUS_FILTERS: EventStatusFilter[] = ['Any', 'Planned', 'Held', 'Cancelled']
+type EventTagFilter = EventTag | 'Any'
+const EVENT_TAG_FILTERS: EventTagFilter[] = ['Any', 'Adventure', 'Date', 'Social', 'Group', 'Family']
 // 'Any' means the threshold counts ideas of every status
 type IdeaStatusFilter = NonNullable<LocalThresholdsRecord['ideaStatus']> | 'Any'
 const IDEA_STATUS_FILTERS: IdeaStatusFilter[] = ['Any', 'Planned', 'Researched', 'Shipped', 'Active']
@@ -66,6 +68,7 @@ export function Thresholds() {
   const [newIdeaStatus, setNewIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [newEventType, setNewEventType] = useState<EventTypeFilter>('All')
   const [newEventStatus, setNewEventStatus] = useState<EventStatusFilter>('Any')
+  const [newEventTag, setNewEventTag] = useState<EventTagFilter>('Any')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newLeisurePeriod, setNewLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [newLeisureType, setNewLeisureType] = useState<LeisureTypeFilter>('All')
@@ -84,6 +87,7 @@ export function Thresholds() {
   const [editIdeaStatus, setEditIdeaStatus] = useState<IdeaStatusFilter>('Any')
   const [editEventType, setEditEventType] = useState<EventTypeFilter>('All')
   const [editEventStatus, setEditEventStatus] = useState<EventStatusFilter>('Any')
+  const [editEventTag, setEditEventTag] = useState<EventTagFilter>('Any')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editLeisurePeriod, setEditLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [editLeisureType, setEditLeisureType] = useState<LeisureTypeFilter>('All')
@@ -134,6 +138,7 @@ export function Thresholds() {
       ideaStatus: newSource === 'ideas' && newIdeaStatus !== 'Any' ? newIdeaStatus : null,
       eventType: newSource === 'events' && newEventType !== 'All' ? newEventType : null,
       eventStatus: newSource === 'events' && newEventStatus !== 'Any' ? newEventStatus : null,
+      eventTag: newSource === 'events' && newEventTag !== 'Any' ? newEventTag : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
       leisureType: newSource === 'leisure' && newLeisureType !== 'All' ? newLeisureType : null,
@@ -154,6 +159,7 @@ export function Thresholds() {
     setNewIdeaStatus('Any')
     setNewEventType('All')
     setNewEventStatus('Any')
+    setNewEventTag('Any')
     setNewWordsProject('All')
     setNewLeisurePeriod('This Week')
     setNewLeisureType('All')
@@ -180,6 +186,7 @@ export function Thresholds() {
     setEditIdeaStatus(t.ideaStatus ?? 'Any')
     setEditEventType(t.eventType ?? 'All')
     setEditEventStatus(t.eventStatus ?? 'Any')
+    setEditEventTag(t.eventTag ?? 'Any')
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
     setEditLeisureType(t.leisureType ?? 'All')
@@ -204,6 +211,7 @@ export function Thresholds() {
         ideaStatus: editSource === 'ideas' && editIdeaStatus !== 'Any' ? editIdeaStatus : null,
         eventType: editSource === 'events' && editEventType !== 'All' ? editEventType : null,
         eventStatus: editSource === 'events' && editEventStatus !== 'Any' ? editEventStatus : null,
+        eventTag: editSource === 'events' && editEventTag !== 'Any' ? editEventTag : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
         leisureType: editSource === 'leisure' && editLeisureType !== 'All' ? editLeisureType : null,
@@ -296,6 +304,7 @@ export function Thresholds() {
             ideaStatus={newIdeaStatus} setIdeaStatus={setNewIdeaStatus}
             eventType={newEventType} setEventType={setNewEventType}
             eventStatus={newEventStatus} setEventStatus={setNewEventStatus}
+            eventTag={newEventTag} setEventTag={setNewEventTag}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
             leisureType={newLeisureType} setLeisureType={setNewLeisureType}
@@ -337,6 +346,7 @@ export function Thresholds() {
                     ideaStatus={editIdeaStatus} setIdeaStatus={setEditIdeaStatus}
                     eventType={editEventType} setEventType={setEditEventType}
                     eventStatus={editEventStatus} setEventStatus={setEditEventStatus}
+                    eventTag={editEventTag} setEventTag={setEditEventTag}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
                     leisureType={editLeisureType} setLeisureType={setEditLeisureType}
@@ -371,7 +381,7 @@ export function Thresholds() {
                           {t.source}
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventType ?? 'All'}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
+                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventTag ?? t.eventType ?? 'All'}${t.eventTag && t.eventType ? ` · ${t.eventType}` : ''}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
                         </span>
                       </div>
                     </div>
@@ -429,6 +439,7 @@ function ThresholdForm({
   ideaStatus, setIdeaStatus,
   eventType, setEventType,
   eventStatus, setEventStatus,
+  eventTag, setEventTag,
   wordsProject, setWordsProject,
   leisurePeriod, setLeisurePeriod,
   leisureType, setLeisureType,
@@ -454,6 +465,7 @@ function ThresholdForm({
   ideaStatus: IdeaStatusFilter; setIdeaStatus: (v: IdeaStatusFilter) => void
   eventType: EventTypeFilter; setEventType: (v: EventTypeFilter) => void
   eventStatus: EventStatusFilter; setEventStatus: (v: EventStatusFilter) => void
+  eventTag: EventTagFilter; setEventTag: (v: EventTagFilter) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   leisurePeriod: LeisurePeriod; setLeisurePeriod: (v: LeisurePeriod) => void
   leisureType: LeisureTypeFilter; setLeisureType: (v: LeisureTypeFilter) => void
@@ -590,6 +602,18 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {IDEA_STATUS_FILTERS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
+        {source === 'events' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Event Tag</label>
+            <select
+              value={eventTag}
+              onChange={(e) => setEventTag(e.target.value as EventTagFilter)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {EVENT_TAG_FILTERS.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
         )}
