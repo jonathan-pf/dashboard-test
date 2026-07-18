@@ -143,6 +143,7 @@ export interface EventsRecord extends AirtableRecord {
     Notes?: string
     Type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure'
     Status?: 'Planned' | 'Held' | 'Cancelled'
+    Tags?: ('Adventure' | 'Date' | 'Social' | 'Group' | 'Family')[] // Multiple selects
   }
 }
 
@@ -184,6 +185,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Event Type'?: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure' | null
     'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
+    'Event Tag'?: 'Adventure' | 'Date' | 'Social' | 'Group' | 'Family' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
@@ -361,6 +363,7 @@ export interface LocalThresholdsRecord {
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   eventType: LocalEventsRecord['type'] | null
   eventStatus: LocalEventsRecord['status'] | null
+  eventTag: EventTag | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
@@ -385,6 +388,7 @@ export interface LocalEventsRecord {
   notes: string | null
   type: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure'
   status: 'Planned' | 'Held' | 'Cancelled'
+  tags: EventTag[]
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
@@ -423,6 +427,19 @@ export const EVENT_TYPE_COLORS: Record<EventType, string> = {
   'Work Trip': 'bg-red-100 text-red-700',
   'Hobby': 'bg-pink-100 text-pink-700',
   'Adventure': 'bg-purple-100 text-purple-700',
+}
+
+// Cross-cutting roles an event can play (an event can have several):
+// what it means, vs Type which is its format
+export const EVENT_TAGS = ['Adventure', 'Date', 'Social', 'Group', 'Family'] as const
+export type EventTag = (typeof EVENT_TAGS)[number]
+
+export const EVENT_TAG_COLORS: Record<EventTag, string> = {
+  'Adventure': 'bg-purple-100 text-purple-700',
+  'Date': 'bg-pink-100 text-pink-700',
+  'Social': 'bg-blue-100 text-blue-700',
+  'Group': 'bg-teal-100 text-teal-700',
+  'Family': 'bg-green-100 text-green-700',
 }
 
 // Leisure table

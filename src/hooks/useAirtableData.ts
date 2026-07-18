@@ -11,6 +11,7 @@ import type {
   LocalEventsRecord,
   LocalLeisureRecord,
   LocalThresholdsRecord,
+  EventTag,
 } from '@/types/airtable'
 import type { SugarThresholdPeriod } from '@/types/airtable'
 import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
@@ -346,7 +347,8 @@ export function useAllThresholdColors() {
           .filter(e =>
             inWindow(e) &&
             (!t.eventType || e.type === t.eventType) &&
-            (!t.eventStatus || e.status === t.eventStatus)
+            (!t.eventStatus || e.status === t.eventStatus) &&
+            (!t.eventTag || e.tags.includes(t.eventTag))
           )
           .count()
       } else if (t.source === 'sugar' && t.sugarPeriod) {
@@ -521,7 +523,8 @@ export function useEventsCountDays(
   days: number,
   type: LocalEventsRecord['type'] | null = null,
   status: LocalEventsRecord['status'] | null = null,
-  direction: 'past' | 'future' = 'past'
+  direction: 'past' | 'future' = 'past',
+  tag: EventTag | null = null
 ) {
   const boundary = new Date()
   boundary.setDate(boundary.getDate() + (direction === 'future' ? days : -days))
@@ -538,11 +541,12 @@ export function useEventsCountDays(
         .filter(e =>
           inWindow(e) &&
           (!type || e.type === type) &&
-          (!status || e.status === status)
+          (!status || e.status === status) &&
+          (!tag || e.tags.includes(tag))
         )
         .count()
     },
-    [boundaryStr, todayStr, type, status, direction]
+    [boundaryStr, todayStr, type, status, direction, tag]
   )
 }
 
@@ -838,7 +842,7 @@ export function useUpdateEvent() {
       updates,
     }: {
       eventId: string
-      updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status'>>
+      updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status' | 'tags'>>
     }) => syncService.updateEventsRecord(eventId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.events })
@@ -1008,7 +1012,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

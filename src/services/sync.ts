@@ -211,6 +211,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     ideaStatus: record.fields['Idea Status'] ?? null,
     eventType: record.fields['Event Type'] ?? null,
     eventStatus: record.fields['Event Status'] ?? null,
+    eventTag: record.fields['Event Tag'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     leisureType: record.fields['Leisure Type'] ?? null,
@@ -235,6 +236,7 @@ function transformEventsRecord(record: EventsRecord): LocalEventsRecord {
     notes: record.fields.Notes ?? null,
     type: record.fields.Type || 'Event',
     status: record.fields.Status || 'Planned',
+    tags: record.fields.Tags ?? [],
     createdTime: record.createdTime,
   }
 }
@@ -311,6 +313,7 @@ function localEventsToAirtable(record: LocalEventsRecord): Record<string, unknow
     Notes: record.notes,
     Type: record.type,
     Status: record.status,
+    Tags: record.tags,
   }
 }
 
@@ -351,6 +354,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Idea Status': record.ideaStatus,
     'Event Type': record.eventType,
     'Event Status': record.eventStatus,
+    'Event Tag': record.eventTag,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
     'Leisure Type': record.leisureType,
@@ -1210,7 +1214,7 @@ class SyncService {
   // Update an event record (handles offline)
   async updateEventsRecord(
     eventId: string,
-    updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status'>>
+    updates: Partial<Pick<LocalEventsRecord, 'name' | 'date' | 'dateHeld' | 'notes' | 'type' | 'status' | 'tags'>>
   ): Promise<void> {
     const event = await db.events.get(eventId)
     if (!event) throw new Error('Event not found')
@@ -1228,6 +1232,7 @@ class SyncService {
     if (updates.notes !== undefined) updateData.Notes = updates.notes
     if (updates.type !== undefined) updateData.Type = updates.type
     if (updates.status !== undefined) updateData.Status = updates.status
+    if (updates.tags !== undefined) updateData.Tags = updates.tags
 
     if (navigator.onLine) {
       try {
@@ -1374,7 +1379,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1391,6 +1396,7 @@ class SyncService {
     if (updates.ideaStatus !== undefined) updateData['Idea Status'] = updates.ideaStatus
     if (updates.eventType !== undefined) updateData['Event Type'] = updates.eventType
     if (updates.eventStatus !== undefined) updateData['Event Status'] = updates.eventStatus
+    if (updates.eventTag !== undefined) updateData['Event Tag'] = updates.eventTag
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType
