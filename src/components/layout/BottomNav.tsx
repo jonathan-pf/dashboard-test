@@ -1,22 +1,41 @@
-import { NavLink } from 'react-router-dom'
+import { useRef } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 
+// doubleTapPath: a second tap within the window jumps to a shortcut page.
+// The first tap navigates normally, so single-tap latency is unaffected.
 const navItems = [
   { path: '/', label: 'Home', icon: HomeIcon },
   { path: '/ideas', label: 'Ideas', icon: LightbulbIcon },
   { path: '/words', label: 'Words', icon: PenIcon },
-  { path: '/health', label: 'Health', icon: HeartIcon },
+  { path: '/health', label: 'Health', icon: HeartIcon, doubleTapPath: '/habits' },
   { path: '/goals', label: 'Goals', icon: TargetIcon },
   { path: '/settings', label: 'Settings', icon: SettingsIcon },
 ]
 
+const DOUBLE_TAP_MS = 400
+
 export function BottomNav() {
+  const navigate = useNavigate()
+  const lastTapRef = useRef<{ path: string; time: number }>({ path: '', time: 0 })
+
+  const handleTap = (path: string, doubleTapPath: string | undefined, e: React.MouseEvent) => {
+    const now = Date.now()
+    const last = lastTapRef.current
+    lastTapRef.current = { path, time: now }
+    if (doubleTapPath && last.path === path && now - last.time < DOUBLE_TAP_MS) {
+      e.preventDefault()
+      navigate(doubleTapPath)
+    }
+  }
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 pb-safe [touch-action:manipulation]">
       <div className="flex justify-around items-center h-16">
-        {navItems.map(({ path, label, icon: Icon }) => (
+        {navItems.map(({ path, label, icon: Icon, doubleTapPath }) => (
           <NavLink
             key={path}
             to={path}
+            onClick={(e) => handleTap(path, doubleTapPath, e)}
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
                 isActive
