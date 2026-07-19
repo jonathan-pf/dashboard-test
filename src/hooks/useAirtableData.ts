@@ -11,8 +11,10 @@ import type {
   LocalEventsRecord,
   LocalLeisureRecord,
   LocalThresholdsRecord,
+  LocalHabitLogRecord,
   EventTag,
 } from '@/types/airtable'
+import { DEFAULT_HABITS } from '@/types/airtable'
 import type { SugarThresholdPeriod } from '@/types/airtable'
 import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
 import { periodDailySeries, aggregateSeries } from '@/utils/sugar'
@@ -30,6 +32,7 @@ export const queryKeys = {
   events: ['events'] as const,
   leisure: ['leisure'] as const,
   thresholds: ['thresholds'] as const,
+  habitLog: ['habitLog'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -124,6 +127,55 @@ export function useEvents() {
 
 export function useLeisure() {
   return useLiveQuery(() => db.leisure.orderBy('dateStarted').reverse().toArray(), [])
+}
+
+// Whole days between a YYYY-MM-DD date and today (0 = today)
+function daysSince(dateStr: string): number {
+  const today = new Date().toISOString().split('T')[0]
+  const ms = new Date(today).getTime() - new Date(dateStr.slice(0, 10)).getTime()
+  return Math.max(0, Math.round(ms / 86400000))
+}
+
+// All habit log entries, newest first
+export function useHabitLogs() {
+  return useLiveQuery(() => db.habitLog.orderBy('date').reverse().toArray(), [])
+}
+
+// Distinct habit names: everything ever logged, plus the starter defaults
+export function useHabitNames() {
+  return useLiveQuery(async () => {
+    const logs = await db.habitLog.toArray()
+    const names = new Set<string>(DEFAULT_HABITS)
+    for (const log of logs) {
+      if (log.habit) names.add(log.habit)
+    }
+    return [...names].sort((a, b) => a.localeCompare(b))
+  }, [])
+}
+
+// Whole days since a habit was last logged (0 = today, null = never logged)
+export function useHabitDaysSinceLast(habit: string) {
+  return useLiveQuery(
+    async () => {
+      const logs = await db.habitLog.where('habit').equals(habit).toArray()
+      if (logs.length === 0) return null
+      const latest = logs.reduce((max, l) => (l.date > max ? l.date : max), logs[0].date)
+      return daysSince(latest)
+    },
+    [habit]
+  )
+}
+
+// Count of times a habit was logged in the last N days
+export function useHabitCountLastDays(habit: string, days: number) {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    () => db.habitLog.where('habit').equals(habit).and((l) => l.date >= cutoffStr).count(),
+    [habit, cutoffStr]
+  )
 }
 
 // Leisure backlog: items still waiting to be started, optionally of one type,
@@ -351,6 +403,22 @@ export function useAllThresholdColors() {
             (!t.eventTag || e.tags.includes(t.eventTag))
           )
           .count()
+      } else if (t.source === 'habits' && t.habit) {
+        const logs = await db.habitLog.where('habit').equals(t.habit).toArray()
+        if (t.aggregation === 'daysSinceLast') {
+          // Days since the habit was last done; never done = grey
+          if (logs.length > 0) {
+            const latest = logs.reduce((max, l) => (l.date > max ? l.date : max), logs[0].date)
+            const today = new Date().toISOString().split('T')[0]
+            value = Math.max(0, Math.round((new Date(today).getTime() - new Date(latest.slice(0, 10)).getTime()) / 86400000))
+          }
+        } else {
+          const days = t.days ?? 7
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() - days)
+          const cutoffStr = cutoff.toISOString().split('T')[0]
+          value = logs.filter(l => l.date >= cutoffStr).length
+        }
       } else if (t.source === 'sugar' && t.sugarPeriod) {
         const records = await db.sugarSummary.toArray()
         const series = periodDailySeries(records, t.sugarPeriod)
@@ -662,6 +730,29 @@ export function useCreateWords() {
       syncService.createWordsRecord(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
+export function useCreateHabitLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalHabitLogRecord, 'id' | 'createdTime'>) =>
+      syncService.createHabitLogRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.habitLog })
+    },
+  })
+}
+
+export function useDeleteHabitLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (habitLogId: string) => syncService.deleteHabitLogRecord(habitLogId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.habitLog })
     },
   })
 }
@@ -1040,7 +1131,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

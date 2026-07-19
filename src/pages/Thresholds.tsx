@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors } from '@/hooks/useAirtableData'
+import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors, useHabitNames } from '@/hooks/useAirtableData'
+import { DEFAULT_HABITS } from '@/types/airtable'
 import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
 
-type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
+type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
@@ -30,6 +31,13 @@ const IDEAS_AGGREGATIONS: { value: LocalThresholdsRecord['aggregation']; label: 
 ]
 const ideasAggregation = (agg: LocalThresholdsRecord['aggregation']): LocalThresholdsRecord['aggregation'] =>
   agg === 'countNextNDays' ? 'countNextNDays' : 'countLastNDays'
+// Habits track recency ("days since last done") or frequency (count in window)
+const HABITS_AGGREGATIONS: { value: LocalThresholdsRecord['aggregation']; label: string }[] = [
+  { value: 'daysSinceLast', label: 'Days since last' },
+  { value: 'countLastNDays', label: 'Count last N days' },
+]
+const habitsAggregation = (agg: LocalThresholdsRecord['aggregation']): LocalThresholdsRecord['aggregation'] =>
+  agg === 'countLastNDays' ? 'countLastNDays' : 'daysSinceLast'
 
 // Aggregations that need a "Days" window
 const usesDays = (agg: LocalThresholdsRecord['aggregation']) =>
@@ -57,6 +65,7 @@ const SOURCE_COLORS: Record<ThresholdSource, string> = {
   leisure: 'bg-green-100 text-green-700',
   sugar: 'bg-amber-100 text-amber-700',
   events: 'bg-cyan-100 text-cyan-700',
+  habits: 'bg-rose-100 text-rose-700',
 }
 
 export function Thresholds() {
@@ -69,6 +78,7 @@ export function Thresholds() {
   const [newEventType, setNewEventType] = useState<EventTypeFilter>('All')
   const [newEventStatus, setNewEventStatus] = useState<EventStatusFilter>('Any')
   const [newEventTag, setNewEventTag] = useState<EventTagFilter>('Any')
+  const [newHabit, setNewHabit] = useState<string>(DEFAULT_HABITS[0])
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newLeisurePeriod, setNewLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [newLeisureType, setNewLeisureType] = useState<LeisureTypeFilter>('All')
@@ -88,6 +98,7 @@ export function Thresholds() {
   const [editEventType, setEditEventType] = useState<EventTypeFilter>('All')
   const [editEventStatus, setEditEventStatus] = useState<EventStatusFilter>('Any')
   const [editEventTag, setEditEventTag] = useState<EventTagFilter>('Any')
+  const [editHabit, setEditHabit] = useState<string>(DEFAULT_HABITS[0])
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editLeisurePeriod, setEditLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [editLeisureType, setEditLeisureType] = useState<LeisureTypeFilter>('All')
@@ -102,6 +113,7 @@ export function Thresholds() {
 
   const thresholds = useThresholds()
   const thresholdColors = useAllThresholdColors()
+  const habitNames = useHabitNames() ?? DEFAULT_HABITS
   const createThreshold = useCreateThreshold()
   const updateThreshold = useUpdateThreshold()
   const deleteThreshold = useDeleteThreshold()
@@ -118,6 +130,8 @@ export function Thresholds() {
       setAgg('lastValue')
     } else if (source === 'ideas' || source === 'events') {
       setAgg('countLastNDays')
+    } else if (source === 'habits') {
+      setAgg('daysSinceLast')
     } else if (source === 'leisure') {
       setAgg('lastValue')
     } else if (source === 'sugar') {
@@ -139,11 +153,12 @@ export function Thresholds() {
       eventType: newSource === 'events' && newEventType !== 'All' ? newEventType : null,
       eventStatus: newSource === 'events' && newEventStatus !== 'Any' ? newEventStatus : null,
       eventTag: newSource === 'events' && newEventTag !== 'Any' ? newEventTag : null,
+      habit: newSource === 'habits' ? newHabit || null : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
       leisureType: newSource === 'leisure' && newLeisureType !== 'All' ? newLeisureType : null,
       sugarPeriod: newSource === 'sugar' ? newSugarPeriod : null,
-      aggregation: newSource === 'ideas' || newSource === 'events' ? ideasAggregation(newAggregation) : newSource === 'leisure' ? 'lastValue' : newAggregation,
+      aggregation: newSource === 'ideas' || newSource === 'events' ? ideasAggregation(newAggregation) : newSource === 'habits' ? habitsAggregation(newAggregation) : newSource === 'leisure' ? 'lastValue' : newAggregation,
       days: usesDays(newAggregation) || newSource === 'ideas' || newSource === 'events' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
@@ -160,6 +175,7 @@ export function Thresholds() {
     setNewEventType('All')
     setNewEventStatus('Any')
     setNewEventTag('Any')
+    setNewHabit(DEFAULT_HABITS[0])
     setNewWordsProject('All')
     setNewLeisurePeriod('This Week')
     setNewLeisureType('All')
@@ -187,6 +203,7 @@ export function Thresholds() {
     setEditEventType(t.eventType ?? 'All')
     setEditEventStatus(t.eventStatus ?? 'Any')
     setEditEventTag(t.eventTag ?? 'Any')
+    setEditHabit(t.habit ?? DEFAULT_HABITS[0])
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
     setEditLeisureType(t.leisureType ?? 'All')
@@ -212,11 +229,12 @@ export function Thresholds() {
         eventType: editSource === 'events' && editEventType !== 'All' ? editEventType : null,
         eventStatus: editSource === 'events' && editEventStatus !== 'Any' ? editEventStatus : null,
         eventTag: editSource === 'events' && editEventTag !== 'Any' ? editEventTag : null,
+        habit: editSource === 'habits' ? editHabit || null : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
         leisureType: editSource === 'leisure' && editLeisureType !== 'All' ? editLeisureType : null,
         sugarPeriod: editSource === 'sugar' ? editSugarPeriod : null,
-        aggregation: editSource === 'ideas' || editSource === 'events' ? ideasAggregation(editAggregation) : editSource === 'leisure' ? 'lastValue' : editAggregation,
+        aggregation: editSource === 'ideas' || editSource === 'events' ? ideasAggregation(editAggregation) : editSource === 'habits' ? habitsAggregation(editAggregation) : editSource === 'leisure' ? 'lastValue' : editAggregation,
         days: usesDays(editAggregation) || editSource === 'ideas' || editSource === 'events' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
@@ -305,6 +323,7 @@ export function Thresholds() {
             eventType={newEventType} setEventType={setNewEventType}
             eventStatus={newEventStatus} setEventStatus={setNewEventStatus}
             eventTag={newEventTag} setEventTag={setNewEventTag}
+            habit={newHabit} setHabit={setNewHabit} habitNames={habitNames}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
             leisureType={newLeisureType} setLeisureType={setNewLeisureType}
@@ -347,6 +366,7 @@ export function Thresholds() {
                     eventType={editEventType} setEventType={setEditEventType}
                     eventStatus={editEventStatus} setEventStatus={setEditEventStatus}
                     eventTag={editEventTag} setEventTag={setEditEventTag}
+                    habit={editHabit} setHabit={setEditHabit} habitNames={habitNames}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
                     leisureType={editLeisureType} setLeisureType={setEditLeisureType}
@@ -381,7 +401,7 @@ export function Thresholds() {
                           {t.source}
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventTag ?? t.eventType ?? 'All'}${t.eventTag && t.eventType ? ` · ${t.eventType}` : ''}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
+                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventTag ?? t.eventType ?? 'All'}${t.eventTag && t.eventType ? ` · ${t.eventType}` : ''}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'habits' ? t.habit : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
                         </span>
                       </div>
                     </div>
@@ -440,6 +460,7 @@ function ThresholdForm({
   eventType, setEventType,
   eventStatus, setEventStatus,
   eventTag, setEventTag,
+  habit, setHabit, habitNames,
   wordsProject, setWordsProject,
   leisurePeriod, setLeisurePeriod,
   leisureType, setLeisureType,
@@ -466,6 +487,7 @@ function ThresholdForm({
   eventType: EventTypeFilter; setEventType: (v: EventTypeFilter) => void
   eventStatus: EventStatusFilter; setEventStatus: (v: EventStatusFilter) => void
   eventTag: EventTagFilter; setEventTag: (v: EventTagFilter) => void
+  habit: string; setHabit: (v: string) => void; habitNames: string[]
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   leisurePeriod: LeisurePeriod; setLeisurePeriod: (v: LeisurePeriod) => void
   leisureType: LeisureTypeFilter; setLeisureType: (v: LeisureTypeFilter) => void
@@ -507,6 +529,7 @@ function ThresholdForm({
             <option value="health">Health</option>
             <option value="ideas">Ideas</option>
             <option value="events">Events</option>
+            <option value="habits">Habits</option>
             <option value="words">Words</option>
             <option value="leisure">Leisure</option>
             <option value="sugar">Blood Sugar</option>
@@ -543,6 +566,17 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {EVENT_TYPE_FILTERS.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        ) : source === 'habits' ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Habit</label>
+            <select
+              value={habit}
+              onChange={(e) => setHabit(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {habitNames.map((h) => <option key={h} value={h}>{h}</option>)}
             </select>
           </div>
         ) : source === 'words' ? (
@@ -638,6 +672,18 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {IDEAS_AGGREGATIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+          </div>
+        )}
+        {source === 'habits' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Measure</label>
+            <select
+              value={habitsAggregation(aggregation)}
+              onChange={(e) => setAggregation(e.target.value as LocalThresholdsRecord['aggregation'])}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {HABITS_AGGREGATIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
         )}

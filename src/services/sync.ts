@@ -15,6 +15,7 @@ import type {
   GoalsRecord,
   AreasRecord,
   IdeasRecord,
+  HabitLogRecord,
   CareerRecord,
   RulesRecord,
   EventsRecord,
@@ -27,6 +28,7 @@ import type {
   LocalGoalsRecord,
   LocalAreasRecord,
   LocalIdeasRecord,
+  LocalHabitLogRecord,
   LocalCareerRecord,
   LocalRulesRecord,
   LocalEventsRecord,
@@ -212,6 +214,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     eventType: record.fields['Event Type'] ?? null,
     eventStatus: record.fields['Event Status'] ?? null,
     eventTag: record.fields['Event Tag'] ?? null,
+    habit: record.fields['Habit'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     leisureType: record.fields['Leisure Type'] ?? null,
@@ -223,6 +226,16 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     lowerIsBetter: record.fields['Lower Is Better'] ?? false,
     order: record.fields.Order ?? null,
     ruleIds: record.fields.Rules ?? [],
+    createdTime: record.createdTime,
+  }
+}
+
+function transformHabitLogRecord(record: HabitLogRecord): LocalHabitLogRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    habit: record.fields.Habit || '',
+    date: record.fields.Date || '',
     createdTime: record.createdTime,
   }
 }
@@ -305,6 +318,14 @@ function localRulesToAirtable(record: LocalRulesRecord): Record<string, unknown>
   return data
 }
 
+function localHabitLogToAirtable(record: LocalHabitLogRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Habit: record.habit,
+    Date: record.date,
+  }
+}
+
 function localEventsToAirtable(record: LocalEventsRecord): Record<string, unknown> {
   return {
     Name: record.name,
@@ -355,6 +376,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Event Type': record.eventType,
     'Event Status': record.eventStatus,
     'Event Tag': record.eventTag,
+    Habit: record.habit,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
     'Leisure Type': record.leisureType,
@@ -475,6 +497,7 @@ class SyncService {
     let leisureRecords: LeisureRecord[] = []
     let thresholdsRecords: ThresholdsRecord[] = []
     let sugarSummaryRecords: SugarSummaryRecord[] = []
+    let habitLogRecords: HabitLogRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -530,6 +553,14 @@ class SyncService {
       throw error
     }
 
+    // Habit Log is fetched separately and tolerated if missing, so the app
+    // keeps syncing until the table has been created in Airtable
+    try {
+      habitLogRecords = await fetchTable<HabitLogRecord>('Habit Log')
+    } catch {
+      debugLog('Habit Log table not found - skipping (create it in Airtable to enable habits)', 'warn')
+    }
+
     const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
     debugLog(`All fetches completed in ${fetchDuration}s`)
 
@@ -564,7 +595,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -579,6 +610,7 @@ class SyncService {
         await db.leisure.clear()
         await db.thresholds.clear()
         await db.sugarSummary.clear()
+        await db.habitLog.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -594,6 +626,7 @@ class SyncService {
         await db.leisure.bulkPut(leisureRecords.map(transformLeisureRecord))
         await db.thresholds.bulkPut(thresholdsRecords.map(transformThresholdsRecord))
         await db.sugarSummary.bulkPut(sugarSummaryRecords.map(transformSugarSummaryRecord))
+        await db.habitLog.bulkPut(habitLogRecords.map(transformHabitLogRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -890,6 +923,65 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Words', 'delete', wordsId, {})
+    }
+  }
+
+  // Create a habit log record (handles offline)
+  async createHabitLogRecord(
+    data: Omit<LocalHabitLogRecord, 'id' | 'createdTime'>
+  ): Promise<LocalHabitLogRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalHabitLogRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.habitLog.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<HabitLogRecord>(
+          'Habit Log',
+          localHabitLogToAirtable(record)
+        )
+        await db.habitLog.delete(localId)
+        const updatedRecord = transformHabitLogRecord(created)
+        await db.habitLog.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Habit Log', 'create', localId, localHabitLogToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Habit Log', 'create', localId, localHabitLogToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Delete a habit log record (handles offline)
+  async deleteHabitLogRecord(habitLogId: string): Promise<void> {
+    const entry = await db.habitLog.get(habitLogId)
+    if (!entry) throw new Error('Habit log entry not found')
+
+    // Delete from local DB immediately
+    await db.habitLog.delete(habitLogId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (habitLogId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Habit Log', habitLogId)
+      } catch {
+        await this.queueMutation('Habit Log', 'delete', habitLogId, {})
+      }
+    } else {
+      await this.queueMutation('Habit Log', 'delete', habitLogId, {})
     }
   }
 
@@ -1434,7 +1526,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1452,6 +1544,7 @@ class SyncService {
     if (updates.eventType !== undefined) updateData['Event Type'] = updates.eventType
     if (updates.eventStatus !== undefined) updateData['Event Status'] = updates.eventStatus
     if (updates.eventTag !== undefined) updateData['Event Tag'] = updates.eventTag
+    if (updates.habit !== undefined) updateData.Habit = updates.habit
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType

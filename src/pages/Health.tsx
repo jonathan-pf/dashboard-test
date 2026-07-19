@@ -155,12 +155,20 @@ export function Health() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">Health</h2>
-        <Link
-          to="/health/rules"
-          className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-        >
-          Rules
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/habits"
+            className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            Habits
+          </Link>
+          <Link
+            to="/health/rules"
+            className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            Rules
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">

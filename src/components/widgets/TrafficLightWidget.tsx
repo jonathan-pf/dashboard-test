@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue, useHabitDaysSinceLast, useHabitCountLastDays } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { EventTag, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
@@ -12,13 +12,14 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
   healthType?: string | null
   ideaType?: string | null
   ideaStatus?: string | null
   eventType?: string | null
   eventStatus?: string | null
   eventTag?: string | null
+  habit?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
   leisureType?: string | null
@@ -95,6 +96,25 @@ function EventsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   const thresholdHint = definition.lowerIsBetter
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
+function HabitsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const habit = definition.habit ?? ''
+  const isDaysSince = definition.aggregation === 'daysSinceLast'
+  const daysSince = useHabitDaysSinceLast(habit)
+  const count = useHabitCountLastDays(habit, definition.days ?? 7)
+
+  const loading = isDaysSince ? daysSince === undefined : count === undefined
+  const value = loading ? null : isDaysSince ? daysSince! : count ?? null
+  const color = getTrafficLightColor(value, definition)
+  const displayValue = loading || value === null ? '--' : isDaysSince ? `${value}d` : value
+
+  const unit = isDaysSince ? 'd' : ''
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}${unit}`
+    : `≥ ${definition.greenThreshold}${unit}`
 
   return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
@@ -202,6 +222,9 @@ function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   }
   if (definition.source === 'events') {
     return <EventsTrafficLightItem definition={definition} />
+  }
+  if (definition.source === 'habits') {
+    return <HabitsTrafficLightItem definition={definition} />
   }
   if (definition.source === 'words') {
     return <WordsTrafficLightItem definition={definition} />
