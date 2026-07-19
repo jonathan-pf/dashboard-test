@@ -127,23 +127,24 @@ function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHin
   thresholdHint: string
 }) {
   return (
-    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+    <div className="bg-slate-50 rounded-lg px-2.5 py-2">
+      {/* Full-width label, wrapping to two lines, so names stay readable on
+          narrow screens; min-height keeps tiles in a row aligned */}
+      <p className="text-xs text-slate-500 leading-tight break-words line-clamp-2 min-h-[2rem]">{label}</p>
       {loading ? (
-        <div className="w-3 h-3 rounded-full bg-slate-200 animate-pulse shrink-0" />
+        <div className="flex items-center gap-1.5 mt-1">
+          <div className="w-3 h-3 rounded-full bg-slate-200 animate-pulse shrink-0" />
+          <div className="h-5 w-8 bg-slate-200 animate-pulse rounded" />
+        </div>
       ) : (
-        <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[color]} shrink-0`} />
-      )}
-      <div className="min-w-0">
-        <p className="text-xs text-slate-500 truncate">{label}</p>
-        {loading ? (
-          <div className="h-5 w-8 bg-slate-200 animate-pulse rounded mt-0.5" />
-        ) : (
-          <>
+        <>
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[color]} shrink-0`} />
             <p className="text-sm font-semibold text-slate-900">{displayValue}</p>
-            <p className="text-[10px] text-slate-400 leading-tight">{thresholdHint}</p>
-          </>
-        )}
-      </div>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{thresholdHint}</p>
+        </>
+      )}
     </div>
   )
 }
@@ -248,7 +249,7 @@ export function TrafficLightWidgets() {
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
       <Link to="/thresholds" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Thresholds</Link>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {definitions.map((def) => (
           <TrafficLightItem key={def.name} definition={def} />
         ))}
