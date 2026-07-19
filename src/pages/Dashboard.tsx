@@ -37,11 +37,11 @@ export function Dashboard() {
   const localWordsByWeek = useLocalWordsByWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
-  const allLiveRules = useRulesByStatus('Live')
+  const allBonusRules = useRulesByStatus('Bonus')
   const testingRules = useRulesByStatus('Testing')
   const thresholdColors = useAllThresholdColors()
 
-  const liveRules = allLiveRules?.filter(rule => {
+  const bonusRules = allBonusRules?.filter(rule => {
     if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
     if (!thresholdColors) return true
     const trigger = rule.thresholdTrigger ?? 'red'
@@ -52,8 +52,8 @@ export function Dashboard() {
       return c === 'red' || c === 'amber'
     })
   })
-  // Testing rules always show, pinned above the live rules
-  const homeRules = [...(testingRules ?? []), ...(liveRules ?? [])]
+  // Testing rules always show, pinned above the bonus rules
+  const homeRules = [...(testingRules ?? []), ...(bonusRules ?? [])]
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
   const events2026 = useYearlyEventsPerWeek(2026)
@@ -295,7 +295,7 @@ export function Dashboard() {
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">Live Rules</h3>
+          <h3 className="font-semibold text-slate-900">Rules</h3>
           <Link
             to="/health/rules"
             className="text-sm text-blue-600 hover:text-blue-700"
