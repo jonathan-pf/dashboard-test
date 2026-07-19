@@ -147,6 +147,16 @@ export interface EventsRecord extends AirtableRecord {
   }
 }
 
+// Habit Log table - one row per habit completion. Habits are defined by the
+// Habit select's options; the app derives its habit list from logged values.
+export interface HabitLogRecord extends AirtableRecord {
+  fields: {
+    Name: string // "Habit - Date", filled by the app
+    Habit: string
+    Date: string // ISO date string
+  }
+}
+
 // Career table - tracks lifetime totals
 export interface CareerRecord extends AirtableRecord {
   fields: {
@@ -179,18 +189,19 @@ export interface RulesRecord extends AirtableRecord {
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
-    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
+    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Event Type'?: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure' | null
     'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
     'Event Tag'?: 'Adventure' | 'Date' | 'Social' | 'Group' | 'Family' | null
+    'Habit'?: string | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
-    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
+    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast'
     Days?: number | null
     'Red Threshold': number
     'Green Threshold': number
@@ -326,6 +337,19 @@ export const IDEA_STATUS_COLORS: Record<NonNullable<IdeaStatus>, string> = {
   'Shipped': 'bg-teal-100 text-teal-700',
 }
 
+export interface LocalHabitLogRecord {
+  id: string
+  name: string
+  habit: string
+  date: string
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+// Shown on the Habits page and in threshold habit filters before any logs exist
+export const DEFAULT_HABITS = ['Outline', 'Low carb meal', 'Hoover']
+
 export interface LocalCareerRecord {
   id: string
   name: string
@@ -357,18 +381,19 @@ export interface LocalRulesRecord {
 export interface LocalThresholdsRecord {
   id: string
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
   eventType: LocalEventsRecord['type'] | null
   eventStatus: LocalEventsRecord['status'] | null
   eventTag: EventTag | null
+  habit: string | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
   sugarPeriod: SugarThresholdPeriod | null
-  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays'
+  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast'
   days: number | null
   redThreshold: number
   greenThreshold: number
@@ -539,6 +564,7 @@ export const TABLES = {
   LEISURE: 'Leisure',
   THRESHOLDS: 'Thresholds',
   SUGAR_SUMMARY: 'Sugar Summary',
+  HABIT_LOG: 'Habit Log',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

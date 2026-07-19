@@ -3,6 +3,7 @@ import { AppShell } from './components/layout/AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Dashboard } from './pages/Dashboard'
 import { Health } from './pages/Health'
+import { Habits } from './pages/Habits'
 import { Words } from './pages/Words'
 import { Goals } from './pages/Goals'
 import { MonthlyGoals } from './pages/MonthlyGoals'
@@ -34,6 +35,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/health" element={<Health />} />
+          <Route path="/habits" element={<Habits />} />
           <Route path="/health/rules" element={<Rules />} />
           <Route path="/words" element={<Words />} />
           <Route path="/goals" element={<Goals />} />
