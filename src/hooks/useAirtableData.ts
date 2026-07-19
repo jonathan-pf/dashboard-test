@@ -746,6 +746,23 @@ export function useCreateHabitLog() {
   })
 }
 
+export function useUpdateHabitLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      habitLogId,
+      updates,
+    }: {
+      habitLogId: string
+      updates: Partial<Pick<LocalHabitLogRecord, 'name' | 'date'>>
+    }) => syncService.updateHabitLogRecord(habitLogId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.habitLog })
+    },
+  })
+}
+
 export function useDeleteHabitLog() {
   const queryClient = useQueryClient()
 
