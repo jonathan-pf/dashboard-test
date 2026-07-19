@@ -838,6 +838,61 @@ class SyncService {
     return record
   }
 
+  // Update a words record (handles offline)
+  async updateWordsRecord(
+    wordsId: string,
+    updates: Partial<Pick<LocalWordsRecord, 'name' | 'words' | 'project' | 'when'>>
+  ): Promise<void> {
+    const entry = await db.words.get(wordsId)
+    if (!entry) throw new Error('Words entry not found')
+
+    Object.assign(entry, updates)
+    entry._pendingSync = true
+    await db.words.put(entry)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.words !== undefined) updateData.Words = updates.words
+    if (updates.project !== undefined) updateData.Project = updates.project
+    if (updates.when !== undefined) updateData.When = updates.when
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Words', wordsId, updateData)
+        entry._pendingSync = false
+        await db.words.put(entry)
+      } catch {
+        await this.queueMutation('Words', 'update', wordsId, updateData)
+      }
+    } else {
+      await this.queueMutation('Words', 'update', wordsId, updateData)
+    }
+  }
+
+  // Delete a words record (handles offline)
+  async deleteWordsRecord(wordsId: string): Promise<void> {
+    const entry = await db.words.get(wordsId)
+    if (!entry) throw new Error('Words entry not found')
+
+    // Delete from local DB immediately
+    await db.words.delete(wordsId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (wordsId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Words', wordsId)
+      } catch {
+        await this.queueMutation('Words', 'delete', wordsId, {})
+      }
+    } else {
+      await this.queueMutation('Words', 'delete', wordsId, {})
+    }
+  }
+
   // Create a goal record (handles offline)
   async createGoalRecord(
     data: Omit<LocalGoalsRecord, 'id' | 'createdTime'>
