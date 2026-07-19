@@ -961,6 +961,35 @@ class SyncService {
     return record
   }
 
+  // Update a habit log record (handles offline)
+  async updateHabitLogRecord(
+    habitLogId: string,
+    updates: Partial<Pick<LocalHabitLogRecord, 'name' | 'date'>>
+  ): Promise<void> {
+    const entry = await db.habitLog.get(habitLogId)
+    if (!entry) throw new Error('Habit log entry not found')
+
+    Object.assign(entry, updates)
+    entry._pendingSync = true
+    await db.habitLog.put(entry)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.date !== undefined) updateData.Date = updates.date
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Habit Log', habitLogId, updateData)
+        entry._pendingSync = false
+        await db.habitLog.put(entry)
+      } catch {
+        await this.queueMutation('Habit Log', 'update', habitLogId, updateData)
+      }
+    } else {
+      await this.queueMutation('Habit Log', 'update', habitLogId, updateData)
+    }
+  }
+
   // Delete a habit log record (handles offline)
   async deleteHabitLogRecord(habitLogId: string): Promise<void> {
     const entry = await db.habitLog.get(habitLogId)

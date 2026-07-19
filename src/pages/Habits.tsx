@@ -4,6 +4,7 @@ import {
   useHabitNames,
   useHabitLogs,
   useCreateHabitLog,
+  useUpdateHabitLog,
   useDeleteHabitLog,
 } from '@/hooks/useAirtableData'
 import type { LocalHabitLogRecord } from '@/types/airtable'
@@ -27,19 +28,22 @@ const lastDoneLabel = (dateStr: string | null) => {
 export function Habits() {
   const [newHabitName, setNewHabitName] = useState('')
   const [showAddHabit, setShowAddHabit] = useState(false)
+  const [editingLogId, setEditingLogId] = useState<string | null>(null)
+  const [editDate, setEditDate] = useState('')
 
   const habitNames = useHabitNames()
   const logs = useHabitLogs()
   const createLog = useCreateHabitLog()
+  const updateLog = useUpdateHabitLog()
   const deleteLog = useDeleteHabitLog()
 
   const today = getToday()
 
   // Per-habit stats from the log
   const stats = useMemo(() => {
-    const map = new Map<string, { lastDate: string | null; count7: number; count30: number; todayLogId: string | null }>()
+    const map = new Map<string, { lastDate: string | null; count7: number; count30: number; todayCount: number }>()
     for (const name of habitNames ?? []) {
-      map.set(name, { lastDate: null, count7: 0, count30: 0, todayLogId: null })
+      map.set(name, { lastDate: null, count7: 0, count30: 0, todayCount: 0 })
     }
     const cutoff7 = new Date()
     cutoff7.setDate(cutoff7.getDate() - 7)
@@ -54,23 +58,36 @@ export function Habits() {
       if (!entry.lastDate || log.date > entry.lastDate) entry.lastDate = log.date
       if (log.date >= cutoff7Str) entry.count7++
       if (log.date >= cutoff30Str) entry.count30++
-      if (log.date.slice(0, 10) === today) entry.todayLogId = log.id
+      if (log.date.slice(0, 10) === today) entry.todayCount++
     }
     return map
   }, [habitNames, logs, today])
 
+  // Every tap logs another occurrence; remove mistakes via the Recent Log list
   const handleDone = async (habit: string) => {
-    const todayLogId = stats.get(habit)?.todayLogId
-    if (todayLogId) {
-      // Already logged today - tapping again undoes it
-      await deleteLog.mutateAsync(todayLogId)
-    } else {
-      await createLog.mutateAsync({
-        name: `${habit} - ${today}`,
-        habit,
-        date: today,
-      })
-    }
+    await createLog.mutateAsync({
+      name: `${habit} - ${today}`,
+      habit,
+      date: today,
+    })
+  }
+
+  const startEditDate = (log: LocalHabitLogRecord) => {
+    setEditingLogId(log.id)
+    setEditDate(log.date.slice(0, 10))
+  }
+
+  const handleSaveDate = async (log: LocalHabitLogRecord) => {
+    if (!editDate) return
+    await updateLog.mutateAsync({
+      habitLogId: log.id,
+      updates: {
+        date: editDate,
+        name: `${log.habit} - ${editDate}`,
+      },
+    })
+    setEditingLogId(null)
+    setEditDate('')
   }
 
   const handleAddHabit = async () => {
@@ -120,7 +137,8 @@ export function Habits() {
         <div className="divide-y divide-slate-100">
           {(habitNames ?? []).map((habit) => {
             const s = stats.get(habit)
-            const doneToday = Boolean(s?.todayLogId)
+            const todayCount = s?.todayCount ?? 0
+            const doneToday = todayCount > 0
             const stale = s?.lastDate ? daysSince(s.lastDate) >= 7 : true
             return (
               <div key={habit} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2.5">
@@ -139,9 +157,9 @@ export function Habits() {
                       ? 'bg-green-500 text-white hover:bg-green-600'
                       : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   }`}
-                  title={doneToday ? 'Logged today - tap to undo' : 'Log for today'}
+                  title={doneToday ? 'Logged today - tap to log again' : 'Log for today'}
                 >
-                  {doneToday ? '✓ Today' : 'Done'}
+                  {doneToday ? (todayCount > 1 ? `✓ ×${todayCount}` : '✓ Today') : 'Done'}
                 </button>
               </div>
             )
@@ -196,27 +214,56 @@ export function Habits() {
         <h3 className="font-semibold text-slate-900 mb-4">Recent Log</h3>
         <div className="space-y-1">
           {recentLogs.map((log: LocalHabitLogRecord) => (
-            <div
-              key={log.id}
-              className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                <span className="text-sm text-slate-900 truncate">{log.habit}</span>
+            <div key={log.id} className="border-b border-slate-100 last:border-0">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  <span className="text-sm text-slate-900 truncate">{log.habit}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => editingLogId === log.id ? setEditingLogId(null) : startEditDate(log)}
+                    className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Edit date"
+                  >
+                    {formatDate(log.date)}
+                  </button>
+                  <button
+                    onClick={() => deleteLog.mutateAsync(log.id)}
+                    disabled={deleteLog.isPending}
+                    className="p-1 text-slate-300 hover:text-red-600 transition-colors disabled:opacity-50"
+                    title="Remove this entry"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400">{formatDate(log.date)}</span>
-                <button
-                  onClick={() => deleteLog.mutateAsync(log.id)}
-                  disabled={deleteLog.isPending}
-                  className="p-1 text-slate-300 hover:text-red-600 transition-colors disabled:opacity-50"
-                  title="Remove this entry"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+              {editingLogId === log.id && (
+                <div className="flex items-center gap-2 pb-2 pl-4">
+                  <input
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    max={today}
+                    className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={() => setEditingLogId(null)}
+                    className="px-3 py-2 text-sm bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSaveDate(log)}
+                    disabled={!editDate || updateLog.isPending}
+                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {updateLog.isPending ? '...' : 'Save'}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           {recentLogs.length === 0 && (
