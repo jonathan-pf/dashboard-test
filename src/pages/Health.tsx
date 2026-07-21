@@ -10,6 +10,7 @@ import {
   useUpdateHealth,
   useCurrentWeek,
   useSugarSummary,
+  useThresholds,
 } from '@/hooks/useAirtableData'
 import { dailySeries, headlineStats, timeOfDayAverages } from '@/utils/sugar'
 import type { LocalHealthRecord } from '@/types/airtable'
@@ -35,6 +36,7 @@ export function Health() {
   const [editingEntry, setEditingEntry] = useState<LocalHealthRecord | null>(null)
 
   const currentWeek = useCurrentWeek()
+  const thresholds = useThresholds()
   const glucoseData = useHealthByType('Glucose')
   const unitsData = useHealthByType('Units')
   const repsData = useHealthByType('Reps')
@@ -97,6 +99,14 @@ export function Health() {
   }, [unitsData])
 
   const today = new Date().toISOString().split('T')[0]
+
+  // Threshold notes for the metric being entered (e.g. what the Tidy scale
+  // means), shown in the Quick Entry form as a reminder before typing a value
+  const activeEntryNotes = activeEntry
+    ? (thresholds ?? [])
+        .filter((t) => t.source === 'health' && t.healthType === activeEntry && t.notes)
+        .map((t) => t.notes as string)
+    : []
 
   const handleSubmit = async (type: HealthType) => {
     const value = parseFloat(entryValue)
@@ -176,6 +186,14 @@ export function Health() {
 
         {activeEntry ? (
           <div className="space-y-4">
+            {activeEntryNotes.map((note, i) => (
+              <div key={i} className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                  {activeEntry} scale
+                </p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap">{note}</p>
+              </div>
+            ))}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Date
