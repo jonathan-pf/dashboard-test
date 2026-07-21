@@ -13,6 +13,7 @@ import {
   useWeeks,
   useCurrentWeekGoals,
   useCareerTotals,
+  useLatestMetricNumber,
   useRulesByStatus,
   useYearlyUnitsPerWeek,
   useYearlyFeaturesPerWeek,
@@ -37,6 +38,7 @@ export function Dashboard() {
   const localWordsByWeek = useLocalWordsByWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
+  const lifeExpectancy = useLatestMetricNumber('Life Expectancy')
   const allBonusRules = useRulesByStatus('Bonus')
   const testingRules = useRulesByStatus('Testing')
   const thresholdColors = useAllThresholdColors()
@@ -121,6 +123,20 @@ export function Dashboard() {
               <div className="h-6 w-12 bg-purple-200 animate-pulse rounded mt-0.5" />
             ) : (
               <p className="text-xl font-bold text-purple-900">{reps2026.totalReps.toLocaleString()}</p>
+            )}
+          </div>
+          <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-teal-600 font-medium">Life Exp</p>
+            {lifeExpectancy === undefined ? (
+              <div className="h-6 w-12 bg-teal-200 animate-pulse rounded mt-0.5" />
+            ) : (
+              <p className="text-xl font-bold text-teal-900">
+                {lifeExpectancy === null
+                  ? '--'
+                  : Number.isInteger(lifeExpectancy.value)
+                    ? lifeExpectancy.value
+                    : lifeExpectancy.value.toFixed(1)}
+              </p>
             )}
           </div>
         </div>

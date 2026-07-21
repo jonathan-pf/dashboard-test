@@ -16,6 +16,7 @@ import type {
   AreasRecord,
   IdeasRecord,
   HabitLogRecord,
+  MetricsRecord,
   CareerRecord,
   RulesRecord,
   EventsRecord,
@@ -29,6 +30,7 @@ import type {
   LocalAreasRecord,
   LocalIdeasRecord,
   LocalHabitLogRecord,
+  LocalMetricsRecord,
   LocalCareerRecord,
   LocalRulesRecord,
   LocalEventsRecord,
@@ -227,6 +229,19 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     order: record.fields.Order ?? null,
     ruleIds: record.fields.Rules ?? [],
     notes: record.fields.Notes ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
+function transformMetricsRecord(record: MetricsRecord): LocalMetricsRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    metric: selectName<string>(record.fields.Metric) ?? '',
+    type: record.fields.Type ?? null,
+    valueNumber: record.fields['Value - Number'] ?? null,
+    valueDate: record.fields['Value - Date'] ?? null,
+    source: record.fields.Source ?? null,
     createdTime: record.createdTime,
   }
 }
@@ -500,6 +515,7 @@ class SyncService {
     let thresholdsRecords: ThresholdsRecord[] = []
     let sugarSummaryRecords: SugarSummaryRecord[] = []
     let habitLogRecords: HabitLogRecord[] = []
+    let metricsRecords: MetricsRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -562,6 +578,11 @@ class SyncService {
     } catch {
       debugLog('Habit Log table not found - skipping (create it in Airtable to enable habits)', 'warn')
     }
+    try {
+      metricsRecords = await fetchTable<MetricsRecord>('Metrics')
+    } catch {
+      debugLog('Metrics table not readable - skipping', 'warn')
+    }
 
     const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
     debugLog(`All fetches completed in ${fetchDuration}s`)
@@ -597,7 +618,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -613,6 +634,7 @@ class SyncService {
         await db.thresholds.clear()
         await db.sugarSummary.clear()
         await db.habitLog.clear()
+        await db.metrics.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -629,6 +651,7 @@ class SyncService {
         await db.thresholds.bulkPut(thresholdsRecords.map(transformThresholdsRecord))
         await db.sugarSummary.bulkPut(sugarSummaryRecords.map(transformSugarSummaryRecord))
         await db.habitLog.bulkPut(habitLogRecords.map(transformHabitLogRecord))
+        await db.metrics.bulkPut(metricsRecords.map(transformMetricsRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)

@@ -110,6 +110,24 @@ export function useCareerTotals() {
   )
 }
 
+// Latest numeric value recorded for a named metric in the Metrics table
+// (undefined = loading, null = no record yet)
+export function useLatestMetricNumber(metricName: string) {
+  return useLiveQuery(
+    async () => {
+      const records = await db.metrics
+        .where('metric')
+        .equals(metricName)
+        .and((m) => m.valueNumber !== null)
+        .toArray()
+      if (records.length === 0) return null
+      const latest = records.reduce((max, m) => (m.createdTime > max.createdTime ? m : max), records[0])
+      return { value: latest.valueNumber!, createdTime: latest.createdTime, source: latest.source }
+    },
+    [metricName]
+  )
+}
+
 export function useRules() {
   return useLiveQuery(() => db.rules.toArray(), [])
 }
