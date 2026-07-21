@@ -14,6 +14,7 @@ import type {
   LocalSugarSummaryRecord,
   LocalHabitLogRecord,
   LocalMetricsRecord,
+  LocalMetricConfigRecord,
   PendingMutation,
   SyncMeta,
 } from '@/types/airtable'
@@ -33,6 +34,7 @@ class DashboardDatabase extends Dexie {
   sugarSummary!: EntityTable<LocalSugarSummaryRecord, 'id'>
   habitLog!: EntityTable<LocalHabitLogRecord, 'id'>
   metrics!: EntityTable<LocalMetricsRecord, 'id'>
+  metricConfig!: EntityTable<LocalMetricConfigRecord, 'id'>
   pendingMutations!: EntityTable<PendingMutation, 'id'>
   syncMeta!: EntityTable<SyncMeta, 'key'>
 
@@ -235,6 +237,26 @@ class DashboardDatabase extends Dexie {
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
+
+    this.version(15).stores({
+      health: 'id, type, date, weekId, unitsType, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
+      ideas: 'id, type, when, weekId, status, _pendingSync',
+      career: 'id, name',
+      rules: 'id, status, select',
+      events: 'id, type, date, status, dateHeld, _pendingSync',
+      leisure: 'id, type, status, dateStarted, dateEnded, _pendingSync',
+      thresholds: 'id, source, name',
+      sugarSummary: 'id, date, period',
+      habitLog: 'id, habit, date, _pendingSync',
+      metrics: 'id, metric, createdTime',
+      metricConfig: 'id, metric',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
   }
 }
 
@@ -283,6 +305,7 @@ export async function clearAllData(): Promise<void> {
     db.sugarSummary.clear(),
     db.habitLog.clear(),
     db.metrics.clear(),
+    db.metricConfig.clear(),
     db.pendingMutations.clear(),
     db.syncMeta.clear(),
   ])
