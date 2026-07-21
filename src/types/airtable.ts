@@ -203,6 +203,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Sugar Period'?: SugarThresholdPeriod | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast'
     Days?: number | null
+    Notes?: string | null // Long text - e.g. what a score means
     'Red Threshold': number
     'Green Threshold': number
     'Lower Is Better'?: boolean
@@ -400,6 +401,7 @@ export interface LocalThresholdsRecord {
   lowerIsBetter: boolean
   order: number | null
   ruleIds: string[]
+  notes: string | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
