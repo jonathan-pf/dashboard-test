@@ -13,7 +13,7 @@ import {
   useWeeks,
   useCurrentWeekGoals,
   useCareerTotals,
-  useLatestMetricNumber,
+  useHomeMetrics,
   useRulesByStatus,
   useYearlyUnitsPerWeek,
   useYearlyFeaturesPerWeek,
@@ -29,6 +29,30 @@ import {
 } from '@/hooks/useAirtableData'
 import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
+import type { LocalMetricsRecord } from '@/types/airtable'
+
+// Static class sets so Tailwind keeps them; cycled per pinned metric tile
+const METRIC_TILE_STYLES = [
+  { bg: 'from-teal-50 to-teal-100', label: 'text-teal-600', value: 'text-teal-900' },
+  { bg: 'from-rose-50 to-rose-100', label: 'text-rose-600', value: 'text-rose-900' },
+  { bg: 'from-indigo-50 to-indigo-100', label: 'text-indigo-600', value: 'text-indigo-900' },
+  { bg: 'from-cyan-50 to-cyan-100', label: 'text-cyan-600', value: 'text-cyan-900' },
+  { bg: 'from-lime-50 to-lime-100', label: 'text-lime-600', value: 'text-lime-900' },
+  { bg: 'from-fuchsia-50 to-fuchsia-100', label: 'text-fuchsia-600', value: 'text-fuchsia-900' },
+]
+
+const formatMetricValue = (latest: LocalMetricsRecord | null) => {
+  if (!latest) return '--'
+  if (latest.valueNumber !== null) {
+    return Number.isInteger(latest.valueNumber)
+      ? latest.valueNumber.toLocaleString()
+      : latest.valueNumber.toFixed(1)
+  }
+  if (latest.valueDate) {
+    return new Date(latest.valueDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+  }
+  return '--'
+}
 
 export function Dashboard() {
   const currentWeek = useCurrentWeek()
@@ -38,7 +62,7 @@ export function Dashboard() {
   const localWordsByWeek = useLocalWordsByWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
-  const lifeExpectancy = useLatestMetricNumber('Life Expectancy')
+  const homeMetrics = useHomeMetrics()
   const allBonusRules = useRulesByStatus('Bonus')
   const testingRules = useRulesByStatus('Testing')
   const thresholdColors = useAllThresholdColors()
@@ -125,20 +149,15 @@ export function Dashboard() {
               <p className="text-xl font-bold text-purple-900">{reps2026.totalReps.toLocaleString()}</p>
             )}
           </div>
-          <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-teal-600 font-medium">Life Exp</p>
-            {lifeExpectancy === undefined ? (
-              <div className="h-6 w-12 bg-teal-200 animate-pulse rounded mt-0.5" />
-            ) : (
-              <p className="text-xl font-bold text-teal-900">
-                {lifeExpectancy === null
-                  ? '--'
-                  : Number.isInteger(lifeExpectancy.value)
-                    ? lifeExpectancy.value
-                    : lifeExpectancy.value.toFixed(1)}
-              </p>
-            )}
-          </div>
+          {(homeMetrics ?? []).map(({ metric, latest }, i) => {
+            const tile = METRIC_TILE_STYLES[i % METRIC_TILE_STYLES.length]
+            return (
+              <div key={metric} className={`bg-gradient-to-br ${tile.bg} rounded-lg px-3 py-2`}>
+                <p className={`text-xs font-medium ${tile.label}`}>{metric}</p>
+                <p className={`text-xl font-bold ${tile.value}`}>{formatMetricValue(latest)}</p>
+              </div>
+            )
+          })}
         </div>
         <p className="text-xs text-slate-400 mb-2">2026 Weekly Averages</p>
         <div className="grid grid-cols-3 gap-2">

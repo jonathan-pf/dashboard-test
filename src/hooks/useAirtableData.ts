@@ -13,6 +13,7 @@ import type {
   LocalThresholdsRecord,
   LocalHabitLogRecord,
   LocalMetricsRecord,
+  LocalMetricConfigRecord,
   EventTag,
 } from '@/types/airtable'
 import { DEFAULT_HABITS } from '@/types/airtable'
@@ -35,6 +36,7 @@ export const queryKeys = {
   thresholds: ['thresholds'] as const,
   habitLog: ['habitLog'] as const,
   metrics: ['metrics'] as const,
+  metricConfig: ['metricConfig'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -117,22 +119,29 @@ export function useMetrics() {
   return useLiveQuery(() => db.metrics.orderBy('createdTime').reverse().toArray(), [])
 }
 
-// Latest numeric value recorded for a named metric in the Metrics table
-// (undefined = loading, null = no record yet)
-export function useLatestMetricNumber(metricName: string) {
-  return useLiveQuery(
-    async () => {
-      const records = await db.metrics
-        .where('metric')
-        .equals(metricName)
-        .and((m) => m.valueNumber !== null)
-        .toArray()
-      if (records.length === 0) return null
-      const latest = records.reduce((max, m) => (m.createdTime > max.createdTime ? m : max), records[0])
-      return { value: latest.valueNumber!, createdTime: latest.createdTime, source: latest.source }
-    },
-    [metricName]
-  )
+// Per-metric display settings (home pin + order)
+export function useMetricConfigs() {
+  return useLiveQuery(() => db.metricConfig.toArray(), [])
+}
+
+// Metrics pinned to the Home page, in configured order, each with its latest record
+export function useHomeMetrics() {
+  return useLiveQuery(async () => {
+    const configs = await db.metricConfig.toArray()
+    const pinned = configs
+      .filter((c) => c.showOnHome)
+      .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.metric.localeCompare(b.metric))
+
+    const result: { metric: string; latest: LocalMetricsRecord | null }[] = []
+    for (const config of pinned) {
+      const records = await db.metrics.where('metric').equals(config.metric).toArray()
+      const latest = records.length > 0
+        ? records.reduce((max, m) => (m.createdTime > max.createdTime ? m : max), records[0])
+        : null
+      result.push({ metric: config.metric, latest })
+    }
+    return result
+  }, [])
 }
 
 export function useRules() {
@@ -755,6 +764,35 @@ export function useCreateWords() {
       syncService.createWordsRecord(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
+export function useCreateMetricConfig() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalMetricConfigRecord, 'id' | 'createdTime'>) =>
+      syncService.createMetricConfigRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.metricConfig })
+    },
+  })
+}
+
+export function useUpdateMetricConfig() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      configId,
+      updates,
+    }: {
+      configId: string
+      updates: Partial<Pick<LocalMetricConfigRecord, 'showOnHome' | 'order'>>
+    }) => syncService.updateMetricConfigRecord(configId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.metricConfig })
     },
   })
 }

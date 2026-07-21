@@ -162,6 +162,16 @@ export interface MetricsRecord extends AirtableRecord {
   }
 }
 
+// Metric Config table - per-metric display settings for the app: whether a
+// metric shows on the Home page and in what order. One row per metric name.
+export interface MetricConfigRecord extends AirtableRecord {
+  fields: {
+    Metric: string // Must match the Metric select name in the Metrics table
+    'Show on Home'?: boolean
+    Order?: number | null
+  }
+}
+
 // Habit Log table - one row per habit completion. Habits are defined by the
 // Habit select's options; the app derives its habit list from logged values.
 export interface HabitLogRecord extends AirtableRecord {
@@ -361,6 +371,16 @@ export interface LocalMetricsRecord {
   valueNumber: number | null
   valueDate: string | null
   source: string | null
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+export interface LocalMetricConfigRecord {
+  id: string
+  metric: string
+  showOnHome: boolean
+  order: number | null
   createdTime: string
   _pendingSync?: boolean
   _localId?: string
@@ -596,6 +616,7 @@ export const TABLES = {
   SUGAR_SUMMARY: 'Sugar Summary',
   HABIT_LOG: 'Habit Log',
   METRICS: 'Metrics',
+  METRIC_CONFIG: 'Metric Config',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

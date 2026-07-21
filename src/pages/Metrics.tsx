@@ -5,6 +5,9 @@ import {
   useCreateMetric,
   useUpdateMetric,
   useDeleteMetric,
+  useMetricConfigs,
+  useCreateMetricConfig,
+  useUpdateMetricConfig,
 } from '@/hooks/useAirtableData'
 import type { LocalMetricsRecord } from '@/types/airtable'
 
@@ -49,6 +52,40 @@ export function Metrics() {
   const createMetric = useCreateMetric()
   const updateMetric = useUpdateMetric()
   const deleteMetric = useDeleteMetric()
+  const configs = useMetricConfigs()
+  const createConfig = useCreateMetricConfig()
+  const updateConfig = useUpdateMetricConfig()
+
+  const configFor = (name: string) => configs?.find((c) => c.metric === name)
+  const pinnedConfigs = (configs ?? [])
+    .filter((c) => c.showOnHome)
+    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.metric.localeCompare(b.metric))
+  const configPending = createConfig.isPending || updateConfig.isPending
+
+  const togglePin = async (name: string) => {
+    const config = configFor(name)
+    if (config) {
+      await updateConfig.mutateAsync({ configId: config.id, updates: { showOnHome: !config.showOnHome } })
+    } else {
+      await createConfig.mutateAsync({ metric: name, showOnHome: true, order: pinnedConfigs.length })
+    }
+  }
+
+  // Swap a pinned metric with its neighbour, normalising orders to display index
+  const movePin = async (name: string, direction: -1 | 1) => {
+    if (configPending) return
+    const idx = pinnedConfigs.findIndex((c) => c.metric === name)
+    const target = idx + direction
+    if (idx < 0 || target < 0 || target >= pinnedConfigs.length) return
+    const updates: Array<{ id: string; order: number }> = []
+    pinnedConfigs.forEach((c, i) => {
+      const newOrder = i === idx ? target : i === target ? idx : i
+      if (c.order !== newOrder) updates.push({ id: c.id, order: newOrder })
+    })
+    for (const u of updates) {
+      await updateConfig.mutateAsync({ configId: u.id, updates: { order: u.order } })
+    }
+  }
 
   // Group records by metric name, newest first within each group,
   // groups ordered by their latest record
@@ -260,16 +297,57 @@ export function Metrics() {
       {/* Metric groups */}
       {groups.map(({ name, records }) => {
         const latest = records[0]
+        const pinned = configFor(name)?.showOnHome ?? false
         return (
           <div key={name} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-slate-900">{name}</h3>
-              <button
-                onClick={() => startLogFor(name, latest)}
-                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                Log value
-              </button>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <h3 className="font-semibold text-slate-900 min-w-0 truncate">{name}</h3>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {pinned && (
+                  <>
+                    <button
+                      onClick={() => movePin(name, -1)}
+                      disabled={configPending}
+                      title="Move up on Home"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => movePin(name, 1)}
+                      disabled={configPending}
+                      title="Move down on Home"
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => togglePin(name)}
+                  disabled={configPending}
+                  title={pinned ? 'Shown on Home - tap to remove' : 'Show on Home page'}
+                  className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                    pinned
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => startLogFor(name, latest)}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  Log value
+                </button>
+              </div>
             </div>
             <p className="text-2xl font-bold text-slate-900 mb-1">{formatValue(latest)}</p>
             <p className="text-xs text-slate-400 mb-3">

@@ -17,6 +17,7 @@ import type {
   IdeasRecord,
   HabitLogRecord,
   MetricsRecord,
+  MetricConfigRecord,
   CareerRecord,
   RulesRecord,
   EventsRecord,
@@ -31,6 +32,7 @@ import type {
   LocalIdeasRecord,
   LocalHabitLogRecord,
   LocalMetricsRecord,
+  LocalMetricConfigRecord,
   LocalCareerRecord,
   LocalRulesRecord,
   LocalEventsRecord,
@@ -243,6 +245,24 @@ function transformMetricsRecord(record: MetricsRecord): LocalMetricsRecord {
     valueDate: record.fields['Value - Date'] ?? null,
     source: record.fields.Source ?? null,
     createdTime: record.createdTime,
+  }
+}
+
+function transformMetricConfigRecord(record: MetricConfigRecord): LocalMetricConfigRecord {
+  return {
+    id: record.id,
+    metric: record.fields.Metric || '',
+    showOnHome: record.fields['Show on Home'] ?? false,
+    order: record.fields.Order ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
+function localMetricConfigToAirtable(record: LocalMetricConfigRecord): Record<string, unknown> {
+  return {
+    Metric: record.metric,
+    'Show on Home': record.showOnHome,
+    Order: record.order ?? undefined,
   }
 }
 
@@ -527,6 +547,7 @@ class SyncService {
     let sugarSummaryRecords: SugarSummaryRecord[] = []
     let habitLogRecords: HabitLogRecord[] = []
     let metricsRecords: MetricsRecord[] = []
+    let metricConfigRecords: MetricConfigRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -594,6 +615,11 @@ class SyncService {
     } catch {
       debugLog('Metrics table not readable - skipping', 'warn')
     }
+    try {
+      metricConfigRecords = await fetchTable<MetricConfigRecord>('Metric Config')
+    } catch {
+      debugLog('Metric Config table not found - skipping (create it in Airtable to enable home-page metric pins)', 'warn')
+    }
 
     const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
     debugLog(`All fetches completed in ${fetchDuration}s`)
@@ -629,7 +655,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics, db.metricConfig], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -646,6 +672,7 @@ class SyncService {
         await db.sugarSummary.clear()
         await db.habitLog.clear()
         await db.metrics.clear()
+        await db.metricConfig.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -663,6 +690,7 @@ class SyncService {
         await db.sugarSummary.bulkPut(sugarSummaryRecords.map(transformSugarSummaryRecord))
         await db.habitLog.bulkPut(habitLogRecords.map(transformHabitLogRecord))
         await db.metrics.bulkPut(metricsRecords.map(transformMetricsRecord))
+        await db.metricConfig.bulkPut(metricConfigRecords.map(transformMetricConfigRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -1049,6 +1077,70 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Metrics', 'delete', metricId, {})
+    }
+  }
+
+  // Create a metric config record (handles offline)
+  async createMetricConfigRecord(
+    data: Omit<LocalMetricConfigRecord, 'id' | 'createdTime'>
+  ): Promise<LocalMetricConfigRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalMetricConfigRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.metricConfig.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<MetricConfigRecord>(
+          'Metric Config',
+          localMetricConfigToAirtable(record)
+        )
+        await db.metricConfig.delete(localId)
+        const updatedRecord = transformMetricConfigRecord(created)
+        await db.metricConfig.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Metric Config', 'create', localId, localMetricConfigToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Metric Config', 'create', localId, localMetricConfigToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a metric config record (handles offline)
+  async updateMetricConfigRecord(
+    configId: string,
+    updates: Partial<Pick<LocalMetricConfigRecord, 'showOnHome' | 'order'>>
+  ): Promise<void> {
+    const entry = await db.metricConfig.get(configId)
+    if (!entry) throw new Error('Metric config not found')
+
+    Object.assign(entry, updates)
+    entry._pendingSync = true
+    await db.metricConfig.put(entry)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.showOnHome !== undefined) updateData['Show on Home'] = updates.showOnHome
+    if (updates.order !== undefined) updateData.Order = updates.order
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Metric Config', configId, updateData)
+        entry._pendingSync = false
+        await db.metricConfig.put(entry)
+      } catch {
+        await this.queueMutation('Metric Config', 'update', configId, updateData)
+      }
+    } else {
+      await this.queueMutation('Metric Config', 'update', configId, updateData)
     }
   }
 
