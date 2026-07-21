@@ -362,6 +362,8 @@ export interface LocalMetricsRecord {
   valueDate: string | null
   source: string | null
   createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
 }
 
 export interface LocalHabitLogRecord {

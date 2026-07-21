@@ -95,7 +95,7 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-2 text-sm">Totals</h3>
+        <Link to="/metrics" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Totals</Link>
         <div className="grid grid-cols-4 gap-2 mb-3">
           <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg px-3 py-2">
             <p className="text-xs text-amber-600 font-medium">Countdown</p>

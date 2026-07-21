@@ -246,6 +246,17 @@ function transformMetricsRecord(record: MetricsRecord): LocalMetricsRecord {
   }
 }
 
+// Name is a formula field in Airtable, so it is never written back
+function localMetricsToAirtable(record: LocalMetricsRecord): Record<string, unknown> {
+  return {
+    Metric: record.metric,
+    Type: record.type,
+    'Value - Number': record.valueNumber,
+    'Value - Date': record.valueDate,
+    Source: record.source,
+  }
+}
+
 function transformHabitLogRecord(record: HabitLogRecord): LocalHabitLogRecord {
   return {
     id: record.id,
@@ -948,6 +959,96 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Words', 'delete', wordsId, {})
+    }
+  }
+
+  // Create a metrics record (handles offline)
+  async createMetricsRecord(
+    data: Omit<LocalMetricsRecord, 'id' | 'createdTime'>
+  ): Promise<LocalMetricsRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalMetricsRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.metrics.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<MetricsRecord>(
+          'Metrics',
+          localMetricsToAirtable(record)
+        )
+        await db.metrics.delete(localId)
+        const updatedRecord = transformMetricsRecord(created)
+        await db.metrics.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Metrics', 'create', localId, localMetricsToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Metrics', 'create', localId, localMetricsToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a metrics record (handles offline)
+  async updateMetricsRecord(
+    metricId: string,
+    updates: Partial<Pick<LocalMetricsRecord, 'type' | 'valueNumber' | 'valueDate' | 'source'>>
+  ): Promise<void> {
+    const entry = await db.metrics.get(metricId)
+    if (!entry) throw new Error('Metric record not found')
+
+    Object.assign(entry, updates)
+    entry._pendingSync = true
+    await db.metrics.put(entry)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.type !== undefined) updateData.Type = updates.type
+    if (updates.valueNumber !== undefined) updateData['Value - Number'] = updates.valueNumber
+    if (updates.valueDate !== undefined) updateData['Value - Date'] = updates.valueDate
+    if (updates.source !== undefined) updateData.Source = updates.source
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Metrics', metricId, updateData)
+        entry._pendingSync = false
+        await db.metrics.put(entry)
+      } catch {
+        await this.queueMutation('Metrics', 'update', metricId, updateData)
+      }
+    } else {
+      await this.queueMutation('Metrics', 'update', metricId, updateData)
+    }
+  }
+
+  // Delete a metrics record (handles offline)
+  async deleteMetricsRecord(metricId: string): Promise<void> {
+    const entry = await db.metrics.get(metricId)
+    if (!entry) throw new Error('Metric record not found')
+
+    // Delete from local DB immediately
+    await db.metrics.delete(metricId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (metricId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Metrics', metricId)
+      } catch {
+        await this.queueMutation('Metrics', 'delete', metricId, {})
+      }
+    } else {
+      await this.queueMutation('Metrics', 'delete', metricId, {})
     }
   }
 
