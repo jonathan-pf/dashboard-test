@@ -4,6 +4,7 @@ import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThresho
 import { DEFAULT_HABITS } from '@/types/airtable'
 import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
+import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 
 type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
 
@@ -88,6 +89,7 @@ export function Thresholds() {
   const [newRedThreshold, setNewRedThreshold] = useState('')
   const [newGreenThreshold, setNewGreenThreshold] = useState('')
   const [newLowerIsBetter, setNewLowerIsBetter] = useState(false)
+  const [newNotes, setNewNotes] = useState('')
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
@@ -108,6 +110,7 @@ export function Thresholds() {
   const [editRedThreshold, setEditRedThreshold] = useState('')
   const [editGreenThreshold, setEditGreenThreshold] = useState('')
   const [editLowerIsBetter, setEditLowerIsBetter] = useState(false)
+  const [editNotes, setEditNotes] = useState('')
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -165,6 +168,7 @@ export function Thresholds() {
       lowerIsBetter: newLowerIsBetter,
       order: thresholds?.length ?? 0, // append to the end of the display order
       ruleIds: [],
+      notes: newNotes.trim() || null,
     })
 
     setNewName('')
@@ -185,6 +189,7 @@ export function Thresholds() {
     setNewRedThreshold('')
     setNewGreenThreshold('')
     setNewLowerIsBetter(false)
+    setNewNotes('')
     setShowCreateForm(false)
   }
 
@@ -213,6 +218,7 @@ export function Thresholds() {
     setEditRedThreshold(String(t.redThreshold))
     setEditGreenThreshold(String(t.greenThreshold))
     setEditLowerIsBetter(t.lowerIsBetter)
+    setEditNotes(t.notes ?? '')
   }
 
   const handleUpdate = async () => {
@@ -239,6 +245,7 @@ export function Thresholds() {
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
         lowerIsBetter: editLowerIsBetter,
+        notes: editNotes.trim() || null,
       },
     })
 
@@ -333,6 +340,7 @@ export function Thresholds() {
             redThreshold={newRedThreshold} setRedThreshold={setNewRedThreshold}
             greenThreshold={newGreenThreshold} setGreenThreshold={setNewGreenThreshold}
             lowerIsBetter={newLowerIsBetter} setLowerIsBetter={setNewLowerIsBetter}
+            notes={newNotes} setNotes={setNewNotes}
             onSave={handleCreate}
             onCancel={handleCancelCreate}
             saving={createThreshold.isPending}
@@ -376,6 +384,7 @@ export function Thresholds() {
                     redThreshold={editRedThreshold} setRedThreshold={setEditRedThreshold}
                     greenThreshold={editGreenThreshold} setGreenThreshold={setEditGreenThreshold}
                     lowerIsBetter={editLowerIsBetter} setLowerIsBetter={setEditLowerIsBetter}
+                    notes={editNotes} setNotes={setEditNotes}
                     onSave={handleUpdate}
                     onCancel={handleCancelEdit}
                     saving={updateThreshold.isPending}
@@ -394,7 +403,10 @@ export function Thresholds() {
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full shrink-0 ${COLOR_CLASSES[thresholdColors?.get(t.id) ?? 'grey']}`} />
-                        <p className="text-sm font-medium text-slate-900">{t.name}</p>
+                        <p className="text-sm font-medium text-slate-900">
+                          {t.name}
+                          <NoteIndicator notes={t.notes} />
+                        </p>
                       </div>
                       <div className="flex gap-1.5">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${SOURCE_COLORS[t.source]}`}>
@@ -470,6 +482,7 @@ function ThresholdForm({
   redThreshold, setRedThreshold,
   greenThreshold, setGreenThreshold,
   lowerIsBetter, setLowerIsBetter,
+  notes, setNotes,
   onSave,
   onCancel,
   saving,
@@ -497,6 +510,7 @@ function ThresholdForm({
   redThreshold: string; setRedThreshold: (v: string) => void
   greenThreshold: string; setGreenThreshold: (v: string) => void
   lowerIsBetter: boolean; setLowerIsBetter: (v: boolean) => void
+  notes: string; setNotes: (v: string) => void
   onSave: () => void
   onCancel: () => void
   saving: boolean
@@ -743,6 +757,16 @@ function ThresholdForm({
         />
         Lower is better (e.g. Sugar, Weight)
       </label>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Notes (optional)</label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="e.g. what each score means"
+          rows={3}
+          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none bg-white"
+        />
+      </div>
       <div className="flex gap-3">
         <button
           onClick={onCancel}

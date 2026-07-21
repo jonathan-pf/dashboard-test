@@ -1148,7 +1148,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

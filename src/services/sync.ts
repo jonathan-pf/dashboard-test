@@ -226,6 +226,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     lowerIsBetter: record.fields['Lower Is Better'] ?? false,
     order: record.fields.Order ?? null,
     ruleIds: record.fields.Rules ?? [],
+    notes: record.fields.Notes ?? null,
     createdTime: record.createdTime,
   }
 }
@@ -388,6 +389,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Lower Is Better': record.lowerIsBetter,
     Order: record.order ?? undefined,
     Rules: record.ruleIds.length > 0 ? record.ruleIds : undefined,
+    Notes: record.notes,
   }
 }
 
@@ -1555,7 +1557,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1585,6 +1587,7 @@ class SyncService {
     if (updates.lowerIsBetter !== undefined) updateData['Lower Is Better'] = updates.lowerIsBetter
     if (updates.order !== undefined) updateData.Order = updates.order
     if (updates.ruleIds !== undefined) updateData.Rules = updates.ruleIds.length > 0 ? updates.ruleIds : []
+    if (updates.notes !== undefined) updateData.Notes = updates.notes
 
     if (navigator.onLine) {
       try {

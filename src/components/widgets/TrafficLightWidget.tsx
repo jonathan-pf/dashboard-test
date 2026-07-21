@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue, useHabitDaysSinceLast, useHabitCountLastDays } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
@@ -29,6 +30,7 @@ interface ThresholdDef {
   redThreshold: number
   greenThreshold: number
   lowerIsBetter: boolean
+  notes?: string | null
 }
 
 function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -241,19 +243,42 @@ function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
 
 export function TrafficLightWidgets() {
   const thresholds = useThresholds()
+  const [noteFor, setNoteFor] = useState<string | null>(null)
 
   const definitions: ThresholdDef[] = thresholds && thresholds.length > 0
     ? thresholds
     : FALLBACK_DEFINITIONS
+
+  const openNoteDef = definitions.find((d) => d.name === noteFor && d.notes)
 
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
       <Link to="/thresholds" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Thresholds</Link>
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {definitions.map((def) => (
-          <TrafficLightItem key={def.name} definition={def} />
+          <div
+            key={def.name}
+            className={`relative ${def.notes ? 'cursor-pointer' : ''}`}
+            onClick={() => def.notes && setNoteFor(noteFor === def.name ? null : def.name)}
+          >
+            {def.notes && (
+              <span
+                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400"
+                title="Has notes - tap to view"
+              />
+            )}
+            <TrafficLightItem definition={def} />
+          </div>
         ))}
       </div>
+      {openNoteDef && (
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+            {openNoteDef.name}
+          </p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{openNoteDef.notes}</p>
+        </div>
+      )}
     </div>
   )
 }
