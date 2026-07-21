@@ -147,6 +147,21 @@ export interface EventsRecord extends AirtableRecord {
   }
 }
 
+// Metrics table - externally-modelled numbers recorded per model run
+// (e.g. Life Expectancy, Arcadia ETA). Read-only in the app; the dashboard
+// shows the latest record per metric.
+export interface MetricsRecord extends AirtableRecord {
+  fields: {
+    Name: string // Formula
+    Metric?: string // Single select, e.g. "Life Expectancy"
+    Created: string // Created time
+    Type?: 'Number' | 'Date'
+    'Value - Number'?: number | null
+    'Value - Date'?: string | null
+    Source?: string | null // URL of the model behind the value
+  }
+}
+
 // Habit Log table - one row per habit completion. Habits are defined by the
 // Habit select's options; the app derives its habit list from logged values.
 export interface HabitLogRecord extends AirtableRecord {
@@ -336,6 +351,19 @@ export const IDEA_STATUS_COLORS: Record<NonNullable<IdeaStatus>, string> = {
   'Active': 'bg-amber-100 text-amber-700',
   'Researched': 'bg-cyan-100 text-cyan-700',
   'Shipped': 'bg-teal-100 text-teal-700',
+}
+
+export interface LocalMetricsRecord {
+  id: string
+  name: string
+  metric: string
+  type: 'Number' | 'Date' | null
+  valueNumber: number | null
+  valueDate: string | null
+  source: string | null
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
 }
 
 export interface LocalHabitLogRecord {
@@ -567,6 +595,7 @@ export const TABLES = {
   THRESHOLDS: 'Thresholds',
   SUGAR_SUMMARY: 'Sugar Summary',
   HABIT_LOG: 'Habit Log',
+  METRICS: 'Metrics',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

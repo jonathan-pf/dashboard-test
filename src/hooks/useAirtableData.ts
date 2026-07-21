@@ -12,6 +12,7 @@ import type {
   LocalLeisureRecord,
   LocalThresholdsRecord,
   LocalHabitLogRecord,
+  LocalMetricsRecord,
   EventTag,
 } from '@/types/airtable'
 import { DEFAULT_HABITS } from '@/types/airtable'
@@ -33,6 +34,7 @@ export const queryKeys = {
   leisure: ['leisure'] as const,
   thresholds: ['thresholds'] as const,
   habitLog: ['habitLog'] as const,
+  metrics: ['metrics'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -107,6 +109,29 @@ export function useCareerTotals() {
   return useLiveQuery(
     () => db.career.toCollection().first(),
     []
+  )
+}
+
+// All metric records, newest first
+export function useMetrics() {
+  return useLiveQuery(() => db.metrics.orderBy('createdTime').reverse().toArray(), [])
+}
+
+// Latest numeric value recorded for a named metric in the Metrics table
+// (undefined = loading, null = no record yet)
+export function useLatestMetricNumber(metricName: string) {
+  return useLiveQuery(
+    async () => {
+      const records = await db.metrics
+        .where('metric')
+        .equals(metricName)
+        .and((m) => m.valueNumber !== null)
+        .toArray()
+      if (records.length === 0) return null
+      const latest = records.reduce((max, m) => (m.createdTime > max.createdTime ? m : max), records[0])
+      return { value: latest.valueNumber!, createdTime: latest.createdTime, source: latest.source }
+    },
+    [metricName]
   )
 }
 
@@ -730,6 +755,46 @@ export function useCreateWords() {
       syncService.createWordsRecord(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
+export function useCreateMetric() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalMetricsRecord, 'id' | 'createdTime'>) =>
+      syncService.createMetricsRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.metrics })
+    },
+  })
+}
+
+export function useUpdateMetric() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      metricId,
+      updates,
+    }: {
+      metricId: string
+      updates: Partial<Pick<LocalMetricsRecord, 'type' | 'valueNumber' | 'valueDate' | 'source'>>
+    }) => syncService.updateMetricsRecord(metricId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.metrics })
+    },
+  })
+}
+
+export function useDeleteMetric() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (metricId: string) => syncService.deleteMetricsRecord(metricId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.metrics })
     },
   })
 }

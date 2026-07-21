@@ -27,6 +27,7 @@ import { Leisure } from './pages/Leisure'
 import { Rules } from './pages/Rules'
 import { Settings } from './pages/Settings'
 import { Thresholds } from './pages/Thresholds'
+import { Metrics } from './pages/Metrics'
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
           <Route path="/events" element={<Events />} />
           <Route path="/leisure" element={<Leisure />} />
           <Route path="/thresholds" element={<Thresholds />} />
+          <Route path="/metrics" element={<Metrics />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </AppShell>
