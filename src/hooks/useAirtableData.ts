@@ -16,7 +16,7 @@ import type {
   LocalMetricConfigRecord,
   EventTag,
 } from '@/types/airtable'
-import { DEFAULT_HABITS } from '@/types/airtable'
+import { DEFAULT_HABITS, BUILT_IN_TILE_NAMES } from '@/types/airtable'
 import type { SugarThresholdPeriod } from '@/types/airtable'
 import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
 import { periodDailySeries, aggregateSeries } from '@/utils/sugar'
@@ -124,12 +124,25 @@ export function useMetricConfigs() {
   return useLiveQuery(() => db.metricConfig.toArray(), [])
 }
 
+// Built-in Totals tiles hidden via Metric Config (row present with Show on Home unchecked)
+export function useHiddenBuiltInTiles() {
+  return useLiveQuery(async () => {
+    const configs = await db.metricConfig.toArray()
+    return new Set(
+      configs
+        .filter((c) => !c.showOnHome && (BUILT_IN_TILE_NAMES as readonly string[]).includes(c.metric))
+        .map((c) => c.metric)
+    )
+  }, [])
+}
+
 // Metrics pinned to the Home page, in configured order, each with its latest record
 export function useHomeMetrics() {
   return useLiveQuery(async () => {
     const configs = await db.metricConfig.toArray()
     const pinned = configs
-      .filter((c) => c.showOnHome)
+      // Built-in tile names use Metric Config for hide/show, not metric pinning
+      .filter((c) => c.showOnHome && !(BUILT_IN_TILE_NAMES as readonly string[]).includes(c.metric))
       .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.metric.localeCompare(b.metric))
 
     const result: { metric: string; latest: LocalMetricsRecord | null }[] = []

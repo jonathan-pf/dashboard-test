@@ -10,6 +10,7 @@ import {
   useUpdateMetricConfig,
 } from '@/hooks/useAirtableData'
 import type { LocalMetricsRecord } from '@/types/airtable'
+import { BUILT_IN_TILE_NAMES } from '@/types/airtable'
 
 type MetricType = 'Number' | 'Date'
 
@@ -68,6 +69,22 @@ export function Metrics() {
       await updateConfig.mutateAsync({ configId: config.id, updates: { showOnHome: !config.showOnHome } })
     } else {
       await createConfig.mutateAsync({ metric: name, showOnHome: true, order: pinnedConfigs.length })
+    }
+  }
+
+  // Built-in Totals tiles default to shown; a config row with Show on Home
+  // unchecked hides them
+  const builtInShown = (name: string) => {
+    const config = configFor(name)
+    return !config || config.showOnHome
+  }
+
+  const toggleBuiltIn = async (name: string) => {
+    const config = configFor(name)
+    if (config) {
+      await updateConfig.mutateAsync({ configId: config.id, updates: { showOnHome: !config.showOnHome } })
+    } else {
+      await createConfig.mutateAsync({ metric: name, showOnHome: false, order: null })
     }
   }
 
@@ -292,6 +309,38 @@ export function Metrics() {
             + New Metric
           </button>
         )}
+      </div>
+
+      {/* Built-in Totals tiles: show/hide */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-1">Home Tiles</h3>
+        <p className="text-xs text-slate-400 mb-3">Built-in tiles on the Home Totals row</p>
+        <div className="divide-y divide-slate-100">
+          {BUILT_IN_TILE_NAMES.map((name) => {
+            const shown = builtInShown(name)
+            return (
+              <div key={name} className="flex items-center justify-between py-2.5">
+                <span className={`text-sm font-medium ${shown ? 'text-slate-900' : 'text-slate-400'}`}>
+                  {name}
+                </span>
+                <button
+                  onClick={() => toggleBuiltIn(name)}
+                  disabled={configPending}
+                  title={shown ? 'Shown on Home - tap to hide' : 'Hidden - tap to show'}
+                  className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                    shown
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Metric groups */}

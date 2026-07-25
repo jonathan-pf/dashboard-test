@@ -14,6 +14,7 @@ import {
   useCurrentWeekGoals,
   useCareerTotals,
   useHomeMetrics,
+  useHiddenBuiltInTiles,
   useRulesByStatus,
   useYearlyUnitsPerWeek,
   useYearlyFeaturesPerWeek,
@@ -63,6 +64,7 @@ export function Dashboard() {
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
   const homeMetrics = useHomeMetrics()
+  const hiddenTiles = useHiddenBuiltInTiles()
   const allBonusRules = useRulesByStatus('Bonus')
   const testingRules = useRulesByStatus('Testing')
   const thresholdColors = useAllThresholdColors()
@@ -121,34 +123,42 @@ export function Dashboard() {
       <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
         <Link to="/metrics" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Totals</Link>
         <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-amber-600 font-medium">Countdown</p>
-            <p className="text-xl font-bold text-amber-900">{daysRemaining.toLocaleString()}</p>
-          </div>
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-blue-600 font-medium">Donations</p>
-            {!careerTotals ? (
-              <div className="h-6 w-12 bg-blue-200 animate-pulse rounded mt-0.5" />
-            ) : (
-              <p className="text-xl font-bold text-blue-900">{(careerTotals.totalDonations ?? 0).toLocaleString()}</p>
-            )}
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-green-600 font-medium">Lives Saved</p>
-            {!careerTotals ? (
-              <div className="h-6 w-12 bg-green-200 animate-pulse rounded mt-0.5" />
-            ) : (
-              <p className="text-xl font-bold text-green-900">{Math.floor(careerTotals.totalLives ?? 0).toLocaleString()}</p>
-            )}
-          </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-purple-600 font-medium">Reps 2026</p>
-            {reps2026.loading ? (
-              <div className="h-6 w-12 bg-purple-200 animate-pulse rounded mt-0.5" />
-            ) : (
-              <p className="text-xl font-bold text-purple-900">{reps2026.totalReps.toLocaleString()}</p>
-            )}
-          </div>
+          {!hiddenTiles?.has('Countdown') && (
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-600 font-medium">Countdown</p>
+              <p className="text-xl font-bold text-amber-900">{daysRemaining.toLocaleString()}</p>
+            </div>
+          )}
+          {!hiddenTiles?.has('Donations') && (
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-blue-600 font-medium">Donations</p>
+              {!careerTotals ? (
+                <div className="h-6 w-12 bg-blue-200 animate-pulse rounded mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold text-blue-900">{(careerTotals.totalDonations ?? 0).toLocaleString()}</p>
+              )}
+            </div>
+          )}
+          {!hiddenTiles?.has('Lives Saved') && (
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-600 font-medium">Lives Saved</p>
+              {!careerTotals ? (
+                <div className="h-6 w-12 bg-green-200 animate-pulse rounded mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold text-green-900">{Math.floor(careerTotals.totalLives ?? 0).toLocaleString()}</p>
+              )}
+            </div>
+          )}
+          {!hiddenTiles?.has('Reps 2026') && (
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-purple-600 font-medium">Reps 2026</p>
+              {reps2026.loading ? (
+                <div className="h-6 w-12 bg-purple-200 animate-pulse rounded mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold text-purple-900">{reps2026.totalReps.toLocaleString()}</p>
+              )}
+            </div>
+          )}
           {(homeMetrics ?? []).map(({ metric, latest }, i) => {
             const tile = METRIC_TILE_STYLES[i % METRIC_TILE_STYLES.length]
             return (
