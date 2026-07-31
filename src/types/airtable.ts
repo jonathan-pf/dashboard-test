@@ -172,6 +172,28 @@ export interface MetricConfigRecord extends AirtableRecord {
   }
 }
 
+// People table - mini CRM: one row per person. Last-met is derived from
+// the Contact Log table.
+export interface PeopleRecord extends AirtableRecord {
+  fields: {
+    Name: string
+    Category?: 'Work' | 'Social'
+    Warmth?: number | null // Rating 1-5
+    Notes?: string | null
+    Status?: 'Active' | 'Archived'
+  }
+}
+
+// Contact Log table - one row per interaction with a person
+export interface ContactLogRecord extends AirtableRecord {
+  fields: {
+    Name: string // "Person - Date", filled by the app
+    Person?: string[] // Record IDs linking to People (single link used)
+    Date: string // ISO date string
+    Note?: string | null
+  }
+}
+
 // Habit Log table - one row per habit completion. Habits are defined by the
 // Habit select's options; the app derives its habit list from logged values.
 export interface HabitLogRecord extends AirtableRecord {
@@ -214,7 +236,7 @@ export interface RulesRecord extends AirtableRecord {
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
-    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
+    Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | null
     'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
@@ -222,11 +244,12 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
     'Event Tag'?: 'Adventure' | 'Date' | 'Social' | 'Group' | 'Family' | null
     'Habit'?: string | null
+    'People Category'?: 'Work' | 'Social' | null
     'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
-    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast'
+    Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast' | 'overdueCount'
     Days?: number | null
     Notes?: string | null // Long text - e.g. what a score means
     'Red Threshold': number
@@ -392,6 +415,29 @@ export interface LocalMetricConfigRecord {
   _localId?: string
 }
 
+export interface LocalPersonRecord {
+  id: string
+  name: string
+  category: 'Work' | 'Social'
+  warmth: number | null // 1-5
+  notes: string | null
+  status: 'Active' | 'Archived'
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+export interface LocalContactLogRecord {
+  id: string
+  name: string
+  personId: string | null
+  date: string
+  note: string | null
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
 export interface LocalHabitLogRecord {
   id: string
   name: string
@@ -436,7 +482,7 @@ export interface LocalRulesRecord {
 export interface LocalThresholdsRecord {
   id: string
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
   healthType: LocalHealthRecord['type'] | null
   ideaType: LocalIdeasRecord['type'] | null
   ideaStatus: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
@@ -444,11 +490,12 @@ export interface LocalThresholdsRecord {
   eventStatus: LocalEventsRecord['status'] | null
   eventTag: EventTag | null
   habit: string | null
+  peopleCategory: 'Work' | 'Social' | null
   wordsProject: LocalWordsRecord['project'] | 'All' | null
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
   sugarPeriod: SugarThresholdPeriod | null
-  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast'
+  aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast' | 'overdueCount'
   days: number | null
   redThreshold: number
   greenThreshold: number
@@ -623,6 +670,8 @@ export const TABLES = {
   HABIT_LOG: 'Habit Log',
   METRICS: 'Metrics',
   METRIC_CONFIG: 'Metric Config',
+  PEOPLE: 'People',
+  CONTACT_LOG: 'Contact Log',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

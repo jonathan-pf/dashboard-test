@@ -18,6 +18,8 @@ import type {
   HabitLogRecord,
   MetricsRecord,
   MetricConfigRecord,
+  PeopleRecord,
+  ContactLogRecord,
   CareerRecord,
   RulesRecord,
   EventsRecord,
@@ -33,6 +35,8 @@ import type {
   LocalHabitLogRecord,
   LocalMetricsRecord,
   LocalMetricConfigRecord,
+  LocalPersonRecord,
+  LocalContactLogRecord,
   LocalCareerRecord,
   LocalRulesRecord,
   LocalEventsRecord,
@@ -219,6 +223,7 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     eventStatus: record.fields['Event Status'] ?? null,
     eventTag: record.fields['Event Tag'] ?? null,
     habit: record.fields['Habit'] ?? null,
+    peopleCategory: record.fields['People Category'] ?? null,
     wordsProject: record.fields['Words Project'] ?? null,
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     leisureType: record.fields['Leisure Type'] ?? null,
@@ -274,6 +279,48 @@ function localMetricsToAirtable(record: LocalMetricsRecord): Record<string, unkn
     'Value - Number': record.valueNumber,
     'Value - Date': record.valueDate,
     Source: record.source,
+  }
+}
+
+function transformPersonRecord(record: PeopleRecord): LocalPersonRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    category: record.fields.Category || 'Social',
+    warmth: record.fields.Warmth ?? null,
+    notes: record.fields.Notes ?? null,
+    status: record.fields.Status || 'Active',
+    createdTime: record.createdTime,
+  }
+}
+
+function localPersonToAirtable(record: LocalPersonRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Category: record.category,
+    Warmth: record.warmth,
+    Notes: record.notes,
+    Status: record.status,
+  }
+}
+
+function transformContactLogRecord(record: ContactLogRecord): LocalContactLogRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    personId: record.fields.Person?.[0] ?? null,
+    date: record.fields.Date || '',
+    note: record.fields.Note ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
+function localContactLogToAirtable(record: LocalContactLogRecord): Record<string, unknown> {
+  return {
+    Name: record.name,
+    Person: record.personId ? [record.personId] : undefined,
+    Date: record.date,
+    Note: record.note,
   }
 }
 
@@ -424,6 +471,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Event Status': record.eventStatus,
     'Event Tag': record.eventTag,
     Habit: record.habit,
+    'People Category': record.peopleCategory,
     'Words Project': record.wordsProject,
     'Leisure Period': record.leisurePeriod,
     'Leisure Type': record.leisureType,
@@ -548,6 +596,8 @@ class SyncService {
     let habitLogRecords: HabitLogRecord[] = []
     let metricsRecords: MetricsRecord[] = []
     let metricConfigRecords: MetricConfigRecord[] = []
+    let peopleRecords: PeopleRecord[] = []
+    let contactLogRecords: ContactLogRecord[] = []
 
     // Helper to fetch a table with detailed error logging
     const fetchTable = async <T extends AirtableRecord>(tableName: string): Promise<T[]> => {
@@ -620,6 +670,12 @@ class SyncService {
     } catch {
       debugLog('Metric Config table not found - skipping (create it in Airtable to enable home-page metric pins)', 'warn')
     }
+    try {
+      peopleRecords = await fetchTable<PeopleRecord>('People')
+      contactLogRecords = await fetchTable<ContactLogRecord>('Contact Log')
+    } catch {
+      debugLog('People / Contact Log tables not found - skipping (create them in Airtable to enable the people tracker)', 'warn')
+    }
 
     const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
     debugLog(`All fetches completed in ${fetchDuration}s`)
@@ -655,7 +711,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics, db.metricConfig], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics, db.metricConfig, db.people, db.contactLog], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -673,6 +729,8 @@ class SyncService {
         await db.habitLog.clear()
         await db.metrics.clear()
         await db.metricConfig.clear()
+        await db.people.clear()
+        await db.contactLog.clear()
 
         // Bulk insert transformed records
         debugLog('Inserting transformed records...')
@@ -691,6 +749,8 @@ class SyncService {
         await db.habitLog.bulkPut(habitLogRecords.map(transformHabitLogRecord))
         await db.metrics.bulkPut(metricsRecords.map(transformMetricsRecord))
         await db.metricConfig.bulkPut(metricConfigRecords.map(transformMetricConfigRecord))
+        await db.people.bulkPut(peopleRecords.map(transformPersonRecord))
+        await db.contactLog.bulkPut(contactLogRecords.map(transformContactLogRecord))
       })
 
       const dbDuration = ((Date.now() - dbStart) / 1000).toFixed(2)
@@ -1077,6 +1137,162 @@ class SyncService {
       }
     } else {
       await this.queueMutation('Metrics', 'delete', metricId, {})
+    }
+  }
+
+  // Create a person record (handles offline)
+  async createPersonRecord(
+    data: Omit<LocalPersonRecord, 'id' | 'createdTime'>
+  ): Promise<LocalPersonRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalPersonRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.people.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<PeopleRecord>(
+          'People',
+          localPersonToAirtable(record)
+        )
+        await db.people.delete(localId)
+        const updatedRecord = transformPersonRecord(created)
+        await db.people.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('People', 'create', localId, localPersonToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('People', 'create', localId, localPersonToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a person record (handles offline)
+  async updatePersonRecord(
+    personId: string,
+    updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'warmth' | 'notes' | 'status'>>
+  ): Promise<void> {
+    const person = await db.people.get(personId)
+    if (!person) throw new Error('Person not found')
+
+    Object.assign(person, updates)
+    person._pendingSync = true
+    await db.people.put(person)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.category !== undefined) updateData.Category = updates.category
+    if (updates.warmth !== undefined) updateData.Warmth = updates.warmth
+    if (updates.notes !== undefined) updateData.Notes = updates.notes
+    if (updates.status !== undefined) updateData.Status = updates.status
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('People', personId, updateData)
+        person._pendingSync = false
+        await db.people.put(person)
+      } catch {
+        await this.queueMutation('People', 'update', personId, updateData)
+      }
+    } else {
+      await this.queueMutation('People', 'update', personId, updateData)
+    }
+  }
+
+  // Create a contact log record (handles offline)
+  async createContactLogRecord(
+    data: Omit<LocalContactLogRecord, 'id' | 'createdTime'>
+  ): Promise<LocalContactLogRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalContactLogRecord = {
+      id: localId,
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.contactLog.add(record)
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<ContactLogRecord>(
+          'Contact Log',
+          localContactLogToAirtable(record)
+        )
+        await db.contactLog.delete(localId)
+        const updatedRecord = transformContactLogRecord(created)
+        await db.contactLog.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Contact Log', 'create', localId, localContactLogToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Contact Log', 'create', localId, localContactLogToAirtable(record), localId)
+    }
+
+    return record
+  }
+
+  // Update a contact log record (handles offline)
+  async updateContactLogRecord(
+    contactLogId: string,
+    updates: Partial<Pick<LocalContactLogRecord, 'name' | 'date' | 'note'>>
+  ): Promise<void> {
+    const entry = await db.contactLog.get(contactLogId)
+    if (!entry) throw new Error('Contact log entry not found')
+
+    Object.assign(entry, updates)
+    entry._pendingSync = true
+    await db.contactLog.put(entry)
+
+    const updateData: Record<string, unknown> = {}
+    if (updates.name !== undefined) updateData.Name = updates.name
+    if (updates.date !== undefined) updateData.Date = updates.date
+    if (updates.note !== undefined) updateData.Note = updates.note
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.updateRecord('Contact Log', contactLogId, updateData)
+        entry._pendingSync = false
+        await db.contactLog.put(entry)
+      } catch {
+        await this.queueMutation('Contact Log', 'update', contactLogId, updateData)
+      }
+    } else {
+      await this.queueMutation('Contact Log', 'update', contactLogId, updateData)
+    }
+  }
+
+  // Delete a contact log record (handles offline)
+  async deleteContactLogRecord(contactLogId: string): Promise<void> {
+    const entry = await db.contactLog.get(contactLogId)
+    if (!entry) throw new Error('Contact log entry not found')
+
+    // Delete from local DB immediately
+    await db.contactLog.delete(contactLogId)
+
+    // If it's a local-only record that hasn't synced yet, no need to queue delete
+    if (contactLogId.startsWith('local_')) {
+      return
+    }
+
+    if (navigator.onLine) {
+      try {
+        await airtableService.deleteRecord('Contact Log', contactLogId)
+      } catch {
+        await this.queueMutation('Contact Log', 'delete', contactLogId, {})
+      }
+    } else {
+      await this.queueMutation('Contact Log', 'delete', contactLogId, {})
     }
   }
 
@@ -1773,7 +1989,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -1792,6 +2008,7 @@ class SyncService {
     if (updates.eventStatus !== undefined) updateData['Event Status'] = updates.eventStatus
     if (updates.eventTag !== undefined) updateData['Event Tag'] = updates.eventTag
     if (updates.habit !== undefined) updateData.Habit = updates.habit
+    if (updates.peopleCategory !== undefined) updateData['People Category'] = updates.peopleCategory
     if (updates.wordsProject !== undefined) updateData['Words Project'] = updates.wordsProject
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType
