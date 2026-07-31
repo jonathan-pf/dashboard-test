@@ -14,9 +14,12 @@ import type {
   LocalHabitLogRecord,
   LocalMetricsRecord,
   LocalMetricConfigRecord,
+  LocalPersonRecord,
+  LocalContactLogRecord,
   EventTag,
 } from '@/types/airtable'
 import { DEFAULT_HABITS, BUILT_IN_TILE_NAMES } from '@/types/airtable'
+import { latestContactByPerson, overdueRatio } from '@/utils/people'
 import type { SugarThresholdPeriod } from '@/types/airtable'
 import { getTrafficLightColor, type TrafficLightColor } from '@/config/trafficLights'
 import { periodDailySeries, aggregateSeries } from '@/utils/sugar'
@@ -37,6 +40,8 @@ export const queryKeys = {
   habitLog: ['habitLog'] as const,
   metrics: ['metrics'] as const,
   metricConfig: ['metricConfig'] as const,
+  people: ['people'] as const,
+  contactLog: ['contactLog'] as const,
   currentWeek: ['weeks', 'current'] as const,
   healthByType: (type: string) => ['health', 'type', type] as const,
   wordsByWeek: (weekId: string) => ['words', 'week', weekId] as const,
@@ -117,6 +122,44 @@ export function useCareerTotals() {
 // All metric records, newest first
 export function useMetrics() {
   return useLiveQuery(() => db.metrics.orderBy('createdTime').reverse().toArray(), [])
+}
+
+export function usePeople() {
+  return useLiveQuery(() => db.people.orderBy('name').toArray(), [])
+}
+
+export function useContactLogs() {
+  return useLiveQuery(() => db.contactLog.orderBy('date').reverse().toArray(), [])
+}
+
+// Distinct active people contacted in the last N days, optionally by category
+export function usePeopleSeenLastDays(days: number, category: 'Work' | 'Social' | null = null) {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - days)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  return useLiveQuery(
+    async () => {
+      const people = await db.people.filter(p => p.status === 'Active' && (!category || p.category === category)).toArray()
+      const ids = new Set(people.map(p => p.id))
+      const logs = await db.contactLog.filter(l => l.date >= cutoffStr && l.personId !== null && ids.has(l.personId)).toArray()
+      return new Set(logs.map(l => l.personId)).size
+    },
+    [cutoffStr, category]
+  )
+}
+
+// Active people overdue relative to their warmth cadence (never-contacted counts)
+export function usePeopleOverdueCount(category: 'Work' | 'Social' | null = null) {
+  return useLiveQuery(
+    async () => {
+      const people = await db.people.filter(p => p.status === 'Active' && (!category || p.category === category)).toArray()
+      const logs = await db.contactLog.toArray()
+      const latest = latestContactByPerson(logs)
+      return people.filter(p => overdueRatio(p, latest.get(p.id)) >= 1).length
+    },
+    [category]
+  )
 }
 
 // Per-metric display settings (home pin + order)
@@ -466,6 +509,26 @@ export function useAllThresholdColors() {
           const cutoffStr = cutoff.toISOString().split('T')[0]
           value = logs.filter(l => l.date >= cutoffStr).length
         }
+      } else if (t.source === 'people') {
+        const people = await db.people
+          .filter(p => p.status === 'Active' && (!t.peopleCategory || p.category === t.peopleCategory))
+          .toArray()
+        if (t.aggregation === 'overdueCount') {
+          const logs = await db.contactLog.toArray()
+          const latest = latestContactByPerson(logs)
+          value = people.filter(p => overdueRatio(p, latest.get(p.id)) >= 1).length
+        } else {
+          // Distinct people contacted in the last N days
+          const days = t.days ?? 7
+          const cutoff = new Date()
+          cutoff.setDate(cutoff.getDate() - days)
+          const cutoffStr = cutoff.toISOString().split('T')[0]
+          const ids = new Set(people.map(p => p.id))
+          const logs = await db.contactLog
+            .filter(l => l.date >= cutoffStr && l.personId !== null && ids.has(l.personId))
+            .toArray()
+          value = new Set(logs.map(l => l.personId)).size
+        }
       } else if (t.source === 'sugar' && t.sugarPeriod) {
         const records = await db.sugarSummary.toArray()
         const series = periodDailySeries(records, t.sugarPeriod)
@@ -777,6 +840,75 @@ export function useCreateWords() {
       syncService.createWordsRecord(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.words })
+    },
+  })
+}
+
+export function useCreatePerson() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalPersonRecord, 'id' | 'createdTime'>) =>
+      syncService.createPersonRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.people })
+    },
+  })
+}
+
+export function useUpdatePerson() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      personId,
+      updates,
+    }: {
+      personId: string
+      updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'warmth' | 'notes' | 'status'>>
+    }) => syncService.updatePersonRecord(personId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.people })
+    },
+  })
+}
+
+export function useCreateContactLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalContactLogRecord, 'id' | 'createdTime'>) =>
+      syncService.createContactLogRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactLog })
+    },
+  })
+}
+
+export function useUpdateContactLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      contactLogId,
+      updates,
+    }: {
+      contactLogId: string
+      updates: Partial<Pick<LocalContactLogRecord, 'name' | 'date' | 'note'>>
+    }) => syncService.updateContactLogRecord(contactLogId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactLog })
+    },
+  })
+}
+
+export function useDeleteContactLog() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (contactLogId: string) => syncService.deleteContactLogRecord(contactLogId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactLog })
     },
   })
 }
@@ -1264,7 +1396,7 @@ export function useUpdateThreshold() {
       updates,
     }: {
       thresholdId: string
-      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
+      updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
     }) => syncService.updateThresholdsRecord(thresholdId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thresholds })

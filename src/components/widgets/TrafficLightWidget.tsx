@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue, useHabitDaysSinceLast, useHabitCountLastDays } from '@/hooks/useAirtableData'
+import { useLastHealthValue, useHealthSumLastDays, useHealthAverageLast, useHealthAverageLastDays, useIdeasCountLastDays, useEventsCountDays, useThresholds, useWordsSumLastDays, useLastWordsValue, useWordsAverageLast, useWordsAverageLastDays, useCurrentWeek, useLastWeek, useWeeklyLeisureDuration, usePlannedLeisureQueue, useSugarPeriodValue, useHabitDaysSinceLast, useHabitCountLastDays, usePeopleSeenLastDays, usePeopleOverdueCount } from '@/hooks/useAirtableData'
 import { getTrafficLightColor, FALLBACK_DEFINITIONS, type TrafficLightColor } from '@/config/trafficLights'
 import type { EventTag, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
 
@@ -13,7 +13,7 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
-  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
+  source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
   healthType?: string | null
   ideaType?: string | null
   ideaStatus?: string | null
@@ -21,6 +21,7 @@ interface ThresholdDef {
   eventStatus?: string | null
   eventTag?: string | null
   habit?: string | null
+  peopleCategory?: string | null
   wordsProject?: string | null
   leisurePeriod?: string | null
   leisureType?: string | null
@@ -117,6 +118,24 @@ function HabitsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
   const thresholdHint = definition.lowerIsBetter
     ? `≤ ${definition.greenThreshold}${unit}`
     : `≥ ${definition.greenThreshold}${unit}`
+
+  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+}
+
+function PeopleTrafficLightItem({ definition }: { definition: ThresholdDef }) {
+  const category = (definition.peopleCategory ?? null) as 'Work' | 'Social' | null
+  const isOverdue = definition.aggregation === 'overdueCount'
+  const seen = usePeopleSeenLastDays(definition.days ?? 7, category)
+  const overdue = usePeopleOverdueCount(category)
+
+  const value = isOverdue ? overdue : seen
+  const loading = value === undefined
+  const color = getTrafficLightColor(value ?? null, definition)
+  const displayValue = value ?? '--'
+
+  const thresholdHint = definition.lowerIsBetter
+    ? `≤ ${definition.greenThreshold}`
+    : `≥ ${definition.greenThreshold}`
 
   return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
@@ -228,6 +247,9 @@ function TrafficLightItem({ definition }: { definition: ThresholdDef }) {
   }
   if (definition.source === 'habits') {
     return <HabitsTrafficLightItem definition={definition} />
+  }
+  if (definition.source === 'people') {
+    return <PeopleTrafficLightItem definition={definition} />
   }
   if (definition.source === 'words') {
     return <WordsTrafficLightItem definition={definition} />

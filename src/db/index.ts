@@ -15,6 +15,8 @@ import type {
   LocalHabitLogRecord,
   LocalMetricsRecord,
   LocalMetricConfigRecord,
+  LocalPersonRecord,
+  LocalContactLogRecord,
   PendingMutation,
   SyncMeta,
 } from '@/types/airtable'
@@ -35,6 +37,8 @@ class DashboardDatabase extends Dexie {
   habitLog!: EntityTable<LocalHabitLogRecord, 'id'>
   metrics!: EntityTable<LocalMetricsRecord, 'id'>
   metricConfig!: EntityTable<LocalMetricConfigRecord, 'id'>
+  people!: EntityTable<LocalPersonRecord, 'id'>
+  contactLog!: EntityTable<LocalContactLogRecord, 'id'>
   pendingMutations!: EntityTable<PendingMutation, 'id'>
   syncMeta!: EntityTable<SyncMeta, 'key'>
 
@@ -257,6 +261,28 @@ class DashboardDatabase extends Dexie {
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
+
+    this.version(16).stores({
+      health: 'id, type, date, weekId, unitsType, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
+      ideas: 'id, type, when, weekId, status, _pendingSync',
+      career: 'id, name',
+      rules: 'id, status, select',
+      events: 'id, type, date, status, dateHeld, _pendingSync',
+      leisure: 'id, type, status, dateStarted, dateEnded, _pendingSync',
+      thresholds: 'id, source, name',
+      sugarSummary: 'id, date, period',
+      habitLog: 'id, habit, date, _pendingSync',
+      metrics: 'id, metric, createdTime',
+      metricConfig: 'id, metric',
+      people: 'id, category, status, name',
+      contactLog: 'id, personId, date, _pendingSync',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
   }
 }
 
@@ -306,6 +332,8 @@ export async function clearAllData(): Promise<void> {
     db.habitLog.clear(),
     db.metrics.clear(),
     db.metricConfig.clear(),
+    db.people.clear(),
+    db.contactLog.clear(),
     db.pendingMutations.clear(),
     db.syncMeta.clear(),
   ])

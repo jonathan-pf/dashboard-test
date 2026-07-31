@@ -6,7 +6,7 @@ import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRec
 import type { TrafficLightColor } from '@/config/trafficLights'
 import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 
-type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits'
+type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
@@ -39,6 +39,15 @@ const HABITS_AGGREGATIONS: { value: LocalThresholdsRecord['aggregation']; label:
 ]
 const habitsAggregation = (agg: LocalThresholdsRecord['aggregation']): LocalThresholdsRecord['aggregation'] =>
   agg === 'countLastNDays' ? 'countLastNDays' : 'daysSinceLast'
+// People track upkeep (distinct people seen in a window) or neglect (overdue count)
+const PEOPLE_AGGREGATIONS: { value: LocalThresholdsRecord['aggregation']; label: string }[] = [
+  { value: 'countLastNDays', label: 'People seen last N days' },
+  { value: 'overdueCount', label: 'Overdue count' },
+]
+const peopleAggregation = (agg: LocalThresholdsRecord['aggregation']): LocalThresholdsRecord['aggregation'] =>
+  agg === 'overdueCount' ? 'overdueCount' : 'countLastNDays'
+type PeopleCategoryFilter = 'All' | 'Work' | 'Social'
+const PEOPLE_CATEGORY_FILTERS: PeopleCategoryFilter[] = ['All', 'Work', 'Social']
 
 // Aggregations that need a "Days" window
 const usesDays = (agg: LocalThresholdsRecord['aggregation']) =>
@@ -67,6 +76,7 @@ const SOURCE_COLORS: Record<ThresholdSource, string> = {
   sugar: 'bg-amber-100 text-amber-700',
   events: 'bg-cyan-100 text-cyan-700',
   habits: 'bg-rose-100 text-rose-700',
+  people: 'bg-indigo-100 text-indigo-700',
 }
 
 export function Thresholds() {
@@ -80,6 +90,7 @@ export function Thresholds() {
   const [newEventStatus, setNewEventStatus] = useState<EventStatusFilter>('Any')
   const [newEventTag, setNewEventTag] = useState<EventTagFilter>('Any')
   const [newHabit, setNewHabit] = useState<string>(DEFAULT_HABITS[0])
+  const [newPeopleCategory, setNewPeopleCategory] = useState<PeopleCategoryFilter>('All')
   const [newWordsProject, setNewWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [newLeisurePeriod, setNewLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [newLeisureType, setNewLeisureType] = useState<LeisureTypeFilter>('All')
@@ -101,6 +112,7 @@ export function Thresholds() {
   const [editEventStatus, setEditEventStatus] = useState<EventStatusFilter>('Any')
   const [editEventTag, setEditEventTag] = useState<EventTagFilter>('Any')
   const [editHabit, setEditHabit] = useState<string>(DEFAULT_HABITS[0])
+  const [editPeopleCategory, setEditPeopleCategory] = useState<PeopleCategoryFilter>('All')
   const [editWordsProject, setEditWordsProject] = useState<LocalWordsRecord['project'] | 'All'>('All')
   const [editLeisurePeriod, setEditLeisurePeriod] = useState<LeisurePeriod>('This Week')
   const [editLeisureType, setEditLeisureType] = useState<LeisureTypeFilter>('All')
@@ -135,6 +147,8 @@ export function Thresholds() {
       setAgg('countLastNDays')
     } else if (source === 'habits') {
       setAgg('daysSinceLast')
+    } else if (source === 'people') {
+      setAgg('countLastNDays')
     } else if (source === 'leisure') {
       setAgg('lastValue')
     } else if (source === 'sugar') {
@@ -157,11 +171,12 @@ export function Thresholds() {
       eventStatus: newSource === 'events' && newEventStatus !== 'Any' ? newEventStatus : null,
       eventTag: newSource === 'events' && newEventTag !== 'Any' ? newEventTag : null,
       habit: newSource === 'habits' ? newHabit || null : null,
+      peopleCategory: newSource === 'people' && newPeopleCategory !== 'All' ? newPeopleCategory : null,
       wordsProject: newSource === 'words' ? newWordsProject : null,
       leisurePeriod: newSource === 'leisure' ? newLeisurePeriod : null,
       leisureType: newSource === 'leisure' && newLeisureType !== 'All' ? newLeisureType : null,
       sugarPeriod: newSource === 'sugar' ? newSugarPeriod : null,
-      aggregation: newSource === 'ideas' || newSource === 'events' ? ideasAggregation(newAggregation) : newSource === 'habits' ? habitsAggregation(newAggregation) : newSource === 'leisure' ? 'lastValue' : newAggregation,
+      aggregation: newSource === 'ideas' || newSource === 'events' ? ideasAggregation(newAggregation) : newSource === 'habits' ? habitsAggregation(newAggregation) : newSource === 'people' ? peopleAggregation(newAggregation) : newSource === 'leisure' ? 'lastValue' : newAggregation,
       days: usesDays(newAggregation) || newSource === 'ideas' || newSource === 'events' ? Number(newDays) || 7 : null,
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
@@ -180,6 +195,7 @@ export function Thresholds() {
     setNewEventStatus('Any')
     setNewEventTag('Any')
     setNewHabit(DEFAULT_HABITS[0])
+    setNewPeopleCategory('All')
     setNewWordsProject('All')
     setNewLeisurePeriod('This Week')
     setNewLeisureType('All')
@@ -209,6 +225,7 @@ export function Thresholds() {
     setEditEventStatus(t.eventStatus ?? 'Any')
     setEditEventTag(t.eventTag ?? 'Any')
     setEditHabit(t.habit ?? DEFAULT_HABITS[0])
+    setEditPeopleCategory(t.peopleCategory ?? 'All')
     setEditWordsProject((t.wordsProject as LocalWordsRecord['project'] | 'All') ?? 'All')
     setEditLeisurePeriod(t.leisurePeriod ?? 'This Week')
     setEditLeisureType(t.leisureType ?? 'All')
@@ -236,11 +253,12 @@ export function Thresholds() {
         eventStatus: editSource === 'events' && editEventStatus !== 'Any' ? editEventStatus : null,
         eventTag: editSource === 'events' && editEventTag !== 'Any' ? editEventTag : null,
         habit: editSource === 'habits' ? editHabit || null : null,
+        peopleCategory: editSource === 'people' && editPeopleCategory !== 'All' ? editPeopleCategory : null,
         wordsProject: editSource === 'words' ? editWordsProject : null,
         leisurePeriod: editSource === 'leisure' ? editLeisurePeriod : null,
         leisureType: editSource === 'leisure' && editLeisureType !== 'All' ? editLeisureType : null,
         sugarPeriod: editSource === 'sugar' ? editSugarPeriod : null,
-        aggregation: editSource === 'ideas' || editSource === 'events' ? ideasAggregation(editAggregation) : editSource === 'habits' ? habitsAggregation(editAggregation) : editSource === 'leisure' ? 'lastValue' : editAggregation,
+        aggregation: editSource === 'ideas' || editSource === 'events' ? ideasAggregation(editAggregation) : editSource === 'habits' ? habitsAggregation(editAggregation) : editSource === 'people' ? peopleAggregation(editAggregation) : editSource === 'leisure' ? 'lastValue' : editAggregation,
         days: usesDays(editAggregation) || editSource === 'ideas' || editSource === 'events' ? Number(editDays) || 7 : null,
         redThreshold: Number(editRedThreshold) || 0,
         greenThreshold: Number(editGreenThreshold) || 0,
@@ -331,6 +349,7 @@ export function Thresholds() {
             eventStatus={newEventStatus} setEventStatus={setNewEventStatus}
             eventTag={newEventTag} setEventTag={setNewEventTag}
             habit={newHabit} setHabit={setNewHabit} habitNames={habitNames}
+            peopleCategory={newPeopleCategory} setPeopleCategory={setNewPeopleCategory}
             wordsProject={newWordsProject} setWordsProject={setNewWordsProject}
             leisurePeriod={newLeisurePeriod} setLeisurePeriod={setNewLeisurePeriod}
             leisureType={newLeisureType} setLeisureType={setNewLeisureType}
@@ -375,6 +394,7 @@ export function Thresholds() {
                     eventStatus={editEventStatus} setEventStatus={setEditEventStatus}
                     eventTag={editEventTag} setEventTag={setEditEventTag}
                     habit={editHabit} setHabit={setEditHabit} habitNames={habitNames}
+                    peopleCategory={editPeopleCategory} setPeopleCategory={setEditPeopleCategory}
                     wordsProject={editWordsProject} setWordsProject={setEditWordsProject}
                     leisurePeriod={editLeisurePeriod} setLeisurePeriod={setEditLeisurePeriod}
                     leisureType={editLeisureType} setLeisureType={setEditLeisureType}
@@ -413,7 +433,7 @@ export function Thresholds() {
                           {t.source}
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventTag ?? t.eventType ?? 'All'}${t.eventTag && t.eventType ? ` · ${t.eventType}` : ''}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'habits' ? t.habit : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
+                          {t.source === 'health' ? t.healthType : t.source === 'ideas' ? `${t.ideaType}${t.ideaStatus ? ` · ${t.ideaStatus}` : ''}` : t.source === 'events' ? `${t.eventTag ?? t.eventType ?? 'All'}${t.eventTag && t.eventType ? ` · ${t.eventType}` : ''}${t.eventStatus ? ` · ${t.eventStatus}` : ''}` : t.source === 'habits' ? t.habit : t.source === 'people' ? `${t.peopleCategory ?? 'All'}${t.aggregation === 'overdueCount' ? ' · overdue' : ''}` : t.source === 'words' ? t.wordsProject : t.source === 'sugar' ? t.sugarPeriod : `${t.leisurePeriod}${t.leisureType ? ` · ${t.leisureType}` : ''}`}
                         </span>
                       </div>
                     </div>
@@ -473,6 +493,7 @@ function ThresholdForm({
   eventStatus, setEventStatus,
   eventTag, setEventTag,
   habit, setHabit, habitNames,
+  peopleCategory, setPeopleCategory,
   wordsProject, setWordsProject,
   leisurePeriod, setLeisurePeriod,
   leisureType, setLeisureType,
@@ -501,6 +522,7 @@ function ThresholdForm({
   eventStatus: EventStatusFilter; setEventStatus: (v: EventStatusFilter) => void
   eventTag: EventTagFilter; setEventTag: (v: EventTagFilter) => void
   habit: string; setHabit: (v: string) => void; habitNames: string[]
+  peopleCategory: PeopleCategoryFilter; setPeopleCategory: (v: PeopleCategoryFilter) => void
   wordsProject: LocalWordsRecord['project'] | 'All'; setWordsProject: (v: LocalWordsRecord['project'] | 'All') => void
   leisurePeriod: LeisurePeriod; setLeisurePeriod: (v: LeisurePeriod) => void
   leisureType: LeisureTypeFilter; setLeisureType: (v: LeisureTypeFilter) => void
@@ -544,6 +566,7 @@ function ThresholdForm({
             <option value="ideas">Ideas</option>
             <option value="events">Events</option>
             <option value="habits">Habits</option>
+            <option value="people">People</option>
             <option value="words">Words</option>
             <option value="leisure">Leisure</option>
             <option value="sugar">Blood Sugar</option>
@@ -591,6 +614,17 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {habitNames.map((h) => <option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+        ) : source === 'people' ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+            <select
+              value={peopleCategory}
+              onChange={(e) => setPeopleCategory(e.target.value as PeopleCategoryFilter)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {PEOPLE_CATEGORY_FILTERS.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         ) : source === 'words' ? (
@@ -698,6 +732,18 @@ function ThresholdForm({
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               {HABITS_AGGREGATIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
+          </div>
+        )}
+        {source === 'people' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Measure</label>
+            <select
+              value={peopleAggregation(aggregation)}
+              onChange={(e) => setAggregation(e.target.value as LocalThresholdsRecord['aggregation'])}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              {PEOPLE_AGGREGATIONS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
         )}

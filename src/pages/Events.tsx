@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   useEvents,
   useCreateEvent,
@@ -112,7 +113,15 @@ export function Events() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900">Events</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Events</h2>
+        <Link
+          to="/people"
+          className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+        >
+          People
+        </Link>
+      </div>
 
       {/* Add/Edit Event Form */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
