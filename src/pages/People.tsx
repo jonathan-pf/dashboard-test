@@ -34,10 +34,10 @@ function WarmthDots({ warmth, onChange }: { warmth: number | null; onChange?: (v
           disabled={!onChange}
           onClick={() => onChange?.(n)}
           className={`${onChange ? 'cursor-pointer' : 'cursor-default'} text-sm leading-none ${
-            warmth !== null && n <= warmth ? 'text-red-500' : 'text-slate-200'
+            warmth !== null && n <= warmth ? 'text-amber-500' : 'text-slate-200'
           }`}
         >
-          ♥
+          ●
         </button>
       ))}
     </span>
@@ -66,6 +66,11 @@ export function People() {
 
   const today = getToday()
   const latestByPerson = useMemo(() => latestContactByPerson(logs ?? []), [logs])
+  const peopleById = useMemo(() => {
+    const map = new Map<string, LocalPersonRecord>()
+    for (const p of people ?? []) map.set(p.id, p)
+    return map
+  }, [people])
 
   // Active people, category-filtered, most neglected first relative to their
   // warmth cadence (never-contacted at the top)
@@ -155,11 +160,16 @@ export function People() {
     closeSheet()
   }
 
-  const handleSaveLogDate = async (log: LocalContactLogRecord) => {
-    if (!editLogDate || !selectedPerson) return
+  // Any log's date can be edited (backfilling): rebuild the Name to match
+  const handleSaveAnyLogDate = async (log: LocalContactLogRecord) => {
+    if (!editLogDate) return
+    const personName = log.personId ? peopleById.get(log.personId)?.name : null
     await updateLog.mutateAsync({
       contactLogId: log.id,
-      updates: { date: editLogDate, name: `${selectedPerson.name} - ${editLogDate}` },
+      updates: {
+        date: editLogDate,
+        name: personName ? `${personName} - ${editLogDate}` : log.name,
+      },
     })
     setEditingLogId(null)
     setEditLogDate('')
@@ -168,6 +178,8 @@ export function People() {
   const personLogs = selectedPerson
     ? (logs ?? []).filter((l) => l.personId === selectedPerson.id).slice(0, 8)
     : []
+
+  const recentLogs = (logs ?? []).slice(0, 15)
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -322,6 +334,78 @@ export function People() {
         )}
       </div>
 
+      {/* Recent contacts across everyone, with date editing for backfill */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Recent Contacts</h3>
+        <div className="space-y-1">
+          {recentLogs.map((log) => (
+            <div key={log.id} className="border-b border-slate-100 last:border-0">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                  <span className="text-sm text-slate-900 truncate">
+                    {log.personId ? peopleById.get(log.personId)?.name ?? 'Unknown' : 'Unknown'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (editingLogId === log.id) {
+                        setEditingLogId(null)
+                      } else {
+                        setEditingLogId(log.id)
+                        setEditLogDate(log.date.slice(0, 10))
+                      }
+                    }}
+                    className="text-xs text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Edit date"
+                  >
+                    {formatDate(log.date)}
+                  </button>
+                  <button
+                    onClick={() => deleteLog.mutateAsync(log.id)}
+                    disabled={deleteLog.isPending}
+                    className="p-1 text-slate-300 hover:text-red-600 transition-colors disabled:opacity-50"
+                    title="Remove this entry"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {editingLogId === log.id && !selectedPerson && (
+                <div className="flex items-center gap-2 pb-2 pl-4">
+                  <input
+                    type="date"
+                    value={editLogDate}
+                    onChange={(e) => setEditLogDate(e.target.value)}
+                    max={today}
+                    className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <button
+                    onClick={() => setEditingLogId(null)}
+                    className="px-3 py-2 text-sm bg-slate-100 text-slate-600 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSaveAnyLogDate(log)}
+                    disabled={!editLogDate || updateLog.isPending}
+                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {updateLog.isPending ? '...' : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {recentLogs.length === 0 && (
+            <p className="text-sm text-slate-400 text-center py-4">Nothing logged yet</p>
+          )}
+        </div>
+      </div>
+
       {/* Person detail sheet */}
       {selectedPerson && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={closeSheet}>
@@ -412,7 +496,7 @@ export function People() {
                               className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             />
                             <button
-                              onClick={() => handleSaveLogDate(log)}
+                              onClick={() => handleSaveAnyLogDate(log)}
                               disabled={!editLogDate || updateLog.isPending}
                               className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
                             >
