@@ -287,6 +287,7 @@ function transformPersonRecord(record: PeopleRecord): LocalPersonRecord {
     id: record.id,
     name: record.fields.Name || '',
     category: record.fields.Category || 'Social',
+    subcategory: record.fields.Subcategory ?? null,
     warmth: record.fields.Warmth ?? null,
     notes: record.fields.Notes ?? null,
     status: record.fields.Status || 'Active',
@@ -298,6 +299,7 @@ function localPersonToAirtable(record: LocalPersonRecord): Record<string, unknow
   return {
     Name: record.name,
     Category: record.category,
+    Subcategory: record.subcategory,
     Warmth: record.warmth,
     Notes: record.notes,
     Status: record.status,
@@ -310,6 +312,7 @@ function transformContactLogRecord(record: ContactLogRecord): LocalContactLogRec
     name: record.fields.Name || '',
     personId: record.fields.Person?.[0] ?? null,
     date: record.fields.Date || '',
+    type: record.fields.Type ?? 'Met',
     note: record.fields.Note ?? null,
     createdTime: record.createdTime,
   }
@@ -320,6 +323,7 @@ function localContactLogToAirtable(record: LocalContactLogRecord): Record<string
     Name: record.name,
     Person: record.personId ? [record.personId] : undefined,
     Date: record.date,
+    Type: record.type,
     Note: record.note,
   }
 }
@@ -1178,7 +1182,7 @@ class SyncService {
   // Update a person record (handles offline)
   async updatePersonRecord(
     personId: string,
-    updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'warmth' | 'notes' | 'status'>>
+    updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'subcategory' | 'warmth' | 'notes' | 'status'>>
   ): Promise<void> {
     const person = await db.people.get(personId)
     if (!person) throw new Error('Person not found')
@@ -1190,6 +1194,7 @@ class SyncService {
     const updateData: Record<string, unknown> = {}
     if (updates.name !== undefined) updateData.Name = updates.name
     if (updates.category !== undefined) updateData.Category = updates.category
+    if (updates.subcategory !== undefined) updateData.Subcategory = updates.subcategory
     if (updates.warmth !== undefined) updateData.Warmth = updates.warmth
     if (updates.notes !== undefined) updateData.Notes = updates.notes
     if (updates.status !== undefined) updateData.Status = updates.status

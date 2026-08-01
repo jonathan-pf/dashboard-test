@@ -24,6 +24,47 @@ const lastSeenLabel = (dateStr: string | undefined) => {
   return `${days}d ago`
 }
 
+// Pick an existing group, no group, or reveal a text input for a new one
+function SubcategoryPicker({ value, onChange, options }: {
+  value: string
+  onChange: (v: string) => void
+  options: string[]
+}) {
+  const [creating, setCreating] = useState(false)
+
+  if (creating) {
+    return (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="New group name"
+        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+        autoFocus
+      />
+    )
+  }
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => {
+        if (e.target.value === '__new__') {
+          setCreating(true)
+          onChange('')
+        } else {
+          onChange(e.target.value)
+        }
+      }}
+      className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+    >
+      <option value="">No group</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      <option value="__new__">New group…</option>
+    </select>
+  )
+}
+
 function WarmthDots({ warmth, onChange }: { warmth: number | null; onChange?: (v: number) => void }) {
   return (
     <span className="inline-flex gap-0.5">
@@ -50,6 +91,7 @@ export function People() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [formName, setFormName] = useState('')
   const [formCategory, setFormCategory] = useState<'Work' | 'Social'>('Social')
+  const [formSubcategory, setFormSubcategory] = useState('')
   const [formWarmth, setFormWarmth] = useState<number | null>(3)
   const [formNotes, setFormNotes] = useState('')
   const [selectedPerson, setSelectedPerson] = useState<LocalPersonRecord | null>(null)
@@ -65,7 +107,18 @@ export function People() {
   const deleteLog = useDeleteContactLog()
 
   const today = getToday()
-  const latestByPerson = useMemo(() => latestContactByPerson(logs ?? []), [logs])
+  // Staleness is about actually meeting people; reach-outs are tracked separately
+  const metByPerson = useMemo(
+    () => latestContactByPerson((logs ?? []).filter((l) => (l.type ?? 'Met') === 'Met')),
+    [logs]
+  )
+  const outByPerson = useMemo(
+    () => latestContactByPerson((logs ?? []).filter((l) => l.type === 'Reached out')),
+    [logs]
+  )
+
+  const subcategoriesFor = (category: 'Work' | 'Social') =>
+    [...new Set((people ?? []).filter((p) => p.category === category && p.subcategory).map((p) => p.subcategory as string))].sort()
   const peopleById = useMemo(() => {
     const map = new Map<string, LocalPersonRecord>()
     for (const p of people ?? []) map.set(p.id, p)
@@ -81,16 +134,33 @@ export function People() {
         (filter === 'All' || p.category === filter)
     )
     const score = (p: LocalPersonRecord) => {
-      const last = latestByPerson.get(p.id)
+      const last = metByPerson.get(p.id)
       if (!last) return Infinity
       return daysSinceDate(last) / cadenceDays(p.warmth)
     }
     return list.sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name))
-  }, [people, filter, showArchived, latestByPerson])
+  }, [people, filter, showArchived, metByPerson])
+
+  // Group by category + subcategory, keeping the staleness order within groups;
+  // ungrouped people last within their category
+  const groupedPeople = useMemo(() => {
+    const map = new Map<string, { category: string; sub: string; members: LocalPersonRecord[] }>()
+    for (const p of visiblePeople) {
+      const key = `${p.category}|${p.subcategory ?? ''}`
+      if (!map.has(key)) map.set(key, { category: p.category, sub: p.subcategory ?? '', members: [] })
+      map.get(key)!.members.push(p)
+    }
+    return [...map.values()].sort(
+      (a, b) =>
+        a.category.localeCompare(b.category) ||
+        (a.sub === '' ? 1 : b.sub === '' ? -1 : a.sub.localeCompare(b.sub))
+    )
+  }, [visiblePeople])
 
   const resetForm = () => {
     setFormName('')
     setFormCategory('Social')
+    setFormSubcategory('')
     setFormWarmth(3)
     setFormNotes('')
     setShowAddForm(false)
@@ -101,6 +171,7 @@ export function People() {
     await createPerson.mutateAsync({
       name: formName.trim(),
       category: formCategory,
+      subcategory: formSubcategory.trim() || null,
       warmth: formWarmth,
       notes: formNotes.trim() || null,
       status: 'Active',
@@ -113,6 +184,17 @@ export function People() {
       name: `${person.name} - ${today}`,
       personId: person.id,
       date: today,
+      type: 'Met',
+      note: null,
+    })
+  }
+
+  const handleReachedOut = async (person: LocalPersonRecord) => {
+    await createLog.mutateAsync({
+      name: `${person.name} - ${today}`,
+      personId: person.id,
+      date: today,
+      type: 'Reached out',
       note: null,
     })
   }
@@ -120,6 +202,7 @@ export function People() {
   // Detail sheet edit state
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState<'Work' | 'Social'>('Social')
+  const [editSubcategory, setEditSubcategory] = useState('')
   const [editWarmth, setEditWarmth] = useState<number | null>(3)
   const [editNotes, setEditNotes] = useState('')
 
@@ -127,6 +210,7 @@ export function People() {
     setSelectedPerson(person)
     setEditName(person.name)
     setEditCategory(person.category)
+    setEditSubcategory(person.subcategory ?? '')
     setEditWarmth(person.warmth)
     setEditNotes(person.notes ?? '')
     setEditingLogId(null)
@@ -144,6 +228,7 @@ export function People() {
       updates: {
         name: editName.trim(),
         category: editCategory,
+        subcategory: editSubcategory.trim() || null,
         warmth: editWarmth,
         notes: editNotes.trim() || null,
       },
@@ -221,44 +306,71 @@ export function People() {
         </button>
       </div>
 
-      {/* People list */}
+      {/* People list, grouped by category + subcategory */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="divide-y divide-slate-100">
-          {visiblePeople.map((person) => {
-            const last = latestByPerson.get(person.id)
-            const ratio = last ? daysSinceDate(last) / cadenceDays(person.warmth) : Infinity
-            const staleClass = ratio >= 1 ? 'text-red-500 font-medium' : ratio >= 0.7 ? 'text-amber-600' : 'text-slate-500'
-            return (
-              <div key={person.id} className="flex items-center gap-3 py-2.5">
-                <button onClick={() => openSheet(person)} className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900 truncate">{person.name}</p>
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${
-                        person.category === 'Work' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                      }`}
-                    >
-                      {person.category}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <WarmthDots warmth={person.warmth} />
-                    <span className={`text-xs ${staleClass}`}>{lastSeenLabel(last)}</span>
-                  </div>
-                </button>
-                {!showArchived && (
-                  <button
-                    onClick={() => handleSeen(person)}
-                    disabled={isPending}
-                    className="w-16 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors disabled:opacity-50 shrink-0"
-                    title="Log that you saw them today"
-                  >
-                    Seen
-                  </button>
-                )}
+        <div className="space-y-4">
+          {groupedPeople.map(({ category, sub, members }) => (
+            <div key={`${category}|${sub}`}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                {filter === 'All' ? `${category} · ${sub || 'No Group'}` : sub || 'No Group'}
+              </p>
+              <div className="divide-y divide-slate-100">
+                {members.map((person) => {
+                  const lastMet = metByPerson.get(person.id)
+                  const lastOut = outByPerson.get(person.id)
+                  const ratio = lastMet ? daysSinceDate(lastMet) / cadenceDays(person.warmth) : Infinity
+                  const staleClass = ratio >= 1 ? 'text-red-500 font-medium' : ratio >= 0.7 ? 'text-amber-600' : 'text-slate-500'
+                  return (
+                    <div key={person.id} className="flex items-center gap-2 py-2.5">
+                      <button onClick={() => openSheet(person)} className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-slate-900 truncate">{person.name}</p>
+                          <span
+                            className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${
+                              person.category === 'Work' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                            }`}
+                          >
+                            {person.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <WarmthDots warmth={person.warmth} />
+                          <span className={`text-xs ${staleClass}`}>{lastSeenLabel(lastMet)}</span>
+                          {lastOut && (
+                            <span className="text-xs text-amber-600" title="Last reached out">
+                              ✉ {lastSeenLabel(lastOut)}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                      {!showArchived && (
+                        <>
+                          <button
+                            onClick={() => handleReachedOut(person)}
+                            disabled={isPending}
+                            className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-50 shrink-0"
+                            title="Log that you reached out today"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleSeen(person)}
+                            disabled={isPending}
+                            className="w-14 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors disabled:opacity-50 shrink-0"
+                            title="Log that you saw them today"
+                          >
+                            Seen
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
+            </div>
+          ))}
           {visiblePeople.length === 0 && (
             <p className="text-sm text-slate-400 text-center py-6">
               {showArchived ? 'No archived people' : 'No people yet'}
@@ -299,6 +411,15 @@ export function People() {
                     <WarmthDots warmth={formWarmth} onChange={setFormWarmth} />
                   </div>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Group (optional)</label>
+                <SubcategoryPicker
+                  key={`new-${formCategory}`}
+                  value={formSubcategory}
+                  onChange={setFormSubcategory}
+                  options={subcategoriesFor(formCategory)}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Notes (optional)</label>
@@ -345,6 +466,13 @@ export function People() {
                   <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
                   <span className="text-sm text-slate-900 truncate">
                     {log.personId ? peopleById.get(log.personId)?.name ?? 'Unknown' : 'Unknown'}
+                  </span>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${
+                      log.type === 'Reached out' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
+                    {log.type === 'Reached out' ? 'Out' : 'Met'}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -445,6 +573,15 @@ export function People() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Group</label>
+                <SubcategoryPicker
+                  key={`${selectedPerson.id}-${editCategory}`}
+                  value={editSubcategory}
+                  onChange={setEditSubcategory}
+                  options={subcategoriesFor(editCategory)}
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
                 <textarea
                   value={editNotes}
@@ -462,19 +599,28 @@ export function People() {
                     {personLogs.map((log) => (
                       <div key={log.id}>
                         <div className="flex items-center justify-between py-1.5">
-                          <button
-                            onClick={() => {
-                              if (editingLogId === log.id) {
-                                setEditingLogId(null)
-                              } else {
-                                setEditingLogId(log.id)
-                                setEditLogDate(log.date.slice(0, 10))
-                              }
-                            }}
-                            className="text-sm text-slate-600 hover:text-blue-600 transition-colors"
-                          >
-                            {formatDate(log.date)}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                if (editingLogId === log.id) {
+                                  setEditingLogId(null)
+                                } else {
+                                  setEditingLogId(log.id)
+                                  setEditLogDate(log.date.slice(0, 10))
+                                }
+                              }}
+                              className="text-sm text-slate-600 hover:text-blue-600 transition-colors"
+                            >
+                              {formatDate(log.date)}
+                            </button>
+                            <span
+                              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                log.type === 'Reached out' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                              }`}
+                            >
+                              {log.type === 'Reached out' ? 'Out' : 'Met'}
+                            </span>
+                          </div>
                           <button
                             onClick={() => deleteLog.mutateAsync(log.id)}
                             disabled={deleteLog.isPending}
