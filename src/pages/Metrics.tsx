@@ -74,6 +74,15 @@ export function Metrics() {
     [donations]
   )
 
+  const donationsByType = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const d of donations ?? []) {
+      const key = d.type ?? 'Other'
+      map.set(key, (map.get(key) ?? 0) + d.amount)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [donations])
+
   const donationValid = donationAmount.trim() !== '' && !isNaN(parseFloat(donationAmount)) && parseFloat(donationAmount) > 0 && donationDate !== ''
 
   const resetDonationForm = () => {
@@ -396,6 +405,15 @@ export function Metrics() {
         <p className="text-2xl font-bold text-slate-900 mb-1">
           £{(careerTotals?.totalDonations ?? 0).toLocaleString()}
         </p>
+        {donationsByType.length > 0 && (
+          <div className="flex gap-4 mb-1">
+            {donationsByType.map(([type, total]) => (
+              <p key={type} className="text-sm text-slate-600">
+                <span className="font-medium text-slate-900">£{Math.round(total).toLocaleString()}</span> {type}
+              </p>
+            ))}
+          </div>
+        )}
         <p className="text-xs text-slate-400 mb-3">lifetime total, shown on the Home Totals row</p>
 
         {showDonationForm && (

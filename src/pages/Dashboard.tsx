@@ -13,6 +13,7 @@ import {
   useWeeks,
   useCurrentWeekGoals,
   useCareerTotals,
+  useDonations,
   useHomeMetrics,
   useHiddenBuiltInTiles,
   useRulesByStatus,
@@ -63,6 +64,17 @@ export function Dashboard() {
   const localWordsByWeek = useLocalWordsByWeek()
   const currentWeekGoals = useCurrentWeekGoals()
   const careerTotals = useCareerTotals()
+  const donations = useDonations()
+
+  // Per-type donation totals (EA / LW / ...), for the split under the tile total
+  const donationsByType = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const d of donations ?? []) {
+      const key = d.type ?? 'Other'
+      map.set(key, (map.get(key) ?? 0) + d.amount)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [donations])
   const homeMetrics = useHomeMetrics()
   const hiddenTiles = useHiddenBuiltInTiles()
   const allBonusRules = useRulesByStatus('Bonus')
@@ -135,7 +147,14 @@ export function Dashboard() {
               {!careerTotals ? (
                 <div className="h-6 w-12 bg-blue-200 animate-pulse rounded mt-0.5" />
               ) : (
-                <p className="text-xl font-bold text-blue-900">{(careerTotals.totalDonations ?? 0).toLocaleString()}</p>
+                <>
+                  <p className="text-xl font-bold text-blue-900">{(careerTotals.totalDonations ?? 0).toLocaleString()}</p>
+                  {donationsByType.length > 0 && (
+                    <p className="text-[10px] text-blue-600 leading-tight">
+                      {donationsByType.map(([type, total]) => `${type} ${Math.round(total).toLocaleString()}`).join(' · ')}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
