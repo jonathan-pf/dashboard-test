@@ -21,6 +21,7 @@ import type {
   PeopleRecord,
   ContactLogRecord,
   CareerRecord,
+  DonationRecord,
   RulesRecord,
   EventsRecord,
   LeisureRecord,
@@ -38,6 +39,7 @@ import type {
   LocalPersonRecord,
   LocalContactLogRecord,
   LocalCareerRecord,
+  LocalDonationRecord,
   LocalRulesRecord,
   LocalEventsRecord,
   LocalLeisureRecord,
@@ -165,6 +167,28 @@ function transformCareerRecord(record: CareerRecord): LocalCareerRecord {
     totalDonations: record.fields['Total Donations'] ?? null,
     totalLives: record.fields['Total Lives'] ?? null,
     createdTime: record.createdTime,
+  }
+}
+
+function transformDonationRecord(record: DonationRecord): LocalDonationRecord {
+  return {
+    id: record.id,
+    name: record.fields.Name || '',
+    type: record.fields.Type ?? null,
+    year: record.fields.Year ?? null,
+    amount: record.fields.Amount ?? 0,
+    careerId: record.fields.Career?.[0] ?? null,
+    createdTime: record.createdTime,
+  }
+}
+
+// Name is an Airtable formula field, so it is never written
+function localDonationToAirtable(record: LocalDonationRecord): Record<string, unknown> {
+  return {
+    Type: record.type,
+    Year: record.year,
+    Amount: record.amount,
+    Career: record.careerId ? [record.careerId] : undefined,
   }
 }
 
@@ -592,6 +616,7 @@ class SyncService {
     let areasRecords: AreasRecord[] = []
     let ideasRecords: IdeasRecord[] = []
     let careerRecords: CareerRecord[] = []
+    let donationRecords: DonationRecord[] = []
     let rulesRecords: RulesRecord[] = []
     let eventsRecords: EventsRecord[] = []
     let leisureRecords: LeisureRecord[] = []
@@ -680,6 +705,11 @@ class SyncService {
     } catch {
       debugLog('People / Contact Log tables not found - skipping (create them in Airtable to enable the people tracker)', 'warn')
     }
+    try {
+      donationRecords = await fetchTable<DonationRecord>('Donations')
+    } catch {
+      debugLog('Donations table not readable - skipping', 'warn')
+    }
 
     const fetchDuration = ((Date.now() - fetchStart) / 1000).toFixed(2)
     debugLog(`All fetches completed in ${fetchDuration}s`)
@@ -715,7 +745,7 @@ class SyncService {
     const dbStart = Date.now()
 
     try {
-      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics, db.metricConfig, db.people, db.contactLog], async () => {
+      await db.transaction('rw', [db.health, db.words, db.weeks, db.goals, db.areas, db.ideas, db.career, db.donations, db.rules, db.events, db.leisure, db.thresholds, db.sugarSummary, db.habitLog, db.metrics, db.metricConfig, db.people, db.contactLog], async () => {
         // Clear existing data (except pending mutations)
         debugLog('Clearing existing data...')
         await db.health.clear()
@@ -725,6 +755,7 @@ class SyncService {
         await db.areas.clear()
         await db.ideas.clear()
         await db.career.clear()
+        await db.donations.clear()
         await db.rules.clear()
         await db.events.clear()
         await db.leisure.clear()
@@ -745,6 +776,7 @@ class SyncService {
         await db.areas.bulkPut(areasRecords.map(transformAreasRecord))
         await db.ideas.bulkPut(ideasRecords.map(transformIdeasRecord))
         await db.career.bulkPut(careerRecords.map(transformCareerRecord))
+        await db.donations.bulkPut(donationRecords.map(transformDonationRecord))
         await db.rules.bulkPut(rulesRecords.map(transformRulesRecord))
         await db.events.bulkPut(eventsRecords.map(transformEventsRecord))
         await db.leisure.bulkPut(leisureRecords.map(transformLeisureRecord))
@@ -1299,6 +1331,48 @@ class SyncService {
     } else {
       await this.queueMutation('Contact Log', 'delete', contactLogId, {})
     }
+  }
+
+  // Create a donation record (handles offline). Also bumps the local career
+  // total optimistically; the next sync replaces it with the Airtable rollup.
+  async createDonationRecord(
+    data: Omit<LocalDonationRecord, 'id' | 'name' | 'createdTime'>
+  ): Promise<LocalDonationRecord> {
+    const localId = `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const record: LocalDonationRecord = {
+      id: localId,
+      name: '',
+      ...data,
+      createdTime: new Date().toISOString(),
+      _pendingSync: true,
+      _localId: localId,
+    }
+
+    await db.donations.add(record)
+
+    const career = await db.career.toCollection().first()
+    if (career) {
+      await db.career.put({ ...career, totalDonations: (career.totalDonations ?? 0) + record.amount })
+    }
+
+    if (navigator.onLine) {
+      try {
+        const created = await airtableService.createRecord<DonationRecord>(
+          'Donations',
+          localDonationToAirtable(record)
+        )
+        await db.donations.delete(localId)
+        const updatedRecord = transformDonationRecord(created)
+        await db.donations.add(updatedRecord)
+        return updatedRecord
+      } catch {
+        await this.queueMutation('Donations', 'create', localId, localDonationToAirtable(record), localId)
+      }
+    } else {
+      await this.queueMutation('Donations', 'create', localId, localDonationToAirtable(record), localId)
+    }
+
+    return record
   }
 
   // Create a metric config record (handles offline)
