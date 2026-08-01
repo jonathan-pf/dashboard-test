@@ -142,7 +142,9 @@ export function usePeopleSeenLastDays(days: number, category: 'Work' | 'Social' 
     async () => {
       const people = await db.people.filter(p => p.status === 'Active' && (!category || p.category === category)).toArray()
       const ids = new Set(people.map(p => p.id))
-      const logs = await db.contactLog.filter(l => l.date >= cutoffStr && l.personId !== null && ids.has(l.personId)).toArray()
+      const logs = await db.contactLog
+        .filter(l => (l.type ?? 'Met') === 'Met' && l.date >= cutoffStr && l.personId !== null && ids.has(l.personId))
+        .toArray()
       return new Set(logs.map(l => l.personId)).size
     },
     [cutoffStr, category]
@@ -154,7 +156,7 @@ export function usePeopleOverdueCount(category: 'Work' | 'Social' | null = null)
   return useLiveQuery(
     async () => {
       const people = await db.people.filter(p => p.status === 'Active' && (!category || p.category === category)).toArray()
-      const logs = await db.contactLog.toArray()
+      const logs = await db.contactLog.filter(l => (l.type ?? 'Met') === 'Met').toArray()
       const latest = latestContactByPerson(logs)
       return people.filter(p => overdueRatio(p, latest.get(p.id)) >= 1).length
     },
@@ -514,18 +516,18 @@ export function useAllThresholdColors() {
           .filter(p => p.status === 'Active' && (!t.peopleCategory || p.category === t.peopleCategory))
           .toArray()
         if (t.aggregation === 'overdueCount') {
-          const logs = await db.contactLog.toArray()
+          const logs = await db.contactLog.filter(l => (l.type ?? 'Met') === 'Met').toArray()
           const latest = latestContactByPerson(logs)
           value = people.filter(p => overdueRatio(p, latest.get(p.id)) >= 1).length
         } else {
-          // Distinct people contacted in the last N days
+          // Distinct people met in the last N days
           const days = t.days ?? 7
           const cutoff = new Date()
           cutoff.setDate(cutoff.getDate() - days)
           const cutoffStr = cutoff.toISOString().split('T')[0]
           const ids = new Set(people.map(p => p.id))
           const logs = await db.contactLog
-            .filter(l => l.date >= cutoffStr && l.personId !== null && ids.has(l.personId))
+            .filter(l => (l.type ?? 'Met') === 'Met' && l.date >= cutoffStr && l.personId !== null && ids.has(l.personId))
             .toArray()
           value = new Set(logs.map(l => l.personId)).size
         }
@@ -865,7 +867,7 @@ export function useUpdatePerson() {
       updates,
     }: {
       personId: string
-      updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'warmth' | 'notes' | 'status'>>
+      updates: Partial<Pick<LocalPersonRecord, 'name' | 'category' | 'subcategory' | 'warmth' | 'notes' | 'status'>>
     }) => syncService.updatePersonRecord(personId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.people })

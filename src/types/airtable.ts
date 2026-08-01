@@ -178,6 +178,7 @@ export interface PeopleRecord extends AirtableRecord {
   fields: {
     Name: string
     Category?: 'Work' | 'Social'
+    Subcategory?: string | null // Free-form group within the category
     Warmth?: number | null // Rating 1-5
     Notes?: string | null
     Status?: 'Active' | 'Archived'
@@ -190,6 +191,7 @@ export interface ContactLogRecord extends AirtableRecord {
     Name: string // "Person - Date", filled by the app
     Person?: string[] // Record IDs linking to People (single link used)
     Date: string // ISO date string
+    Type?: 'Met' | 'Reached out'
     Note?: string | null
   }
 }
@@ -419,6 +421,7 @@ export interface LocalPersonRecord {
   id: string
   name: string
   category: 'Work' | 'Social'
+  subcategory: string | null
   warmth: number | null // 1-5
   notes: string | null
   status: 'Active' | 'Archived'
@@ -432,6 +435,7 @@ export interface LocalContactLogRecord {
   name: string
   personId: string | null
   date: string
+  type: 'Met' | 'Reached out'
   note: string | null
   createdTime: string
   _pendingSync?: boolean
