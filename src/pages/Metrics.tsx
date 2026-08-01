@@ -8,9 +8,12 @@ import {
   useMetricConfigs,
   useCreateMetricConfig,
   useUpdateMetricConfig,
+  useCareerTotals,
+  useDonations,
+  useCreateDonation,
 } from '@/hooks/useAirtableData'
 import type { LocalMetricsRecord } from '@/types/airtable'
-import { BUILT_IN_TILE_NAMES } from '@/types/airtable'
+import { BUILT_IN_TILE_NAMES, DEFAULT_DONATION_TYPES } from '@/types/airtable'
 
 type MetricType = 'Number' | 'Date'
 
@@ -56,6 +59,40 @@ export function Metrics() {
   const configs = useMetricConfigs()
   const createConfig = useCreateMetricConfig()
   const updateConfig = useUpdateMetricConfig()
+  const careerTotals = useCareerTotals()
+  const donations = useDonations()
+  const createDonation = useCreateDonation()
+
+  // Donation form state
+  const [showDonationForm, setShowDonationForm] = useState(false)
+  const [donationAmount, setDonationAmount] = useState('')
+  const [donationType, setDonationType] = useState(DEFAULT_DONATION_TYPES[0])
+  const [donationDate, setDonationDate] = useState(() => new Date().toISOString().split('T')[0])
+
+  const donationTypes = useMemo(
+    () => [...new Set([...DEFAULT_DONATION_TYPES, ...(donations ?? []).map((d) => d.type).filter(Boolean) as string[]])],
+    [donations]
+  )
+
+  const donationValid = donationAmount.trim() !== '' && !isNaN(parseFloat(donationAmount)) && parseFloat(donationAmount) > 0 && donationDate !== ''
+
+  const resetDonationForm = () => {
+    setShowDonationForm(false)
+    setDonationAmount('')
+    setDonationType(DEFAULT_DONATION_TYPES[0])
+    setDonationDate(new Date().toISOString().split('T')[0])
+  }
+
+  const handleLogDonation = async () => {
+    if (!donationValid) return
+    await createDonation.mutateAsync({
+      type: donationType,
+      year: donationDate,
+      amount: parseFloat(donationAmount),
+      careerId: careerTotals?.id ?? null,
+    })
+    resetDonationForm()
+  }
 
   const configFor = (name: string) => configs?.find((c) => c.metric === name)
   const pinnedConfigs = (configs ?? [])
@@ -341,6 +378,100 @@ export function Metrics() {
             )
           })}
         </div>
+      </div>
+
+      {/* Donations: log new rows; the total on Home comes from the Career rollup */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-1 gap-2">
+          <h3 className="font-semibold text-slate-900">Donations</h3>
+          {!showDonationForm && (
+            <button
+              onClick={() => setShowDonationForm(true)}
+              className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              Log donation
+            </button>
+          )}
+        </div>
+        <p className="text-2xl font-bold text-slate-900 mb-1">
+          £{(careerTotals?.totalDonations ?? 0).toLocaleString()}
+        </p>
+        <p className="text-xs text-slate-400 mb-3">lifetime total, shown on the Home Totals row</p>
+
+        {showDonationForm && (
+          <div className="border-t border-slate-100 pt-4 mb-3 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Amount (£)</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={donationAmount}
+                  onChange={(e) => setDonationAmount(e.target.value)}
+                  placeholder="e.g. 100"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <select
+                  value={donationType}
+                  onChange={(e) => setDonationType(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  {donationTypes.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+              <input
+                type="date"
+                value={donationDate}
+                onChange={(e) => setDonationDate(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={resetDonationForm}
+                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogDonation}
+                disabled={!donationValid || createDonation.isPending}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50"
+              >
+                {createDonation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(donations ?? []).length > 0 && (
+          <div className="border-t border-slate-100 pt-2 space-y-1">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">Recent</p>
+            {(donations ?? []).slice(0, 5).map((donation) => (
+              <div key={donation.id} className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-slate-700">
+                  £{donation.amount.toLocaleString()}
+                  {donation.type && <span className="text-slate-400"> · {donation.type}</span>}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {donation.year
+                    ? new Date(donation.year).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '--'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Metric groups */}

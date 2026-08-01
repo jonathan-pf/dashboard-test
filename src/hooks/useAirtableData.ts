@@ -16,6 +16,7 @@ import type {
   LocalMetricConfigRecord,
   LocalPersonRecord,
   LocalContactLogRecord,
+  LocalDonationRecord,
   EventTag,
 } from '@/types/airtable'
 import { DEFAULT_HABITS, BUILT_IN_TILE_NAMES } from '@/types/airtable'
@@ -33,6 +34,7 @@ export const queryKeys = {
   areas: ['areas'] as const,
   ideas: ['ideas'] as const,
   career: ['career'] as const,
+  donations: ['donations'] as const,
   rules: ['rules'] as const,
   events: ['events'] as const,
   leisure: ['leisure'] as const,
@@ -117,6 +119,24 @@ export function useCareerTotals() {
     () => db.career.toCollection().first(),
     []
   )
+}
+
+// All donations, newest year first
+export function useDonations() {
+  return useLiveQuery(() => db.donations.orderBy('year').reverse().toArray(), [])
+}
+
+export function useCreateDonation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: Omit<LocalDonationRecord, 'id' | 'name' | 'createdTime'>) =>
+      syncService.createDonationRecord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.donations })
+      queryClient.invalidateQueries({ queryKey: queryKeys.career })
+    },
+  })
 }
 
 // All metric records, newest first

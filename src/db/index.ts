@@ -7,6 +7,7 @@ import type {
   LocalAreasRecord,
   LocalIdeasRecord,
   LocalCareerRecord,
+  LocalDonationRecord,
   LocalRulesRecord,
   LocalEventsRecord,
   LocalLeisureRecord,
@@ -29,6 +30,7 @@ class DashboardDatabase extends Dexie {
   areas!: EntityTable<LocalAreasRecord, 'id'>
   ideas!: EntityTable<LocalIdeasRecord, 'id'>
   career!: EntityTable<LocalCareerRecord, 'id'>
+  donations!: EntityTable<LocalDonationRecord, 'id'>
   rules!: EntityTable<LocalRulesRecord, 'id'>
   events!: EntityTable<LocalEventsRecord, 'id'>
   leisure!: EntityTable<LocalLeisureRecord, 'id'>
@@ -283,6 +285,29 @@ class DashboardDatabase extends Dexie {
       pendingMutations: '++id, tableName, operation, recordId, timestamp',
       syncMeta: 'key',
     })
+
+    this.version(17).stores({
+      health: 'id, type, date, weekId, unitsType, _pendingSync',
+      words: 'id, project, when, weekId, _pendingSync',
+      weeks: 'id, name, weekCommencing, weekNumber, thisWeek, lastWeek, nextWeek',
+      goals: 'id, status, deadline, weekId, type, _pendingSync',
+      areas: 'id, name, type',
+      ideas: 'id, type, when, weekId, status, _pendingSync',
+      career: 'id, name',
+      donations: 'id, year, _pendingSync',
+      rules: 'id, status, select',
+      events: 'id, type, date, status, dateHeld, _pendingSync',
+      leisure: 'id, type, status, dateStarted, dateEnded, _pendingSync',
+      thresholds: 'id, source, name',
+      sugarSummary: 'id, date, period',
+      habitLog: 'id, habit, date, _pendingSync',
+      metrics: 'id, metric, createdTime',
+      metricConfig: 'id, metric',
+      people: 'id, category, status, name',
+      contactLog: 'id, personId, date, _pendingSync',
+      pendingMutations: '++id, tableName, operation, recordId, timestamp',
+      syncMeta: 'key',
+    })
   }
 }
 
@@ -324,6 +349,7 @@ export async function clearAllData(): Promise<void> {
     db.areas.clear(),
     db.ideas.clear(),
     db.career.clear(),
+    db.donations.clear(),
     db.rules.clear(),
     db.events.clear(),
     db.leisure.clear(),

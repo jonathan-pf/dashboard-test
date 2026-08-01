@@ -215,6 +215,18 @@ export interface CareerRecord extends AirtableRecord {
   }
 }
 
+// Donations table - one row per donation; Name is an Airtable formula so the
+// app never writes it. Rows must link to Career for its rollup to count them.
+export interface DonationRecord extends AirtableRecord {
+  fields: {
+    Name?: string
+    Type?: string | null
+    Year?: string | null // ISO date string
+    Amount?: number | null
+    Career?: string[] // Record IDs linking to Career
+  }
+}
+
 // Rules table - tracks personal rules and limits
 export interface RulesRecord extends AirtableRecord {
   fields: {
@@ -463,6 +475,22 @@ export interface LocalCareerRecord {
   createdTime: string
 }
 
+export interface LocalDonationRecord {
+  id: string
+  name: string
+  type: string | null
+  year: string | null
+  amount: number
+  careerId: string | null
+  createdTime: string
+  _pendingSync?: boolean
+  _localId?: string
+}
+
+// Existing Type select options on the Donations table; the form also offers
+// any other values found in synced records
+export const DEFAULT_DONATION_TYPES = ['EA', 'LW']
+
 export interface LocalRulesRecord {
   id: string
   name: string
@@ -666,6 +694,7 @@ export const TABLES = {
   WORK: 'Work',
   AREAS: 'Areas',
   CAREER: 'Career',
+  DONATIONS: 'Donations',
   RULES: 'Rules',
   EVENTS: 'Events',
   LEISURE: 'Leisure',
