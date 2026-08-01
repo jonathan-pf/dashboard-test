@@ -159,6 +159,16 @@ export function Dashboard() {
               )}
             </div>
           )}
+          {!hiddenTiles?.has('Words 2026') && (
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-sky-600 font-medium">Words 2026</p>
+              {words2026.loading ? (
+                <div className="h-6 w-12 bg-sky-200 animate-pulse rounded mt-0.5" />
+              ) : (
+                <p className="text-xl font-bold text-sky-900">{Math.round(words2026.totalWords).toLocaleString()}</p>
+              )}
+            </div>
+          )}
           {(homeMetrics ?? []).map(({ metric, latest }, i) => {
             const tile = METRIC_TILE_STYLES[i % METRIC_TILE_STYLES.length]
             return (

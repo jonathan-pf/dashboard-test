@@ -402,7 +402,7 @@ export interface LocalMetricsRecord {
 // Fixed Totals-row tiles computed by the app rather than read from the Metrics
 // table. They can be hidden via Metric Config rows using these names: no row
 // (or Show on Home checked) = shown, row with it unchecked = hidden.
-export const BUILT_IN_TILE_NAMES = ['Countdown', 'Donations', 'Lives Saved', 'Reps 2026'] as const
+export const BUILT_IN_TILE_NAMES = ['Countdown', 'Donations', 'Lives Saved', 'Reps 2026', 'Words 2026'] as const
 export type BuiltInTileName = (typeof BUILT_IN_TILE_NAMES)[number]
 
 export interface LocalMetricConfigRecord {
