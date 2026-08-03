@@ -8,7 +8,7 @@ import {
   useUpdateGoalDetails,
   useDeleteGoal,
   useUpdateGoalConfidence,
-  useCurrentWeek,
+  useCurrentQuarterGoals,
 } from '@/hooks/useAirtableData'
 import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 import type { LocalGoalsRecord } from '@/types/airtable'
@@ -29,7 +29,7 @@ export function MonthlyGoals() {
 
   const allGoals = useGoals()
   const areas = useAreas()
-  const currentWeek = useCurrentWeek()
+  const quarterGoals = useCurrentQuarterGoals()
   const createGoal = useCreateGoal()
   const updateGoalStatus = useUpdateGoalStatus()
   const updateGoalDetails = useUpdateGoalDetails()
@@ -50,6 +50,13 @@ export function MonthlyGoals() {
 
   // Format month name for display
   const monthName = now.toLocaleString('default', { month: 'long' })
+
+  // Default new-goal deadline to the last day of the current month, so goals
+  // land in this page's filter rather than on the weekly views
+  const defaultDeadline = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+
+  const quarterLabel = `Q${Math.floor(currentMonth / 3) + 1} ${currentYear}`
+  const liveQuarterGoals = quarterGoals?.filter((g) => g.status === 'Live') ?? []
 
   const completedMonthly = monthlyGoals.filter((g) => g.status === 'Success')
 
@@ -181,11 +188,11 @@ export function MonthlyGoals() {
       name: goalName.trim(),
       type: 'Monthly',
       status: 'Live',
-      weekId: currentWeek?.id ?? null,
+      weekId: null,
       areaId: goalAreaId || null,
       initialConfidence: confidence,
       currentConfidence: confidence,
-      deadline: null,
+      deadline: defaultDeadline,
       notes: null,
     })
 
@@ -440,6 +447,34 @@ export function MonthlyGoals() {
           </button>
         )}
       </div>
+
+      {/* Quarter Goals Reference Section */}
+      {liveQuarterGoals.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+          <h3 className="font-semibold text-slate-900 mb-3">{quarterLabel} Goals (Reference)</h3>
+          <div className="space-y-2">
+            {liveQuarterGoals.map((goal) => (
+              <div
+                key={goal.id}
+                className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg"
+              >
+                <span className="w-6 h-6 rounded-full border-2 border-teal-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900">
+                    {goal.name}
+                    <NoteIndicator notes={goal.notes} />
+                  </p>
+                  {goal.currentConfidence !== null && (
+                    <p className="text-xs text-slate-500">
+                      Confidence: {Math.round(goal.currentConfidence * 100)}%
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Action Sheet Modal */}
       {selectedGoal && (
