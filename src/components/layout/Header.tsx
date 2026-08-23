@@ -1,7 +1,19 @@
 import { useSyncStore } from '@/stores/syncStore'
+import { useCurrentWeek } from '@/hooks/useAirtableData'
+
+// ISO 8601 week number, used until the Weeks table has synced
+const isoWeek = (d: Date) => {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const day = date.getUTCDay() || 7
+  date.setUTCDate(date.getUTCDate() + 4 - day)
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+}
 
 export function Header() {
   const { isSyncing, lastSyncTime, pendingCount } = useSyncStore()
+  const currentWeek = useCurrentWeek()
+  const weekNumber = currentWeek?.weekNumber ?? isoWeek(new Date())
 
   const formatLastSync = () => {
     if (!lastSyncTime) return 'Never synced'
@@ -17,7 +29,10 @@ export function Header() {
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-slate-900">
+          Dashboard
+          <span className="ml-2 text-sm font-medium text-slate-400">Week {weekNumber}</span>
+        </h1>
         <div className="flex items-center gap-2 text-sm text-slate-500">
           {isSyncing && (
             <span className="flex items-center gap-1">
