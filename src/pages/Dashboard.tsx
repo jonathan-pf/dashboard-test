@@ -31,7 +31,7 @@ import {
 } from '@/hooks/useAirtableData'
 import { formatDuration } from '@/utils/formatDuration'
 import { syncService } from '@/services/sync'
-import type { LocalMetricsRecord } from '@/types/airtable'
+import type { LocalMetricsRecord, LocalRulesRecord } from '@/types/airtable'
 
 // Static class sets so Tailwind keeps them; cycled per pinned metric tile
 const METRIC_TILE_STYLES = [
@@ -42,6 +42,10 @@ const METRIC_TILE_STYLES = [
   { bg: 'from-lime-50 to-lime-100', label: 'text-lime-600', value: 'text-lime-900' },
   { bg: 'from-fuchsia-50 to-fuchsia-100', label: 'text-fuchsia-600', value: 'text-fuchsia-900' },
 ]
+
+// Same ordering as the Rules page groups: explicit order first, unordered last
+const byRuleOrder = (a: LocalRulesRecord, b: LocalRulesRecord) =>
+  (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name)
 
 const formatMetricValue = (latest: LocalMetricsRecord | null) => {
   if (!latest) return '--'
@@ -77,13 +81,13 @@ export function Dashboard() {
   }, [donations])
   const homeMetrics = useHomeMetrics()
   const hiddenTiles = useHiddenBuiltInTiles()
-  const allBonusRules = useRulesByStatus('Bonus')
   const testingRules = useRulesByStatus('Testing')
+  const liveRules = useRulesByStatus('Live')
   const thresholdColors = useAllThresholdColors()
 
-  const bonusRules = allBonusRules?.filter(rule => {
-    if (!rule.thresholdIds || rule.thresholdIds.length === 0) return true
-    if (!thresholdColors) return true
+  // A rule is triggered when any linked threshold matches its trigger setting
+  const isRuleTriggered = (rule: LocalRulesRecord) => {
+    if (!rule.thresholdIds || rule.thresholdIds.length === 0 || !thresholdColors) return false
     const trigger = rule.thresholdTrigger ?? 'red'
     return rule.thresholdIds.some(id => {
       const c = thresholdColors.get(id)
@@ -91,9 +95,19 @@ export function Dashboard() {
       if (trigger === 'amberOnly') return c === 'amber'
       return c === 'red' || c === 'amber'
     })
-  })
-  // Testing rules always show, pinned above the bonus rules
-  const homeRules = [...(testingRules ?? []), ...(bonusRules ?? [])]
+  }
+
+  // Home shows the top 3 Testing rules plus 1 Live rule. The Live pick is
+  // pseudo-random but seeded by the date, so it rotates daily instead of
+  // reshuffling on every render.
+  const topTestingRules = [...(testingRules ?? [])].sort(byRuleOrder).slice(0, 3)
+  const dailyLiveRule = useMemo(() => {
+    if (!liveRules || liveRules.length === 0) return null
+    const sorted = [...liveRules].sort(byRuleOrder)
+    const daySeed = Math.floor(Date.now() / 86_400_000)
+    return sorted[(daySeed * 31 + 7) % sorted.length]
+  }, [liveRules])
+  const homeRules = dailyLiveRule ? [...topTestingRules, dailyLiveRule] : topTestingRules
   const yearlyUnits = useYearlyUnitsPerWeek(2026)
   const features2026 = useYearlyFeaturesPerWeek(2026)
   const events2026 = useYearlyEventsPerWeek(2026)
@@ -245,6 +259,83 @@ export function Dashboard() {
         </div>
       </div>
 
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900">Rules</h3>
+          <Link
+            to="/health/rules"
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            View all
+          </Link>
+        </div>
+        {homeRules.length > 0 ? (
+          <div className="space-y-2">
+            {homeRules.map((rule) => {
+              const isTesting = rule.status === 'Testing'
+              const isTriggered = !isTesting && isRuleTriggered(rule)
+              let triggerColor: 'red' | 'amber' | null = null
+              if (isTriggered && thresholdColors) {
+                const hasRed = rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
+                triggerColor = hasRed ? 'red' : 'amber'
+              }
+
+              return (
+                <div
+                  key={rule.id}
+                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${
+                    triggerColor === 'red' ? 'bg-red-50 border border-red-200' :
+                    triggerColor === 'amber' ? 'bg-amber-50 border border-amber-200' :
+                    'border-b border-slate-100 last:border-0'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        isTesting ? 'bg-purple-500' :
+                        triggerColor === 'red' ? 'bg-red-500' :
+                        triggerColor === 'amber' ? 'bg-amber-400' :
+                        rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
+                      }`}
+                    />
+                    <span className={`text-sm ${
+                      triggerColor ? 'font-medium text-slate-900' : 'text-slate-700'
+                    }`}>{rule.name}</span>
+                  </div>
+                  {isTesting ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      Testing
+                    </span>
+                  ) : triggerColor ? (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      triggerColor === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      Catch-up
+                    </span>
+                  ) : rule.currentConfidence !== null ? (
+                    <span
+                      className={`text-xs font-medium ${
+                        rule.currentConfidence >= 0.7
+                          ? 'text-green-600'
+                          : rule.currentConfidence >= 0.4
+                          ? 'text-amber-600'
+                          : 'text-red-600'
+                      }`}
+                    >
+                      {Math.round(rule.currentConfidence * 100)}%
+                    </span>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 text-center py-4">
+            No rules to show
+          </p>
+        )}
+      </div>
+
       <TrafficLightWidgets />
 
       {activeIdeas && activeIdeas.length > 0 && (
@@ -364,88 +455,6 @@ export function Dashboard() {
               </p>
             )}
           </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-slate-900">Rules</h3>
-          <Link
-            to="/health/rules"
-            className="text-sm text-blue-600 hover:text-blue-700"
-          >
-            View all
-          </Link>
-        </div>
-        {homeRules.length > 0 ? (
-          <div className="space-y-2">
-            {homeRules.slice(0, 5).map((rule) => {
-              const isTesting = rule.status === 'Testing'
-              const isTriggered = !isTesting && rule.thresholdIds && rule.thresholdIds.length > 0
-              let triggerColor: 'red' | 'amber' | null = null
-              if (isTriggered && thresholdColors) {
-                const hasRed = rule.thresholdIds.some(id => thresholdColors.get(id) === 'red')
-                triggerColor = hasRed ? 'red' : 'amber'
-              }
-
-              return (
-                <div
-                  key={rule.id}
-                  className={`flex items-center justify-between py-2 px-2 rounded-lg ${
-                    triggerColor === 'red' ? 'bg-red-50 border border-red-200' :
-                    triggerColor === 'amber' ? 'bg-amber-50 border border-amber-200' :
-                    'border-b border-slate-100 last:border-0'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        isTesting ? 'bg-purple-500' :
-                        triggerColor === 'red' ? 'bg-red-500' :
-                        triggerColor === 'amber' ? 'bg-amber-400' :
-                        rule.select === 'Goal' ? 'bg-blue-500' : 'bg-red-500'
-                      }`}
-                    />
-                    <span className={`text-sm ${
-                      triggerColor ? 'font-medium text-slate-900' : 'text-slate-700'
-                    }`}>{rule.name}</span>
-                  </div>
-                  {isTesting ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                      Testing
-                    </span>
-                  ) : triggerColor ? (
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      triggerColor === 'red' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      Catch-up
-                    </span>
-                  ) : rule.currentConfidence !== null ? (
-                    <span
-                      className={`text-xs font-medium ${
-                        rule.currentConfidence >= 0.7
-                          ? 'text-green-600'
-                          : rule.currentConfidence >= 0.4
-                          ? 'text-amber-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {Math.round(rule.currentConfidence * 100)}%
-                    </span>
-                  ) : null}
-                </div>
-              )
-            })}
-            {homeRules.length > 5 && (
-              <p className="text-xs text-slate-400 pt-1">
-                +{homeRules.length - 5} more
-              </p>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 text-center py-4">
-            No live rules
-          </p>
         )}
       </div>
 
