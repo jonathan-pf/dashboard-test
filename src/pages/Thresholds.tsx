@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useThresholds, useCreateThreshold, useUpdateThreshold, useDeleteThreshold, useAllThresholdColors, useHabitNames } from '@/hooks/useAirtableData'
 import { DEFAULT_HABITS } from '@/types/airtable'
-import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod } from '@/types/airtable'
+import type { EventTag, LocalThresholdsRecord, LocalEventsRecord, LocalHealthRecord, LocalIdeasRecord, LocalLeisureRecord, LocalWordsRecord, SugarThresholdPeriod, ThresholdCadence } from '@/types/airtable'
 import type { TrafficLightColor } from '@/config/trafficLights'
 import { NoteIndicator } from '@/components/widgets/NoteIndicator'
 
 type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
+
+const CADENCES: ThresholdCadence[] = ['Daily', 'Weekly']
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption']
 const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
@@ -82,6 +84,7 @@ const SOURCE_COLORS: Record<ThresholdSource, string> = {
 export function Thresholds() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newCadence, setNewCadence] = useState<ThresholdCadence>('Daily')
   const [newSource, setNewSource] = useState<ThresholdSource>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [newIdeaType, setNewIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
@@ -104,6 +107,7 @@ export function Thresholds() {
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
+  const [editCadence, setEditCadence] = useState<ThresholdCadence>('Daily')
   const [editSource, setEditSource] = useState<ThresholdSource>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
   const [editIdeaType, setEditIdeaType] = useState<LocalIdeasRecord['type']>('Revelation')
@@ -140,6 +144,14 @@ export function Thresholds() {
     }
   }
 
+  // Daily and Weekly thresholds are separate columns, each with its own order
+  // sequence. useThresholds sorts globally by order, so filtering preserves
+  // each group's relative order.
+  const groups: Record<ThresholdCadence, LocalThresholdsRecord[]> = {
+    Daily: thresholds?.filter((t) => t.cadence !== 'Weekly') ?? [],
+    Weekly: thresholds?.filter((t) => t.cadence === 'Weekly') ?? [],
+  }
+
   const handleSourceChange = (source: ThresholdSource, setAgg: (v: LocalThresholdsRecord['aggregation']) => void) => {
     if (source === 'health') {
       setAgg('lastValue')
@@ -163,6 +175,7 @@ export function Thresholds() {
 
     await createThreshold.mutateAsync({
       name: newName.trim(),
+      cadence: newCadence,
       source: newSource,
       healthType: newSource === 'health' ? newHealthType : null,
       ideaType: newSource === 'ideas' ? newIdeaType : null,
@@ -181,12 +194,13 @@ export function Thresholds() {
       redThreshold: Number(newRedThreshold) || 0,
       greenThreshold: Number(newGreenThreshold) || 0,
       lowerIsBetter: newLowerIsBetter,
-      order: thresholds?.length ?? 0, // append to the end of the display order
+      order: groups[newCadence].length, // append to the end of its cadence column
       ruleIds: [],
       notes: newNotes.trim() || null,
     })
 
     setNewName('')
+    setNewCadence('Daily')
     setNewSource('health')
     setNewHealthType('Tidy')
     setNewIdeaType('Revelation')
@@ -217,6 +231,7 @@ export function Thresholds() {
   const startEditing = (t: LocalThresholdsRecord) => {
     setEditingThreshold(t)
     setEditName(t.name)
+    setEditCadence(t.cadence === 'Weekly' ? 'Weekly' : 'Daily')
     setEditSource(t.source)
     setEditHealthType((t.healthType as LocalHealthRecord['type']) ?? 'Tidy')
     setEditIdeaType((t.ideaType as LocalIdeasRecord['type']) ?? 'Revelation')
@@ -245,6 +260,9 @@ export function Thresholds() {
       thresholdId: editingThreshold.id,
       updates: {
         name: editName.trim(),
+        cadence: editCadence,
+        // Moving to the other cadence column appends the row to that column's end
+        ...(editCadence !== editingThreshold.cadence ? { order: groups[editCadence].length } : {}),
         source: editSource,
         healthType: editSource === 'health' ? editHealthType : null,
         ideaType: editSource === 'ideas' ? editIdeaType : null,
@@ -285,17 +303,18 @@ export function Thresholds() {
     }
   }
 
-  // Move a threshold up/down in the display order. Normalises order values to
-  // the current display index (covers records with no Order yet), then swaps
-  // the moved row with its neighbour. Only changed records are written.
-  const moveThreshold = async (id: string, direction: -1 | 1) => {
-    if (!thresholds || updateThreshold.isPending) return
-    const idx = thresholds.findIndex((t) => t.id === id)
+  // Move a threshold up/down within its cadence column. Normalises order values
+  // to the current display index within the column (covers records with no
+  // Order yet), then swaps the moved row with its neighbour. Only changed
+  // records are written.
+  const moveThreshold = async (group: LocalThresholdsRecord[], id: string, direction: -1 | 1) => {
+    if (updateThreshold.isPending) return
+    const idx = group.findIndex((t) => t.id === id)
     const target = idx + direction
-    if (idx < 0 || target < 0 || target >= thresholds.length) return
+    if (idx < 0 || target < 0 || target >= group.length) return
 
     const updates: Array<{ id: string; order: number }> = []
-    thresholds.forEach((t, i) => {
+    group.forEach((t, i) => {
       const newOrder = i === idx ? target : i === target ? idx : i
       if (t.order !== newOrder) updates.push({ id: t.id, order: newOrder })
     })
@@ -341,6 +360,7 @@ export function Thresholds() {
           <ThresholdForm
             title="New Threshold"
             name={newName} setName={setNewName}
+            cadence={newCadence} setCadence={setNewCadence}
             source={newSource} setSource={(s) => { setNewSource(s); handleSourceChange(s, setNewAggregation) }}
             healthType={newHealthType} setHealthType={setNewHealthType}
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
@@ -375,17 +395,22 @@ export function Thresholds() {
         )}
       </div>
 
-      {/* Threshold List */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">All Thresholds</h3>
+      {/* Threshold Lists - Daily and Weekly side by side, each with its own order */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-start">
+        {CADENCES.map((cadence) => {
+        const group = groups[cadence]
+        return (
+      <div key={cadence} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">{cadence} Thresholds</h3>
         <div className="space-y-3">
-          {thresholds?.map((t, i) => (
+          {group.map((t, i) => (
             <div key={t.id}>
               {editingThreshold?.id === t.id ? (
                 <div className="space-y-4">
                   <ThresholdForm
                     title="Edit Threshold"
                     name={editName} setName={setEditName}
+                    cadence={editCadence} setCadence={setEditCadence}
                     source={editSource} setSource={(s) => { setEditSource(s); handleSourceChange(s, setEditAggregation) }}
                     healthType={editHealthType} setHealthType={setEditHealthType}
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
@@ -446,7 +471,7 @@ export function Thresholds() {
                   </div>
                   <div className="flex flex-col gap-1 justify-center shrink-0">
                     <button
-                      onClick={() => moveThreshold(t.id, -1)}
+                      onClick={() => moveThreshold(group, t.id, -1)}
                       disabled={i === 0 || updateThreshold.isPending}
                       aria-label={`Move ${t.name} up`}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
@@ -456,8 +481,8 @@ export function Thresholds() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => moveThreshold(t.id, 1)}
-                      disabled={i === (thresholds?.length ?? 0) - 1 || updateThreshold.isPending}
+                      onClick={() => moveThreshold(group, t.id, 1)}
+                      disabled={i === group.length - 1 || updateThreshold.isPending}
                       aria-label={`Move ${t.name} down`}
                       className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
                     >
@@ -471,12 +496,15 @@ export function Thresholds() {
             </div>
           ))}
 
-          {(!thresholds || thresholds.length === 0) && (
+          {group.length === 0 && (
             <div className="text-center py-8 text-slate-400">
-              No thresholds defined
+              No {cadence.toLowerCase()} thresholds defined
             </div>
           )}
         </div>
+      </div>
+        )
+        })}
       </div>
     </div>
   )
@@ -485,6 +513,7 @@ export function Thresholds() {
 function ThresholdForm({
   title,
   name, setName,
+  cadence, setCadence,
   source, setSource,
   healthType, setHealthType,
   ideaType, setIdeaType,
@@ -514,6 +543,7 @@ function ThresholdForm({
 }: {
   title: string
   name: string; setName: (v: string) => void
+  cadence: ThresholdCadence; setCadence: (v: ThresholdCadence) => void
   source: ThresholdSource; setSource: (v: ThresholdSource) => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
   ideaType: LocalIdeasRecord['type']; setIdeaType: (v: LocalIdeasRecord['type']) => void
@@ -553,6 +583,25 @@ function ThresholdForm({
           placeholder="e.g. Sugar, Steps/wk"
           className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
         />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Cadence</label>
+        <div className="grid grid-cols-2 gap-2">
+          {CADENCES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCadence(c)}
+              className={`py-3 rounded-lg font-medium transition-colors ${
+                cadence === c
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

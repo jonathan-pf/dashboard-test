@@ -13,6 +13,7 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 
 interface ThresholdDef {
   name: string
+  cadence?: 'Daily' | 'Weekly'
   source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
   healthType?: string | null
   ideaType?: string | null
@@ -273,26 +274,47 @@ export function TrafficLightWidgets() {
 
   const openNoteDef = definitions.find((d) => d.name === noteFor && d.notes)
 
+  // Daily and Weekly thresholds render as two columns next to each other, each
+  // keeping its own order. If one group is empty, the other takes full width.
+  const daily = definitions.filter((d) => d.cadence !== 'Weekly')
+  const weekly = definitions.filter((d) => d.cadence === 'Weekly')
+  const bothGroups = daily.length > 0 && weekly.length > 0
+
+  const renderTile = (def: ThresholdDef) => (
+    <div
+      key={def.name}
+      className={`relative ${def.notes ? 'cursor-pointer' : ''}`}
+      onClick={() => def.notes && setNoteFor(noteFor === def.name ? null : def.name)}
+    >
+      {def.notes && (
+        <span
+          className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400"
+          title="Has notes - tap to view"
+        />
+      )}
+      <TrafficLightItem definition={def} />
+    </div>
+  )
+
   return (
     <div className="bg-white rounded-xl p-3 shadow-sm border border-slate-200">
       <Link to="/thresholds" className="block font-semibold text-slate-900 mb-2 text-sm hover:text-blue-600 transition-colors">Thresholds</Link>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-        {definitions.map((def) => (
-          <div
-            key={def.name}
-            className={`relative ${def.notes ? 'cursor-pointer' : ''}`}
-            onClick={() => def.notes && setNoteFor(noteFor === def.name ? null : def.name)}
-          >
-            {def.notes && (
-              <span
-                className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-400"
-                title="Has notes - tap to view"
-              />
-            )}
-            <TrafficLightItem definition={def} />
-          </div>
-        ))}
-      </div>
+      {bothGroups ? (
+        <div className="grid grid-cols-2 gap-3">
+          {([['Daily', daily], ['Weekly', weekly]] as const).map(([label, group]) => (
+            <div key={label}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">{label}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {group.map(renderTile)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {definitions.map(renderTile)}
+        </div>
+      )}
       {openNoteDef && (
         <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">

@@ -246,6 +246,10 @@ export interface RulesRecord extends AirtableRecord {
   }
 }
 
+// Whether a threshold is tracked daily or weekly; shown as separate columns
+// with independent ordering
+export type ThresholdCadence = 'Daily' | 'Weekly'
+
 // Thresholds table - traffic light definitions
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
@@ -263,13 +267,14 @@ export interface ThresholdsRecord extends AirtableRecord {
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
+    Cadence?: ThresholdCadence | null
     Aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast' | 'overdueCount'
     Days?: number | null
     Notes?: string | null // Long text - e.g. what a score means
     'Red Threshold': number
     'Green Threshold': number
     'Lower Is Better'?: boolean
-    Order?: number | null // Display order in the dashboard grid (0 = first)
+    Order?: number | null // Display order within the cadence column (0 = first)
     Rules?: string[] // Linked record IDs
   }
 }
@@ -527,12 +532,13 @@ export interface LocalThresholdsRecord {
   leisurePeriod: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
   leisureType: LocalLeisureRecord['type'] | null
   sugarPeriod: SugarThresholdPeriod | null
+  cadence: ThresholdCadence
   aggregation: 'lastValue' | 'sumLast7Days' | 'averageLast3' | 'countLastNDays' | 'countNextNDays' | 'sumLastNDays' | 'averageLastNDays' | 'daysSinceLast' | 'overdueCount'
   days: number | null
   redThreshold: number
   greenThreshold: number
   lowerIsBetter: boolean
-  order: number | null
+  order: number | null // Display order within the cadence column
   ruleIds: string[]
   notes: string | null
   createdTime: string

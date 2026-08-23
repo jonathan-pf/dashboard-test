@@ -47,6 +47,7 @@ import type {
   LocalSugarSummaryRecord,
   SugarPeriod,
   SugarThresholdPeriod,
+  ThresholdCadence,
   PendingMutation,
   TableName,
   TABLES,
@@ -252,6 +253,9 @@ function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRec
     leisurePeriod: record.fields['Leisure Period'] ?? null,
     leisureType: record.fields['Leisure Type'] ?? null,
     sugarPeriod: selectName<SugarThresholdPeriod>(record.fields['Sugar Period']),
+    // Records from before the Daily/Weekly split have no Cadence: snapshot-style
+    // aggregations read as Daily, windowed ones as Weekly
+    cadence: selectName<ThresholdCadence>(record.fields.Cadence) ?? (record.fields.Aggregation === 'lastValue' ? 'Daily' : 'Weekly'),
     aggregation: record.fields.Aggregation || 'lastValue',
     days: record.fields.Days ?? null,
     redThreshold: record.fields['Red Threshold'] ?? 0,
@@ -504,6 +508,7 @@ function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string
     'Leisure Period': record.leisurePeriod,
     'Leisure Type': record.leisureType,
     'Sugar Period': record.sugarPeriod,
+    Cadence: record.cadence,
     Aggregation: record.aggregation,
     Days: record.days,
     'Red Threshold': record.redThreshold,
@@ -2068,7 +2073,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'cadence' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -2092,6 +2097,7 @@ class SyncService {
     if (updates.leisurePeriod !== undefined) updateData['Leisure Period'] = updates.leisurePeriod
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType
     if (updates.sugarPeriod !== undefined) updateData['Sugar Period'] = updates.sugarPeriod
+    if (updates.cadence !== undefined) updateData.Cadence = updates.cadence
     if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
     if (updates.days !== undefined) updateData.Days = updates.days
     if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold
