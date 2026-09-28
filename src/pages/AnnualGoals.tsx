@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { GoalsNav } from '@/components/widgets/GoalsNav'
 import {
   useGoals,
   useAreas,
@@ -296,17 +296,8 @@ export function AnnualGoals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          to="/goals"
-          className="p-2 -ml-2 text-slate-500 hover:text-slate-700 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h2 className="text-2xl font-bold text-slate-900">{currentYear} Goals</h2>
-      </div>
+      <h2 className="text-2xl font-bold text-slate-900">{currentYear} Goals</h2>
+      <GoalsNav />
 
       {/* Annual Goals */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">

@@ -528,7 +528,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.96.2`)
+    debugLog(`App version: v1.97.0`)
 
     // Log Airtable configuration (PAT redacted)
     const airtableDebug = airtableService.getDebugInfo()

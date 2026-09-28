@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { GoalsNav } from '@/components/widgets/GoalsNav'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useCurrentWeekGoals,
@@ -226,47 +226,8 @@ export function Goals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Goals</h2>
-        <div className="flex gap-2">
-          <Link
-            to="/goals/next-week"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Next Week
-          </Link>
-          <Link
-            to="/goals/next-month"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Next Month
-          </Link>
-          <Link
-            to="/goals/next-quarter"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            Next Quarter
-          </Link>
-          <Link
-            to="/goals/this-month"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            This Month
-          </Link>
-          <Link
-            to="/goals/this-quarter"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            This Quarter
-          </Link>
-          <Link
-            to="/goals/this-year"
-            className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            This Year
-          </Link>
-        </div>
-      </div>
+      <h2 className="text-2xl font-bold text-slate-900">Goals</h2>
+      <GoalsNav />
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">

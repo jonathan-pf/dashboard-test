@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { GoalsNav } from '@/components/widgets/GoalsNav'
 import { GoalProgressRing } from '@/components/charts/GoalProgressRing'
 import {
   useCurrentQuarterGoals,
@@ -192,15 +192,8 @@ export function QuarterlyGoals() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">This Quarter's Goals</h2>
-        <Link
-          to="/goals"
-          className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-        >
-          This Week
-        </Link>
-      </div>
+      <h2 className="text-2xl font-bold text-slate-900">This Quarter's Goals</h2>
+      <GoalsNav />
 
       <p className="text-sm text-slate-500">
         {quarterLabel}
