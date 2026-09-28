@@ -21,6 +21,7 @@ import type {
   PendingMutation,
   SyncMeta,
 } from '@/types/airtable'
+import { pickFlaggedWeek, type WeekFlag } from '@/utils/weeks'
 
 class DashboardDatabase extends Dexie {
   health!: EntityTable<LocalHealthRecord, 'id'>
@@ -365,9 +366,27 @@ export async function clearAllData(): Promise<void> {
   ])
 }
 
+// Resolve a week flag to a single record. Each flag can match one week per
+// year (the Airtable formulas compare WEEKNUM only), so pick the one nearest
+// to today rather than whichever record ID happens to sort first.
+async function getFlaggedWeek(flag: WeekFlag): Promise<LocalWeeksRecord | undefined> {
+  const flagged = await db.weeks.filter((w) => w[flag]).toArray()
+  return pickFlaggedWeek(flagged)
+}
+
 // Get current week
-export async function getCurrentWeek(): Promise<LocalWeeksRecord | undefined> {
-  return db.weeks.where('thisWeek').equals(1).first()
+export function getCurrentWeek(): Promise<LocalWeeksRecord | undefined> {
+  return getFlaggedWeek('thisWeek')
+}
+
+// Get last week
+export function getLastWeek(): Promise<LocalWeeksRecord | undefined> {
+  return getFlaggedWeek('lastWeek')
+}
+
+// Get next week
+export function getNextWeek(): Promise<LocalWeeksRecord | undefined> {
+  return getFlaggedWeek('nextWeek')
 }
 
 // Get health records for a specific type and date range

@@ -528,7 +528,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.10.0`)
+    debugLog(`App version: v1.96.2`)
 
     // Log Airtable configuration (PAT redacted)
     const airtableDebug = airtableService.getDebugInfo()
@@ -733,9 +733,11 @@ class SyncService {
       const sample = weeksRecords[0]
       debugLog(`  weeks.Week Commencing: "${sample.fields['Week Commencing']}"`)
       // Check This Week flag
-      const currentWeek = weeksRecords.find(w => w.fields['This Week'] === 'Yes')
-      if (currentWeek) {
-        debugLog(`  Current week found: "${currentWeek.fields.Name}" (Week ${currentWeek.fields['Week Number']})`, 'success')
+      const currentWeeks = weeksRecords.filter(w => w.fields['This Week'] === 'Yes')
+      if (currentWeeks.length === 1) {
+        debugLog(`  Current week found: "${currentWeeks[0].fields.Name}" (Week ${currentWeeks[0].fields['Week Number']})`, 'success')
+      } else if (currentWeeks.length > 1) {
+        debugLog(`  ${currentWeeks.length} weeks have This Week = Yes (${currentWeeks.map(w => w.fields.Name).join(', ')}) - using the one nearest today`, 'warn')
       } else {
         debugLog('  No week with This Week = Yes found!', 'warn')
       }

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '@/db'
+import { db, getCurrentWeek, getLastWeek, getNextWeek } from '@/db'
 import { syncService } from '@/services/sync'
 import type {
   LocalHealthRecord,
@@ -77,15 +77,15 @@ export function useWeeks() {
 }
 
 export function useCurrentWeek() {
-  return useLiveQuery(() => db.weeks.filter((w) => w.thisWeek).first(), [])
+  return useLiveQuery(() => getCurrentWeek(), [])
 }
 
 export function useLastWeek() {
-  return useLiveQuery(() => db.weeks.filter((w) => w.lastWeek).first(), [])
+  return useLiveQuery(() => getLastWeek(), [])
 }
 
 export function useNextWeek() {
-  return useLiveQuery(() => db.weeks.filter((w) => w.nextWeek).first(), [])
+  return useLiveQuery(() => getNextWeek(), [])
 }
 
 export function useGoals() {
@@ -461,8 +461,8 @@ export function useAllThresholdColors() {
           : queued.length
       } else if (t.source === 'leisure' && t.leisurePeriod) {
         const week = t.leisurePeriod === 'This Week'
-          ? await db.weeks.filter(w => w.thisWeek).first()
-          : await db.weeks.filter(w => w.lastWeek).first()
+          ? await getCurrentWeek()
+          : await getLastWeek()
 
         if (week) {
           const weekStartStr = week.weekCommencing
@@ -566,7 +566,7 @@ export function useAllThresholdColors() {
 
 export function useCurrentWeekIdeas() {
   return useLiveQuery(async () => {
-    const currentWeek = await db.weeks.filter((w) => w.thisWeek).first()
+    const currentWeek = await getCurrentWeek()
     if (!currentWeek) return []
     return db.ideas.where('weekId').equals(currentWeek.id).reverse().sortBy('when')
   }, [])
