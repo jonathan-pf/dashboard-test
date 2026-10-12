@@ -26,6 +26,7 @@ const PROJECTS: {
   { name: 'Novella', statText: 'text-orange-600', buttonActive: 'bg-orange-600 text-white', badge: 'bg-orange-100 text-orange-700' },
   { name: 'Scoping', statText: 'text-pink-600', buttonActive: 'bg-pink-600 text-white', badge: 'bg-pink-100 text-pink-700' },
   { name: 'Cruxes', statText: 'text-teal-600', buttonActive: 'bg-teal-600 text-white', badge: 'bg-teal-100 text-teal-700' },
+  { name: 'Systemisation', statText: 'text-indigo-600', buttonActive: 'bg-indigo-600 text-white', badge: 'bg-indigo-100 text-indigo-700' },
 ]
 
 export function Words() {
@@ -52,6 +53,7 @@ export function Words() {
   const weeks = useWeeks()
   const currentWeek = useCurrentWeek()
   const wordsByProject = useCurrentWeekWordsByProject()
+  const weekTotal = PROJECTS.reduce((sum, project) => sum + wordsByProject[project.name], 0)
   const words = useWords()
   const localWordsByWeek = useLocalWordsByWeek()
   const createWords = useCreateWords()
@@ -122,7 +124,13 @@ export function Words() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-slate-900">Words</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Words</h2>
+        <div className="text-right">
+          <p className="text-xs text-slate-500">This week</p>
+          <p className="text-2xl font-bold text-slate-900">{weekTotal.toLocaleString()}</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-3 gap-3">
         {PROJECTS.map((project) => (
@@ -198,7 +206,7 @@ export function Words() {
                   <button
                     key={project.name}
                     onClick={() => setEntryProject(project.name)}
-                    className={`py-2 rounded-lg font-medium transition-colors ${
+                    className={`py-2 rounded-lg text-sm font-medium transition-colors ${
                       entryProject === project.name
                         ? project.buttonActive
                         : 'bg-slate-100 text-slate-600'

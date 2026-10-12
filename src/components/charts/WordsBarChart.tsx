@@ -12,8 +12,8 @@ import type { LocalWeeksRecord } from '@/types/airtable'
 
 interface WordsBarChartProps {
   weeks: LocalWeeksRecord[] | undefined
-  // Scoping/Cruxes totals keyed by week ID, computed locally (no Airtable rollup exists)
-  localWordsByWeek?: Record<string, Partial<Record<'Scoping' | 'Cruxes', number>>>
+  // Scoping/Cruxes/Systemisation totals keyed by week ID, computed locally (no Airtable rollup exists)
+  localWordsByWeek?: Record<string, Partial<Record<'Scoping' | 'Cruxes' | 'Systemisation', number>>>
   loading?: boolean
 }
 
@@ -62,6 +62,7 @@ export function WordsBarChart({ weeks, localWordsByWeek, loading }: WordsBarChar
       Novella: week.totalNovella ?? 0,
       Scoping: localWordsByWeek?.[week.id]?.Scoping ?? 0,
       Cruxes: localWordsByWeek?.[week.id]?.Cruxes ?? 0,
+      Systemisation: localWordsByWeek?.[week.id]?.Systemisation ?? 0,
     }
   })
 
@@ -95,7 +96,8 @@ export function WordsBarChart({ weeks, localWordsByWeek, loading }: WordsBarChar
         <Bar dataKey="Notes" stackId="a" fill="#8b5cf6" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Novella" stackId="a" fill="#f97316" radius={[0, 0, 0, 0]} />
         <Bar dataKey="Scoping" stackId="a" fill="#ec4899" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="Cruxes" stackId="a" fill="#0d9488" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="Cruxes" stackId="a" fill="#0d9488" radius={[0, 0, 0, 0]} />
+        <Bar dataKey="Systemisation" stackId="a" fill="#4f46e5" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

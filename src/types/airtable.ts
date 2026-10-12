@@ -9,7 +9,7 @@ export interface HealthRecord extends AirtableRecord {
   fields: {
     Name: string // Formula field (Date - Type)
     Value: number
-    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption'
+    Type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | 'VO2' | 'Experience'
     Date: string // ISO date string
     'Week Number Name': string // Formula field
     'Week Link': string[] // Record IDs linking to Weeks table
@@ -38,7 +38,7 @@ export interface WordsRecord extends AirtableRecord {
   fields: {
     Name: string
     Words: number
-    Project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes'
+    Project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | 'Systemisation'
     When: string // ISO date string
     'Weekly Name': string // Formula field
     'Weekly Link': string[] // Record IDs linking to Weeks table
@@ -113,7 +113,7 @@ export interface AreasRecord extends AirtableRecord {
 export interface IdeasRecord extends AirtableRecord {
   fields: {
     Name: string
-    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda'
+    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda' | 'Finding'
     'When?': string // Created time
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
@@ -255,15 +255,15 @@ export interface ThresholdsRecord extends AirtableRecord {
   fields: {
     Name: string
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
-    'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | null
-    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | null
+    'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | 'VO2' | 'Experience' | null
+    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Event Type'?: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure' | null
     'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
     'Event Tag'?: 'Adventure' | 'Date' | 'Social' | 'Group' | 'Family' | null
     'Habit'?: string | null
     'People Category'?: 'Work' | 'Social' | null
-    'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | null
+    'Words Project'?: 'All' | 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | 'Systemisation' | null
     'Leisure Period'?: 'This Week' | 'Last Week' | 'Planned Queue' | 'Planned Queue Hours' | null
     'Leisure Type'?: 'Article' | 'Book' | 'Film' | 'TV Show' | 'Game' | 'Play' | 'Cinema' | 'Immersive' | 'Museum' | null
     'Sugar Period'?: SugarThresholdPeriod | null
@@ -297,7 +297,7 @@ export interface LocalHealthRecord {
   id: string
   name: string
   value: number
-  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption'
+  type: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | 'VO2' | 'Experience'
   date: string
   weekId: string | null
   unitsType: 'Theory' | 'Social' | null
@@ -326,7 +326,7 @@ export interface LocalWordsRecord {
   id: string
   name: string
   words: number
-  project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes'
+  project: 'Arcadia' | 'Blog' | 'Notes' | 'Novella' | 'Scoping' | 'Cruxes' | 'Systemisation'
   when: string
   weekId: string | null
   createdTime: string
@@ -385,7 +385,7 @@ export interface LocalAreasRecord {
 export interface LocalIdeasRecord {
   id: string
   name: string
-  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda'
+  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding'
   when: string
   weekId: string | null
   notes: string | null

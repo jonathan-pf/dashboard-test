@@ -45,6 +45,8 @@ export function Health() {
   const frogsData = useHealthByType('Frog')
   const treatsData = useHealthByType('Treat')
   const consumptionData = useHealthByType('Consumption')
+  const vo2Data = useHealthByType('VO2')
+  const experienceData = useHealthByType('Experience')
   const glucoseTrends = useHealthTrends('Glucose', 30)
   const unitsTrends = useHealthTrends('Units', 30)
   const repsTrends = useHealthTrends('Reps', 30)
@@ -53,6 +55,8 @@ export function Health() {
   const frogsTrends = useHealthTrends('Frog', 30)
   const treatsTrends = useHealthTrends('Treat', 30)
   const consumptionTrends = useHealthTrends('Consumption', 30)
+  const vo2Trends = useHealthTrends('VO2', 30)
+  const experienceTrends = useHealthTrends('Experience', 30)
 
   // Blood glucose (CGM) — auto-synced Sugar Summary table (read-only)
   const sugarSummary = useSugarSummary(30)
@@ -77,6 +81,8 @@ export function Health() {
     ...(frogsData ?? []),
     ...(treatsData ?? []),
     ...(consumptionData ?? []),
+    ...(vo2Data ?? []),
+    ...(experienceData ?? []),
   ]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)
@@ -321,6 +327,18 @@ export function Health() {
             >
               + Log Consumption
             </button>
+            <button
+              onClick={() => startEntry('VO2')}
+              className="w-full py-3 bg-lime-50 text-lime-600 rounded-lg font-medium hover:bg-lime-100 transition-colors"
+            >
+              + Log VO2
+            </button>
+            <button
+              onClick={() => startEntry('Experience')}
+              className="w-full py-3 bg-orange-50 text-orange-600 rounded-lg font-medium hover:bg-orange-100 transition-colors"
+            >
+              + Log Experience
+            </button>
           </div>
         )}
       </div>
@@ -462,6 +480,24 @@ export function Health() {
         />
       </div>
 
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">VO2 Trend (30 days)</h3>
+        <HealthTrendChart
+          data={vo2Trends}
+          type="VO2"
+          loading={!vo2Trends}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 className="font-semibold text-slate-900 mb-4">Experience Trend (30 days)</h3>
+        <HealthTrendChart
+          data={experienceTrends}
+          type="Experience"
+          loading={!experienceTrends}
+        />
+      </div>
+
       {/* Recent entries */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-4">Recent Entries</h3>
@@ -491,6 +527,10 @@ export function Health() {
                         ? 'bg-rose-500'
                         : entry.type === 'Consumption'
                         ? 'bg-sky-500'
+                        : entry.type === 'VO2'
+                        ? 'bg-lime-500'
+                        : entry.type === 'Experience'
+                        ? 'bg-orange-500'
                         : 'bg-purple-500'
                     }`}
                   />

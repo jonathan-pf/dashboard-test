@@ -10,8 +10,8 @@ type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'eve
 
 const CADENCES: ThresholdCadence[] = ['Daily', 'Weekly']
 
-const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption']
-const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda']
+const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption', 'VO2', 'Experience']
+const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda', 'Finding']
 // 'All' means the threshold covers every event type; 'Any' every status
 type EventTypeFilter = LocalEventsRecord['type'] | 'All'
 const EVENT_TYPE_FILTERS: EventTypeFilter[] = ['All', 'Meal', 'Party', 'Cinema', 'Theatre', 'Holiday', 'Event', 'Work Trip', 'Hobby', 'Adventure']
@@ -22,7 +22,7 @@ const EVENT_TAG_FILTERS: EventTagFilter[] = ['Any', 'Adventure', 'Date', 'Social
 // 'Any' means the threshold counts ideas of every status
 type IdeaStatusFilter = NonNullable<LocalThresholdsRecord['ideaStatus']> | 'Any'
 const IDEA_STATUS_FILTERS: IdeaStatusFilter[] = ['Any', 'Planned', 'Researched', 'Shipped', 'Active']
-const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella', 'Scoping', 'Cruxes']
+const WORDS_PROJECTS: (LocalWordsRecord['project'] | 'All')[] = ['All', 'Arcadia', 'Blog', 'Notes', 'Novella', 'Scoping', 'Cruxes', 'Systemisation']
 const AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'sumLast7Days', 'averageLast3', 'countLastNDays', 'sumLastNDays', 'averageLastNDays']
 // Blood-sugar thresholds check an average, so only these aggregations make sense.
 const SUGAR_AGGREGATIONS: LocalThresholdsRecord['aggregation'][] = ['lastValue', 'averageLast3', 'averageLastNDays']
