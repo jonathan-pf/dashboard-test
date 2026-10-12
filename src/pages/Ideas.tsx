@@ -25,6 +25,7 @@ const IDEA_TYPES: LocalIdeasRecord['type'][] = [
   'Gen',
   'Model',
   'Agenda',
+  'Finding',
 ]
 
 // Types shown in the summary grid (hide unused types)
@@ -40,6 +41,7 @@ const SUMMARY_TYPES: LocalIdeasRecord['type'][] = [
   'Gen',
   'Model',
   'Agenda',
+  'Finding',
 ]
 
 const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
@@ -58,6 +60,7 @@ const TYPE_COLORS: Record<LocalIdeasRecord['type'], string> = {
   Gen: 'bg-lime-100 text-lime-700',
   Model: 'bg-emerald-100 text-emerald-700',
   Agenda: 'bg-violet-100 text-violet-700',
+  Finding: 'bg-sky-100 text-sky-700',
 }
 
 export function Ideas() {

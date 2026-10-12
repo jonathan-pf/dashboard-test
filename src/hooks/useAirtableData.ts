@@ -1575,6 +1575,7 @@ export function useCurrentWeekWordsByProject() {
     Novella: 0,
     Scoping: 0,
     Cruxes: 0,
+    Systemisation: 0,
   }
 
   if (words) {
@@ -1588,7 +1589,7 @@ export function useCurrentWeekWordsByProject() {
 
 // Projects whose weekly totals are summed from local records
 // (the Weeks table has no rollup for them, unlike the original four projects)
-export const LOCAL_TOTAL_PROJECTS = ['Scoping', 'Cruxes'] as const
+export const LOCAL_TOTAL_PROJECTS = ['Scoping', 'Cruxes', 'Systemisation'] as const
 export type LocalTotalProject = (typeof LOCAL_TOTAL_PROJECTS)[number]
 
 export function useLocalWordsByWeek() {
