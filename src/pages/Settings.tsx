@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/version'
 import { useState } from 'react'
 import { useSyncStore } from '@/stores/syncStore'
 import { syncService } from '@/services/sync'
@@ -131,7 +132,7 @@ export function Settings() {
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-2">About</h3>
-        <p className="text-sm text-slate-500">Airtable Dashboard PWA v1.98.0</p>
+        <p className="text-sm text-slate-500">Airtable Dashboard PWA v{APP_VERSION}</p>
         <p className="text-xs text-slate-400 mt-1">
           Offline-first personal dashboard
         </p>

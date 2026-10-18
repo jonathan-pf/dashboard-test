@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/version'
 import { airtableService, AirtableError } from './airtable'
 import {
   db,
@@ -530,7 +531,7 @@ class SyncService {
     const store = useSyncStore.getState()
 
     debugLog('=== MANUAL SYNC STARTED ===')
-    debugLog(`App version: v1.97.0`)
+    debugLog(`App version: v${APP_VERSION}`)
 
     // Log Airtable configuration (PAT redacted)
     const airtableDebug = airtableService.getDebugInfo()

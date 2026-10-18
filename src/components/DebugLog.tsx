@@ -1,3 +1,4 @@
+import { APP_VERSION } from '@/version'
 import { useState } from 'react'
 import { useSyncStore, type DebugLogEntry } from '@/stores/syncStore'
 
@@ -32,7 +33,7 @@ export function DebugLog() {
   const formatLogsForCopy = () => {
     const header = [
       '=== SYNC DEBUG LOG ===',
-      `App Version: v1.9.5`,
+      `App Version: v${APP_VERSION}`,
       `Exported: ${new Date().toISOString()}`,
       `User Agent: ${navigator.userAgent}`,
       `Online: ${navigator.onLine}`,
