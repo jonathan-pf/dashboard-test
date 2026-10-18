@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { APP_VERSION } from '@/version'
 import { useSyncStore } from '@/stores/syncStore'
 import { useCurrentWeek } from '@/hooks/useAirtableData'
 
@@ -12,12 +14,17 @@ const isoWeek = (d: Date) => {
 
 export function Header() {
   const { isSyncing, lastSyncTime, pendingCount } = useSyncStore()
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const currentWeek = useCurrentWeek()
   const weekNumber = currentWeek?.weekNumber ?? isoWeek(new Date())
 
   const formatLastSync = () => {
     if (!lastSyncTime) return 'Never synced'
-    const diff = Date.now() - lastSyncTime
+    const diff = now - lastSyncTime
     const minutes = Math.floor(diff / 60000)
     if (minutes < 1) return 'Just now'
     if (minutes < 60) return `${minutes}m ago`
@@ -28,12 +35,12 @@ export function Header() {
 
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold text-slate-900">
           Dashboard
           <span className="ml-2 text-sm font-medium text-slate-400">Week {weekNumber}</span>
         </h1>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           {isSyncing && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -45,9 +52,10 @@ export function Header() {
               {pendingCount} pending
             </span>
           )}
-          {!isSyncing && (
-            <span>{formatLastSync()}</span>
-          )}
+          <span className="inline-flex items-center gap-2 whitespace-nowrap" data-testid="sync-freshness-version">
+            {!isSyncing && <><span>{formatLastSync()}</span><span aria-hidden="true">·</span></>}
+            <span>v{APP_VERSION}</span>
+          </span>
         </div>
       </div>
     </header>
