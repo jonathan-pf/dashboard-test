@@ -84,6 +84,7 @@ const SOURCE_COLORS: Record<ThresholdSource, string> = {
 export function Thresholds() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newCritical, setNewCritical] = useState(false)
   const [newCadence, setNewCadence] = useState<ThresholdCadence>('Daily')
   const [newSource, setNewSource] = useState<ThresholdSource>('health')
   const [newHealthType, setNewHealthType] = useState<LocalHealthRecord['type']>('Tidy')
@@ -107,6 +108,7 @@ export function Thresholds() {
 
   const [editingThreshold, setEditingThreshold] = useState<LocalThresholdsRecord | null>(null)
   const [editName, setEditName] = useState('')
+  const [editCritical, setEditCritical] = useState(false)
   const [editCadence, setEditCadence] = useState<ThresholdCadence>('Daily')
   const [editSource, setEditSource] = useState<ThresholdSource>('health')
   const [editHealthType, setEditHealthType] = useState<LocalHealthRecord['type']>('Tidy')
@@ -175,6 +177,7 @@ export function Thresholds() {
 
     await createThreshold.mutateAsync({
       name: newName.trim(),
+      critical: newCritical,
       cadence: newCadence,
       source: newSource,
       healthType: newSource === 'health' ? newHealthType : null,
@@ -200,6 +203,7 @@ export function Thresholds() {
     })
 
     setNewName('')
+    setNewCritical(false)
     setNewCadence('Daily')
     setNewSource('health')
     setNewHealthType('Tidy')
@@ -225,12 +229,14 @@ export function Thresholds() {
 
   const handleCancelCreate = () => {
     setNewName('')
+    setNewCritical(false)
     setShowCreateForm(false)
   }
 
   const startEditing = (t: LocalThresholdsRecord) => {
     setEditingThreshold(t)
     setEditName(t.name)
+    setEditCritical(t.critical === true)
     setEditCadence(t.cadence === 'Weekly' ? 'Weekly' : 'Daily')
     setEditSource(t.source)
     setEditHealthType((t.healthType as LocalHealthRecord['type']) ?? 'Tidy')
@@ -260,6 +266,7 @@ export function Thresholds() {
       thresholdId: editingThreshold.id,
       updates: {
         name: editName.trim(),
+        ...(editCritical !== (editingThreshold.critical === true) ? { critical: editCritical } : {}),
         cadence: editCadence,
         // Moving to the other cadence column appends the row to that column's end
         ...(editCadence !== editingThreshold.cadence ? { order: groups[editCadence].length } : {}),
@@ -361,6 +368,7 @@ export function Thresholds() {
             title="New Threshold"
             name={newName} setName={setNewName}
             cadence={newCadence} setCadence={setNewCadence}
+          critical={newCritical} setCritical={setNewCritical}
             source={newSource} setSource={(s) => { setNewSource(s); handleSourceChange(s, setNewAggregation) }}
             healthType={newHealthType} setHealthType={setNewHealthType}
             ideaType={newIdeaType} setIdeaType={setNewIdeaType}
@@ -411,6 +419,7 @@ export function Thresholds() {
                     title="Edit Threshold"
                     name={editName} setName={setEditName}
                     cadence={editCadence} setCadence={setEditCadence}
+                    critical={editCritical} setCritical={setEditCritical}
                     source={editSource} setSource={(s) => { setEditSource(s); handleSourceChange(s, setEditAggregation) }}
                     healthType={editHealthType} setHealthType={setEditHealthType}
                     ideaType={editIdeaType} setIdeaType={setEditIdeaType}
@@ -448,8 +457,9 @@ export function Thresholds() {
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full shrink-0 ${COLOR_CLASSES[thresholdColors?.get(t.id) ?? 'grey']}`} />
-                        <p className="text-sm font-medium text-slate-900">
+                        <p className={`text-sm ${t.critical === true ? 'font-bold text-slate-900' : 'font-normal text-slate-600'}`}>
                           {t.name}
+                          {t.critical === true && <span className="sr-only"> — Critical</span>}
                           <NoteIndicator notes={t.notes} />
                         </p>
                       </div>
@@ -514,6 +524,7 @@ function ThresholdForm({
   title,
   name, setName,
   cadence, setCadence,
+  critical, setCritical,
   source, setSource,
   healthType, setHealthType,
   ideaType, setIdeaType,
@@ -543,6 +554,7 @@ function ThresholdForm({
 }: {
   title: string
   name: string; setName: (v: string) => void
+  critical: boolean; setCritical: (v: boolean) => void
   cadence: ThresholdCadence; setCadence: (v: ThresholdCadence) => void
   source: ThresholdSource; setSource: (v: ThresholdSource) => void
   healthType: LocalHealthRecord['type']; setHealthType: (v: LocalHealthRecord['type']) => void
@@ -584,6 +596,10 @@ function ThresholdForm({
           className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
         />
       </div>
+      <label className="flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" checked={critical} onChange={(event) => setCritical(event.target.checked)} />
+        Critical (display priority only)
+      </label>
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">Cadence</label>
         <div className="grid grid-cols-2 gap-2">

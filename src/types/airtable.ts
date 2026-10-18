@@ -253,6 +253,7 @@ export type ThresholdCadence = 'Daily' | 'Weekly'
 // Thresholds table - traffic light definitions
 export interface ThresholdsRecord extends AirtableRecord {
   fields: {
+    Critical?: boolean
     Name: string
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | 'VO2' | 'Experience' | null
@@ -517,6 +518,7 @@ export interface LocalRulesRecord {
 }
 
 export interface LocalThresholdsRecord {
+  critical?: boolean // Absent in older caches: display as noncritical
   id: string
   name: string
   source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'

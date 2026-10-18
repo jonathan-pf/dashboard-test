@@ -12,6 +12,7 @@ const COLOR_CLASSES: Record<TrafficLightColor, string> = {
 }
 
 interface ThresholdDef {
+  critical?: boolean
   name: string
   cadence?: 'Daily' | 'Weekly'
   source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
@@ -62,7 +63,7 @@ function HealthTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -81,7 +82,7 @@ function IdeasTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function EventsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -101,7 +102,7 @@ function EventsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function HabitsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -120,7 +121,7 @@ function HabitsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}${unit}`
     : `≥ ${definition.greenThreshold}${unit}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function PeopleTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -138,10 +139,11 @@ function PeopleTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
-function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHint }: {
+export function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHint, critical = false }: {
+  critical?: boolean
   loading: boolean
   color: TrafficLightColor
   label: string
@@ -152,17 +154,17 @@ function TrafficLightDisplay({ loading, color, label, displayValue, thresholdHin
     <div className="bg-slate-50 rounded-lg px-2.5 py-2">
       {/* Full-width label, wrapping to two lines, so names stay readable on
           narrow screens; min-height keeps tiles in a row aligned */}
-      <p className="text-xs text-slate-500 leading-tight break-words line-clamp-2 min-h-[2rem]">{label}</p>
+      <p className={`text-xs leading-tight break-words line-clamp-2 min-h-[2rem] ${critical ? 'font-bold text-slate-900' : 'font-normal text-slate-600'}`}>{label}{critical && <span className="sr-only"> — Critical</span>}</p>
       {loading ? (
-        <div className="flex items-center gap-1.5 mt-1">
+        <div className="flex items-center gap-1.5 mt-1" aria-label="Loading">
           <div className="w-3 h-3 rounded-full bg-slate-200 animate-pulse shrink-0" />
           <div className="h-5 w-8 bg-slate-200 animate-pulse rounded" />
         </div>
       ) : (
         <>
           <div className="flex items-center gap-1.5 mt-1">
-            <div className={`w-3 h-3 rounded-full ${COLOR_CLASSES[color]} shrink-0`} />
-            <p className="text-sm font-semibold text-slate-900">{displayValue}</p>
+            <div role="img" aria-label={color === 'grey' ? 'No data' : color} className={`w-3 h-3 rounded-full ${COLOR_CLASSES[color]} shrink-0`} />
+            <p className={`text-sm ${critical ? 'font-bold text-slate-900' : 'font-normal text-slate-600'}`}>{displayValue}</p>
           </div>
           <p className="text-[10px] text-slate-400 leading-tight mt-0.5">{thresholdHint}</p>
         </>
@@ -193,7 +195,7 @@ function WordsTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -221,7 +223,7 @@ function LeisureTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}${unit}`
     : `≥ ${definition.greenThreshold}${unit}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function SugarTrafficLightItem({ definition }: { definition: ThresholdDef }) {
@@ -236,7 +238,7 @@ function SugarTrafficLightItem({ definition }: { definition: ThresholdDef }) {
     ? `≤ ${definition.greenThreshold}`
     : `≥ ${definition.greenThreshold}`
 
-  return <TrafficLightDisplay loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
+  return <TrafficLightDisplay critical={definition.critical} loading={loading} color={color} label={definition.name} displayValue={displayValue} thresholdHint={thresholdHint} />
 }
 
 function TrafficLightItem({ definition }: { definition: ThresholdDef }) {

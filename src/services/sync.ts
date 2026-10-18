@@ -236,8 +236,9 @@ function transformSugarSummaryRecord(record: SugarSummaryRecord): LocalSugarSumm
   }
 }
 
-function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRecord {
+export function transformThresholdsRecord(record: ThresholdsRecord): LocalThresholdsRecord {
   return {
+    critical: record.fields.Critical === true,
     id: record.id,
     name: record.fields.Name || '',
     source: record.fields.Source || 'health',
@@ -492,8 +493,9 @@ function localLeisureToAirtable(record: LocalLeisureRecord): Record<string, unkn
   }
 }
 
-function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string, unknown> {
+export function localThresholdsToAirtable(record: LocalThresholdsRecord): Record<string, unknown> {
   return {
+    ...(record.critical === true ? { Critical: true } : {}),
     Name: record.name,
     Source: record.source,
     'Health Type': record.healthType,
@@ -2075,7 +2077,7 @@ class SyncService {
   // Update a threshold record (handles offline)
   async updateThresholdsRecord(
     thresholdId: string,
-    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'cadence' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
+    updates: Partial<Pick<LocalThresholdsRecord, 'name' | 'source' | 'healthType' | 'ideaType' | 'ideaStatus' | 'eventType' | 'eventStatus' | 'eventTag' | 'habit' | 'peopleCategory' | 'wordsProject' | 'leisurePeriod' | 'leisureType' | 'sugarPeriod' | 'cadence' | 'critical' | 'aggregation' | 'days' | 'redThreshold' | 'greenThreshold' | 'lowerIsBetter' | 'order' | 'ruleIds' | 'notes'>>
   ): Promise<void> {
     const threshold = await db.thresholds.get(thresholdId)
     if (!threshold) throw new Error('Threshold not found')
@@ -2100,6 +2102,7 @@ class SyncService {
     if (updates.leisureType !== undefined) updateData['Leisure Type'] = updates.leisureType
     if (updates.sugarPeriod !== undefined) updateData['Sugar Period'] = updates.sugarPeriod
     if (updates.cadence !== undefined) updateData.Cadence = updates.cadence
+    if (updates.critical !== undefined) updateData.Critical = updates.critical
     if (updates.aggregation !== undefined) updateData.Aggregation = updates.aggregation
     if (updates.days !== undefined) updateData.Days = updates.days
     if (updates.redThreshold !== undefined) updateData['Red Threshold'] = updates.redThreshold
