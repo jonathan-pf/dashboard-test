@@ -11,7 +11,7 @@ type ThresholdSource = 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'eve
 const CADENCES: ThresholdCadence[] = ['Daily', 'Weekly']
 
 const HEALTH_TYPES: LocalHealthRecord['type'][] = ['Units', 'Glucose', 'Reps', 'Willpoint', 'Tidy', 'Weight', 'Frog', 'Treat', 'Consumption', 'VO2', 'Experience']
-const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda', 'Finding']
+const IDEA_TYPES: LocalIdeasRecord['type'][] = ['Revelation', 'Crux', 'Driver', 'Bottleneck', 'Step', 'Failure', 'Bit', 'Stage', 'Feature', 'Blog', 'Question', 'Skill', 'Gen', 'Model', 'Agenda', 'Finding', 'Scoping']
 // 'All' means the threshold covers every event type; 'Any' every status
 type EventTypeFilter = LocalEventsRecord['type'] | 'All'
 const EVENT_TYPE_FILTERS: EventTypeFilter[] = ['All', 'Meal', 'Party', 'Cinema', 'Theatre', 'Holiday', 'Event', 'Work Trip', 'Hobby', 'Adventure']

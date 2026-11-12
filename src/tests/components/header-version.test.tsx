@@ -11,15 +11,15 @@ describe('Header version and freshness', () => {
  it('keeps version beside freshness as minutes and hours pass', () => {
   render(<Header />)
   const group=screen.getByTestId('sync-freshness-version')
-  expect(group).toHaveTextContent('Just now·v1.99.1')
-  act(() => vi.advanceTimersByTime(60_000)); expect(group).toHaveTextContent('1m ago·v1.99.1')
-  act(() => vi.advanceTimersByTime(3_540_000)); expect(group).toHaveTextContent('1h ago·v1.99.1')
+  expect(group).toHaveTextContent('Just now·v1.100.0')
+  act(() => vi.advanceTimersByTime(60_000)); expect(group).toHaveTextContent('1m ago·v1.100.0')
+  act(() => vi.advanceTimersByTime(3_540_000)); expect(group).toHaveTextContent('1h ago·v1.100.0')
  })
  it('keeps version visible when never synced and while syncing', () => {
   state.lastSyncTime=null; const {rerender}=render(<Header />)
-  expect(screen.getByTestId('sync-freshness-version')).toHaveTextContent('Never synced·v1.99.1')
+  expect(screen.getByTestId('sync-freshness-version')).toHaveTextContent('Never synced·v1.100.0')
   state.isSyncing=true; rerender(<Header />)
-  expect(screen.getByText('Syncing...')).toBeVisible(); expect(screen.getByText('v1.99.1')).toBeVisible()
+  expect(screen.getByText('Syncing...')).toBeVisible(); expect(screen.getByText('v1.100.0')).toBeVisible()
  })
  it('exports real header markup for narrow layout inspection', () => {
   state.pendingCount=3

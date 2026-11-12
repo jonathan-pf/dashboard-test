@@ -113,7 +113,7 @@ export interface AreasRecord extends AirtableRecord {
 export interface IdeasRecord extends AirtableRecord {
   fields: {
     Name: string
-    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda' | 'Finding'
+    Type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Agenda' | 'Finding' | 'Scoping'
     'When?': string // Created time
     'Weekly Name': string // Formula
     Weeks: string[] // Record IDs linking to Weeks table
@@ -257,7 +257,7 @@ export interface ThresholdsRecord extends AirtableRecord {
     Name: string
     Source: 'health' | 'ideas' | 'words' | 'leisure' | 'sugar' | 'events' | 'habits' | 'people'
     'Health Type'?: 'Units' | 'Glucose' | 'Reps' | 'Willpoint' | 'Tidy' | 'Weight' | 'Frog' | 'Treat' | 'Consumption' | 'VO2' | 'Experience' | null
-    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding' | null
+    'Idea Type'?: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding' | 'Scoping' | null
     'Idea Status'?: 'Planned' | 'Researched' | 'Shipped' | 'Active' | null
     'Event Type'?: 'Meal' | 'Party' | 'Cinema' | 'Theatre' | 'Holiday' | 'Event' | 'Work Trip' | 'Hobby' | 'Adventure' | null
     'Event Status'?: 'Planned' | 'Held' | 'Cancelled' | null
@@ -386,7 +386,7 @@ export interface LocalAreasRecord {
 export interface LocalIdeasRecord {
   id: string
   name: string
-  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding'
+  type: 'Revelation' | 'Crux' | 'Driver' | 'Bottleneck' | 'Step' | 'Failure' | 'Bit' | 'Stage' | 'Feature' | 'Blog' | 'Question' | 'Skill' | 'Gen' | 'Model' | 'Agenda' | 'Finding' | 'Scoping'
   when: string
   weekId: string | null
   notes: string | null
