@@ -7,10 +7,10 @@ vi.mock('@/hooks/useAirtableData', () => ({
  useCreateIdea: () => ({mutateAsync:vi.fn()}), useUpdateIdea: () => ({mutateAsync:vi.fn()}), useDeleteIdea: () => ({mutateAsync:vi.fn()}),
 }))
 describe('Scoping ideas', () => {
- it('offers Scoping for filtering and creating ideas', () => {
+ it.each(['Scoping', 'Review'])('offers %s for filtering and creating ideas', (type) => {
   render(<MemoryRouter><Ideas /></MemoryRouter>)
-  expect(screen.getByRole('option', {name:'Scoping'})).toBeInTheDocument()
+  expect(screen.getByRole('option', {name:type})).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', {name:/add idea/i}))
-  expect(screen.getAllByRole('option', {name:'Scoping'}).length).toBeGreaterThan(1)
+  expect(screen.getAllByRole('option', {name:type}).length).toBeGreaterThan(1)
  })
 })
